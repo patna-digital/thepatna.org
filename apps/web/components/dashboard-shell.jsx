@@ -67,6 +67,18 @@ export function DashboardShell({
               "The workspace is organised for coordination, review, and evidence-led action across PATNA."}
           </p>
         </div>
+
+        <div className="sidebar-cross-nav">
+          <div className="sidebar-cross-nav-label">Navigate to</div>
+          <Link className="sidebar-cross-nav-link" href="/">
+            <span>Website</span>
+            <span className="sidebar-cross-nav-arrow">↗</span>
+          </Link>
+          <Link className="sidebar-cross-nav-link" href="/app">
+            <span>Community app</span>
+            <span className="sidebar-cross-nav-arrow">↗</span>
+          </Link>
+        </div>
       </aside>
 
       <main className="dashboard-main">

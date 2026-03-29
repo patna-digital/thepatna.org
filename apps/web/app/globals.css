@@ -2677,6 +2677,52 @@ img {
   text-transform: uppercase;
 }
 
+.sidebar-cross-nav {
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-cross-nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 0 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.sidebar-cross-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.58);
+  transition: background 0.14s, color 0.14s;
+}
+
+.sidebar-cross-nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sidebar-cross-nav-arrow {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+/* In the admin sidebar the spotlight already carries margin-top: auto */
+.dashboard-sidebar .sidebar-cross-nav {
+  margin-top: 0;
+}
+
 .member-workspace-main {
   overflow-y: auto;
 }
