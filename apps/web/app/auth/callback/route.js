@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSafeRedirectPath } from "@/lib/auth";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/env";
+import { ensureProfileRecord } from "@/lib/supabase/access";
 
 function redirectWithCookies(targetUrl, response) {
   const redirectResponse = NextResponse.redirect(targetUrl);
@@ -55,11 +56,7 @@ export async function GET(request) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_status")
-      .eq("id", user.id)
-      .maybeSingle();
+    const profile = await ensureProfileRecord({ supabase, user });
 
     if (profile?.onboarding_status === "invited") {
       await supabase

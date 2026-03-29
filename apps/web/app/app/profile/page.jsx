@@ -110,7 +110,29 @@ export default async function MemberProfilePage({ searchParams }) {
     ]);
 
   if (profileResult.error || !profileResult.member) {
-    redirect("/app");
+    return (
+      <MemberWorkspaceShell
+        eyebrow="Member profile"
+        title="Complete account setup"
+        subtitle="PATNA could not fully load your member profile yet. This usually means your account exists in login but has not finished profile provisioning."
+      >
+        <article className="dashboard-card member-module-card">
+          <h3>Profile provisioning still needed</h3>
+          <p className="member-section-copy">
+            Your login worked, but the profile record needed for the member workspace is missing or not yet available.
+            Please contact a PATNA administrator to complete account setup, or try signing in again shortly if the account was just invited.
+          </p>
+          <div className="profile-step-links">
+            <Link className="secondary-button" href="/auth/login?next=/app/profile">
+              Return to sign in
+            </Link>
+            <Link className="primary-button" href="/contact">
+              Contact PATNA
+            </Link>
+          </div>
+        </article>
+      </MemberWorkspaceShell>
+    );
   }
 
   const member = profileResult.member;
