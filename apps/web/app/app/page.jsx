@@ -297,7 +297,7 @@ export default async function MemberDashboardPage() {
 
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
-  if (frameData.error || !frameData.member || !frameData.member.isActive) {
+  if (frameData.error || !frameData.member) {
     redirect("/app/profile");
   }
 

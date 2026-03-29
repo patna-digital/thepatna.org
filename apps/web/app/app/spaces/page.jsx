@@ -16,9 +16,7 @@ export default async function SpacesPage() {
 
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
-  if (frameData.error || !frameData.member) {
-    redirect("/app/profile");
-  }
+  // Allow navigation even with incomplete profile
 
   const groups = buildMemberSpaceGroups(memberSpaces);
 

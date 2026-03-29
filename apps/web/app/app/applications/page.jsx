@@ -25,10 +25,7 @@ export default async function ApplicationsPage() {
 
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
-  if (frameData.error || !frameData.member) {
-    redirect("/app/profile");
-  }
-
+  // Allow navigation even with incomplete profile
   const summary = buildApplicationSummary(memberApplications);
 
   return (

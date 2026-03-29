@@ -25,10 +25,7 @@ export default async function MembersPage() {
     fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
   ]);
 
-  if (frameData.error || !frameData.member) {
-    redirect("/app/profile");
-  }
-
+  // Allow navigation even with incomplete profile
   return (
     <MemberWorkspaceShell
       eyebrow="Community"

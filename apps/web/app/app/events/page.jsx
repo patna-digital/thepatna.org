@@ -21,9 +21,7 @@ export default async function MemberEventsPage() {
     fetchMemberEvents({ supabase }),
   ]);
 
-  if (frameData.error || !frameData.member) {
-    redirect("/app/profile");
-  }
+  // Allow navigation even with incomplete profile
 
   return (
     <MemberWorkspaceShell
