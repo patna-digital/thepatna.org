@@ -12,10 +12,6 @@ function getInitials(name) {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("") || "P";
 }
 
-function getAvailabilityLabel(status) {
-  const value = String(status || "").trim().toLowerCase();
-  return value ? value.replace(/\b\w/g, (character) => character.toUpperCase()) : "";
-}
 
 function getSearchText(member) {
   return [
@@ -119,7 +115,7 @@ export function MemberDirectoryClient({ directory }) {
         ))}
       </div>
 
-      <article className="dashboard-card member-directory-toolbar-card">
+      <article className="member-directory-toolbar-card">
         <div className="member-directory-toolbar-grid">
           <label className="member-directory-search">
             <span aria-hidden="true" className="member-directory-search-icon">
@@ -175,64 +171,66 @@ export function MemberDirectoryClient({ directory }) {
         {filteredMembers.map((member) => {
           const isSelf = member.id === directory.currentUserId;
           const tone = getCohortTone(member.primaryCohort?.slug);
-          const extraTagCount = Math.max(member.domainTags.length - 3, 0);
-          const availabilityLabel = getAvailabilityLabel(member.availabilityStatus);
           const roleLabel = member.roleTitleLabel || "";
           const organisationLabel = member.organisationLabel || "";
           const organisationLine = [organisationLabel, member.country_of_residence].filter(Boolean).join(" · ");
 
-          return (
-            <article className={`dashboard-card member-directory-profile-card tone-${tone}`} key={member.id}>
-              <div className="member-directory-card-top">
-                <div className="member-directory-identity-row">
-                  <div className="member-headshot-frame member-headshot-frame-small member-directory-avatar">
-                    {member.headshotSrc ? (
-                      <img
-                        alt={`${member.displayNameLabel || member.displayName} headshot`}
-                        className="member-headshot-image"
-                        src={member.headshotSrc}
-                      />
-                    ) : (
-                      <span className="member-headshot-fallback">{getInitials(member.displayNameLabel || member.displayName)}</span>
-                    )}
-                  </div>
+          const allCohorts = [
+            member.primaryCohort,
+            ...(member.secondaryCohorts || []),
+          ].filter(Boolean);
+          const visibleTags = member.domainTags.slice(0, 3 - Math.min(allCohorts.length, 2));
+          const remainingCount = member.domainTags.length - visibleTags.length;
 
-                  <div className="member-directory-copy">
-                    <div className="member-directory-name-row">
-                      <strong>{member.displayNameLabel || member.displayName}</strong>
-                      <div className="member-directory-state-row">
-                        {isSelf ? <span className="status-chip chip-neutral">You</span> : null}
-                        {availabilityLabel ? <span className="status-chip chip-muted">{availabilityLabel}</span> : null}
-                      </div>
-                    </div>
-                    <p className={`member-directory-role-line${roleLabel ? "" : " is-placeholder"}`}>
-                      {roleLabel || "Role pending"}
-                    </p>
-                    <p
-                      className={`member-directory-organisation-line${
-                        organisationLine ? "" : " is-placeholder"
-                      }`}
-                    >
-                      {organisationLine || "Organisation pending"}
-                    </p>
-                  </div>
+          return (
+            <article className={`member-directory-profile-card tone-${tone}`} key={member.id}>
+              {isSelf ? (
+                <span className="member-directory-you-chip">YOU</span>
+              ) : null}
+
+              <div className="member-directory-identity-row">
+                <div className={`member-directory-avatar tone-${tone}`}>
+                  {member.headshotSrc ? (
+                    <img
+                      alt={`${member.displayNameLabel || member.displayName} headshot`}
+                      className="member-headshot-image"
+                      src={member.headshotSrc}
+                    />
+                  ) : (
+                    <span>{getInitials(member.displayNameLabel || member.displayName)}</span>
+                  )}
+                </div>
+
+                <div className="member-directory-copy">
+                  <strong className="member-directory-name">
+                    {member.displayNameLabel || member.displayName}
+                  </strong>
+                  <p className={`member-directory-role-line${roleLabel ? "" : " is-placeholder"}`}>
+                    {roleLabel || "Role pending"}
+                  </p>
+                  <p className={`member-directory-organisation-line${organisationLine ? "" : " is-placeholder"}`}>
+                    {organisationLine || "Organisation pending"}
+                  </p>
                 </div>
               </div>
 
-              {member.primaryCohort || member.domainTags.length ? (
+              {allCohorts.length || member.domainTags.length ? (
                 <div className="member-directory-tag-row member-directory-tag-row-secondary">
-                  {member.primaryCohort ? (
-                    <span className={`status-chip member-directory-cohort-chip tone-${tone}`}>
-                      {member.primaryCohort.name}
+                  {allCohorts.map((cohort) => (
+                    <span
+                      className={`status-chip member-directory-cohort-chip tone-${getCohortTone(cohort.slug)}`}
+                      key={cohort.slug}
+                    >
+                      {cohort.name}
                     </span>
-                  ) : null}
-                  {member.domainTags.slice(0, 3).map((tag) => (
+                  ))}
+                  {visibleTags.map((tag) => (
                     <span className="status-chip chip-neutral" key={tag.slug}>
                       {tag.name}
                     </span>
                   ))}
-                  {extraTagCount ? (
-                    <span className="status-chip chip-muted">+{extraTagCount}</span>
+                  {remainingCount > 0 ? (
+                    <span className="status-chip chip-muted">+{remainingCount}</span>
                   ) : null}
                 </div>
               ) : null}
@@ -242,21 +240,18 @@ export function MemberDirectoryClient({ directory }) {
               <div className="member-directory-card-footer">
                 <span className="member-directory-footer-note">{getSpaceCountLabel(member.spaceCount || 0)}</span>
                 {isSelf ? (
-                  <Link className="secondary-button member-directory-card-button" href="/app/profile">
+                  <Link className="member-directory-card-button" href="/app/profile">
                     Edit Profile
                   </Link>
                 ) : (
-                  <div className="member-directory-card-action-stack">
-                    <button
-                      className="secondary-button member-directory-card-button"
-                      disabled
-                      title="Coming soon"
-                      type="button"
-                    >
-                      Contact
-                    </button>
-                    <span className="member-directory-card-action-note">Coming soon</span>
-                  </div>
+                  <button
+                    className="member-directory-card-button"
+                    disabled
+                    title="Coming soon"
+                    type="button"
+                  >
+                    Contact
+                  </button>
                 )}
               </div>
             </article>
