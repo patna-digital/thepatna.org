@@ -92,7 +92,17 @@ export function MemberWorkspaceShell({
           })}
         </nav>
 
-        <div className="member-workspace-footer-note">Members only workspace</div>
+        <div className="sidebar-cross-nav">
+          <div className="sidebar-cross-nav-label">Navigate to</div>
+          <Link className="sidebar-cross-nav-link" href="/">
+            <span>Website</span>
+            <span className="sidebar-cross-nav-arrow">↗</span>
+          </Link>
+          <Link className="sidebar-cross-nav-link" href="/admin">
+            <span>Admin app</span>
+            <span className="sidebar-cross-nav-arrow">↗</span>
+          </Link>
+        </div>
       </aside>
 
       <main className="member-workspace-main">
