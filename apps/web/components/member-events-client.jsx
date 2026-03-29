@@ -19,7 +19,7 @@ function getEventDateInfo(event) {
           end.getUTCMonth() === start.getUTCMonth() &&
           end.getUTCDate() !== start.getUTCDate()
         ) {
-          day = `${start.getUTCDate()}-${end.getUTCDate()}`;
+          day = `${start.getUTCDate()}–${end.getUTCDate()}`;
         }
       }
 
@@ -62,16 +62,8 @@ function getEventTypeLabel(event) {
 }
 
 function isPatnaLedEvent(event) {
-  const haystack = [
-    event.event_type,
-    event.patna_involvement,
-    ...(event.organising_institutions || []),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return haystack.includes("patna");
+  const involvement = (event.patna_involvement || "").toLowerCase();
+  return involvement.includes("lead organiser") || involvement.includes("co-organiser");
 }
 
 function isCurrentYearEvent(event) {
@@ -84,90 +76,61 @@ function isCurrentYearEvent(event) {
   return Number(yearMatch?.[1]) === new Date().getUTCFullYear();
 }
 
-function getScheduleClass(status) {
-  if (status === "upcoming") {
-    return "chip-success";
-  }
-
-  if (status === "tbc") {
-    return "chip-warning";
-  }
-
-  return "chip-muted";
-}
-
-function getVisibilityClass(visibility) {
-  if (visibility === "members") {
-    return "chip-warning";
-  }
-
-  if (visibility === "restricted") {
-    return "chip-muted";
-  }
-
-  return "chip-neutral";
-}
-
-function formatVisibilityLabel(visibility) {
-  if (visibility === "members") {
-    return "Members only";
-  }
-
-  if (visibility === "restricted") {
-    return "Restricted";
-  }
-
-  return "Public";
-}
-
-function formatScheduleLabel(status) {
-  if (status === "tbc") {
-    return "TBC";
-  }
-
-  return status === "upcoming" ? "Upcoming" : "Past";
-}
-
 function getEventTone(event) {
+  if (isPatnaLedEvent(event)) {
+    return "academic";
+  }
+
   const type = getEventTypeLabel(event).toLowerCase();
 
-  if (type.includes("internal")) {
+  if (type.includes("imo") || type.includes("mepc") || type.includes("iswg")) {
     return "policy";
   }
 
-  if (type.includes("international")) {
-    return "industry";
+  if (type.includes("cop") || type.includes("unfccc")) {
+    return "policy";
   }
 
-  if (isPatnaLedEvent(event)) {
-    return "academic";
+  if (type.includes("conference") || type.includes("summit")) {
+    return "industry";
   }
 
   return "policy";
 }
 
+function formatScheduleLabel(status) {
+  if (status === "tbc") return "TBC";
+  return status === "upcoming" ? "Upcoming" : "Past";
+}
+
+function getScheduleClass(status) {
+  if (status === "upcoming") return "chip-success";
+  if (status === "tbc") return "chip-warning";
+  return "chip-muted";
+}
+
 export function MemberEventsClient({ events }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [scheduleFilter, setScheduleFilter] = useState(
-    events.some((event) => event.schedule_status === "upcoming") ? "upcoming" : "all",
+    events.some((e) => e.schedule_status === "upcoming" || e.schedule_status === "tbc") ? "upcoming" : "past",
   );
   const [typeFilter, setTypeFilter] = useState("all");
   const [selectedEventId, setSelectedEventId] = useState("");
 
   const typeFilters = useMemo(() => {
-    const values = [...new Set(events.map((event) => getEventTypeLabel(event)))];
-    return values.sort((left, right) => left.localeCompare(right));
+    const values = [...new Set(events.map((e) => getEventTypeLabel(e)))];
+    return values.sort((a, b) => a.localeCompare(b));
   }, [events]);
 
   const summary = useMemo(
     () => ({
       total: events.length,
-      upcoming: events.filter((event) => event.schedule_status === "upcoming").length,
-      past: events.filter((event) => event.schedule_status === "past").length,
-      tbc: events.filter((event) => event.schedule_status === "tbc").length,
+      upcoming: events.filter((e) => e.schedule_status === "upcoming").length,
+      upcomingAndTbc: events.filter((e) => e.schedule_status === "upcoming" || e.schedule_status === "tbc").length,
+      past: events.filter((e) => e.schedule_status === "past").length,
+      tbc: events.filter((e) => e.schedule_status === "tbc").length,
       thisYear: events.filter(isCurrentYearEvent).length,
       patnaLed: events.filter(isPatnaLedEvent).length,
-      memberOnly: events.filter((event) => event.visibility === "members").length,
     }),
     [events],
   );
@@ -176,7 +139,11 @@ export function MemberEventsClient({ events }) {
     const normalisedSearch = searchTerm.trim().toLowerCase();
 
     return events.filter((event) => {
-      if (scheduleFilter !== "all" && event.schedule_status !== scheduleFilter) {
+      if (scheduleFilter === "upcoming" && event.schedule_status !== "upcoming" && event.schedule_status !== "tbc") {
+        return false;
+      }
+
+      if (scheduleFilter === "past" && event.schedule_status !== "past") {
         return false;
       }
 
@@ -193,102 +160,102 @@ export function MemberEventsClient({ events }) {
   }, [events, scheduleFilter, searchTerm, typeFilter]);
 
   const selectedEvent = useMemo(
-    () => events.find((event) => event.id === selectedEventId) || null,
+    () => events.find((e) => e.id === selectedEventId) || null,
     [events, selectedEventId],
   );
 
   return (
     <div className="member-events-shell">
-      <div className="member-dashboard-summary-grid">
-        <article className="member-stat-card tone-blue">
-          <strong>{summary.upcoming}</strong>
-          <h3>Upcoming events</h3>
-          <p>Published PATNA events still ahead on the calendar.</p>
-        </article>
-        <article className="member-stat-card tone-blue">
-          <strong>{summary.thisYear}</strong>
-          <h3>This year</h3>
-          <p>Visible events currently dated for {new Date().getUTCFullYear()}.</p>
-        </article>
-        <article className="member-stat-card tone-blue">
+      <div className="member-events-stats-row">
+        <div className="member-events-stat-card tone-policy">
+          <div className="member-events-stat-icon">
+            <svg fill="none" height="18" viewBox="0 0 20 20" width="18" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="8.25" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5"/>
+            </svg>
+          </div>
+          <strong>{summary.upcomingAndTbc}</strong>
+          <span>Upcoming Events</span>
+        </div>
+        <div className="member-events-stat-card tone-academic">
+          <div className="member-events-stat-icon">
+            <svg fill="none" height="18" viewBox="0 0 20 20" width="18" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 10.5l4 4 8-8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"/>
+            </svg>
+          </div>
           <strong>{summary.patnaLed}</strong>
-          <h3>PATNA-led</h3>
-          <p>Records marked as PATNA events or showing PATNA involvement.</p>
-        </article>
-        <article className="member-stat-card tone-orange">
+          <span>PATNA-Organised</span>
+        </div>
+        <div className="member-events-stat-card tone-policy">
+          <div className="member-events-stat-icon">
+            <svg fill="none" height="18" viewBox="0 0 20 20" width="18" xmlns="http://www.w3.org/2000/svg">
+              <rect height="13.5" rx="1.5" stroke="currentColor" strokeWidth="1.5" width="14" x="3" y="4.75"/>
+              <path d="M3 8.25h14" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M7 3v3.5M13 3v3.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5"/>
+            </svg>
+          </div>
+          <strong>{summary.past}</strong>
+          <span>Past Events</span>
+        </div>
+        <div className="member-events-stat-card tone-industry">
+          <div className="member-events-stat-icon">
+            <svg fill="none" height="18" viewBox="0 0 20 20" width="18" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 2.5l2.45 4.97 5.48.8-3.97 3.87.94 5.46L10 15.05l-4.9 2.57.94-5.46L2.07 8.27l5.48-.8L10 2.5Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5"/>
+            </svg>
+          </div>
           <strong>{summary.tbc}</strong>
-          <h3>TBC dates</h3>
-          <p>Events already logged but still carrying incomplete scheduling.</p>
-        </article>
+          <span>TBC Dates</span>
+        </div>
       </div>
 
-      <article className="dashboard-card member-events-toolbar-card">
-        <div className="member-events-toolbar-main">
-          <label className="member-directory-search">
-            <span className="sr-only">Search events</span>
-            <input
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search title, organiser, theme, involvement, or location..."
-              type="search"
-              value={searchTerm}
-            />
-          </label>
+      <div className="member-events-filter-bar">
+        <div className="member-events-schedule-tabs">
+          <button
+            className={scheduleFilter === "upcoming" ? "member-events-tab-active" : "member-events-tab"}
+            onClick={() => setScheduleFilter("upcoming")}
+            type="button"
+          >
+            Upcoming ({summary.upcomingAndTbc})
+          </button>
+          <button
+            className={scheduleFilter === "past" ? "member-events-tab-active" : "member-events-tab"}
+            onClick={() => setScheduleFilter("past")}
+            type="button"
+          >
+            Past ({summary.past})
+          </button>
         </div>
 
-        <div className="member-events-filter-row">
-          <div className="member-filter-pill-row">
-            {[
-              { value: "all", label: `All (${summary.total})` },
-              { value: "upcoming", label: `Upcoming (${summary.upcoming})` },
-              { value: "past", label: `Past (${summary.past})` },
-              { value: "tbc", label: `TBC (${summary.tbc})` },
-            ].map((filter) => (
-              <button
-                className={scheduleFilter === filter.value ? "active-filter" : "secondary-button"}
-                key={filter.value}
-                onClick={() => setScheduleFilter(filter.value)}
-                type="button"
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="member-filter-pill-row">
+        <div className="member-events-type-chips">
+          <button
+            className={typeFilter === "all" ? "member-events-type-chip member-events-type-chip-active" : "member-events-type-chip"}
+            onClick={() => setTypeFilter("all")}
+            type="button"
+          >
+            All
+          </button>
+          {typeFilters.map((type) => (
             <button
-              className={typeFilter === "all" ? "active-filter" : "secondary-button"}
-              onClick={() => setTypeFilter("all")}
+              className={typeFilter === type ? "member-events-type-chip member-events-type-chip-active" : "member-events-type-chip"}
+              key={type}
+              onClick={() => setTypeFilter(type)}
               type="button"
             >
-              All types
+              {type}
             </button>
-            {typeFilters.map((type) => (
-              <button
-                className={typeFilter === type ? "active-filter" : "secondary-button"}
-                key={type}
-                onClick={() => setTypeFilter(type)}
-                type="button"
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
-
-        <div className="member-events-toolbar-meta">
-          <strong>{filteredEvents.length} visible</strong>
-          <span>{summary.memberOnly} member-only records currently published</span>
-        </div>
-      </article>
+      </div>
 
       <div className="member-events-list">
         {filteredEvents.length ? (
           filteredEvents.map((event) => {
             const dateInfo = getEventDateInfo(event);
             const tone = getEventTone(event);
+            const typeLabel = getEventTypeLabel(event);
 
             return (
-              <article className={`dashboard-card member-event-archive-card tone-${tone}`} key={event.id}>
+              <article className={`member-event-archive-card tone-${tone}`} key={event.id}>
                 <div className={`member-event-archive-date tone-${tone}`}>
                   <strong>{dateInfo.month}</strong>
                   <span>{dateInfo.day}</span>
@@ -297,30 +264,27 @@ export function MemberEventsClient({ events }) {
                 <div className="member-event-archive-body">
                   <div className="member-event-archive-top">
                     <div className="member-event-archive-chips">
-                      <span className="status-chip chip-neutral">{getEventTypeLabel(event)}</span>
+                      <span className={`status-chip member-event-type-chip-${tone}`}>{typeLabel}</span>
                       <span className={`status-chip ${getScheduleClass(event.schedule_status)}`}>
                         {formatScheduleLabel(event.schedule_status)}
-                      </span>
-                      <span className={`status-chip ${getVisibilityClass(event.visibility)}`}>
-                        {formatVisibilityLabel(event.visibility)}
                       </span>
                     </div>
                     <div className="member-event-archive-actions">
                       <button
-                        className="secondary-button"
+                        className="member-event-details-button"
                         onClick={() => setSelectedEventId(event.id)}
                         type="button"
                       >
-                        Event details
+                        Details
                       </button>
-                      {event.official_link ? (
+                      {event.schedule_status === "upcoming" && event.official_link ? (
                         <a
-                          className="primary-button"
+                          className="member-event-rsvp-button"
                           href={event.official_link}
                           rel="noreferrer"
                           target="_blank"
                         >
-                          Official page
+                          RSVP
                         </a>
                       ) : null}
                     </div>
@@ -329,32 +293,22 @@ export function MemberEventsClient({ events }) {
                   <div className="member-event-archive-copy">
                     <strong>{event.title}</strong>
                     <div className="member-event-archive-meta">
-                      <span>{event.display_date || "Date pending"}</span>
-                      <span>{event.location || "Location pending"}</span>
-                      <span>
-                        {event.organising_institutions.length
-                          ? event.organising_institutions.join(", ")
-                          : "Organiser pending"}
-                      </span>
+                      {event.display_date ? <span>{event.display_date}</span> : null}
+                      {event.location ? <span>{event.location}</span> : null}
+                      {isPatnaLedEvent(event) ? <span>{event.patna_involvement}</span> : null}
                     </div>
-                    <p>{event.summary || "Event summary still being prepared."}</p>
+                    {event.summary ? <p>{event.summary}</p> : null}
                   </div>
 
-                  {event.themes.length || event.patna_involvement ? (
-                    <div className="member-event-archive-footer">
-                      {event.themes.length ? (
-                        <div className="member-directory-tag-row">
-                          {event.themes.map((theme) => (
-                            <span className="status-chip chip-neutral" key={theme}>
-                              {theme}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="member-directory-footer-note">Themes still being added.</span>
-                      )}
-                      {event.patna_involvement ? (
-                        <span className="member-directory-footer-note">{event.patna_involvement}</span>
+                  {event.themes?.length ? (
+                    <div className="member-event-archive-tags">
+                      {event.themes.slice(0, 4).map((theme) => (
+                        <span className="status-chip chip-neutral" key={theme}>
+                          {theme}
+                        </span>
+                      ))}
+                      {event.themes.length > 4 ? (
+                        <span className="status-chip chip-muted">+{event.themes.length - 4}</span>
                       ) : null}
                     </div>
                   ) : null}
@@ -365,9 +319,7 @@ export function MemberEventsClient({ events }) {
         ) : (
           <article className="dashboard-card member-module-card">
             <h3>No events match the current filters</h3>
-            <p className="member-section-copy">
-              Try widening the schedule or type filters, or clear the search term.
-            </p>
+            <p className="member-section-copy">Try adjusting the schedule or type filters, or clear the search.</p>
           </article>
         )}
       </div>
@@ -381,26 +333,30 @@ export function MemberEventsClient({ events }) {
         >
           <div
             className="member-event-dialog"
-            onClick={(event) => event.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             role="document"
           >
             <div className={`member-event-dialog-head tone-${getEventTone(selectedEvent)}`}>
-              <div>
+              <div className="member-event-dialog-head-content">
                 <div className="member-event-archive-chips">
-                  <span className="status-chip chip-neutral">{getEventTypeLabel(selectedEvent)}</span>
-                  <span className={`status-chip ${getScheduleClass(selectedEvent.schedule_status)}`}>
+                  <span className="status-chip member-event-dialog-type-chip">{getEventTypeLabel(selectedEvent)}</span>
+                  <span className={`status-chip member-event-dialog-type-chip ${getScheduleClass(selectedEvent.schedule_status)}`}>
                     {formatScheduleLabel(selectedEvent.schedule_status)}
-                  </span>
-                  <span className={`status-chip ${getVisibilityClass(selectedEvent.visibility)}`}>
-                    {formatVisibilityLabel(selectedEvent.visibility)}
                   </span>
                 </div>
                 <h3>{selectedEvent.title}</h3>
                 <div className="member-event-dialog-meta">
-                  <span>{selectedEvent.display_date || "Date pending"}</span>
-                  {selectedEvent.location ? <span>{selectedEvent.location}</span> : null}
-                  {selectedEvent.organising_institutions.length ? (
-                    <span>{selectedEvent.organising_institutions.join(", ")}</span>
+                  {selectedEvent.display_date ? (
+                    <span>
+                      <svg fill="none" height="13" viewBox="0 0 16 16" width="13" xmlns="http://www.w3.org/2000/svg"><rect height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" width="12" x="2" y="3.5"/><path d="M2 7h12" stroke="currentColor" strokeWidth="1.3"/><path d="M5.5 2v3M10.5 2v3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.3"/></svg>
+                      {selectedEvent.display_date}
+                    </span>
+                  ) : null}
+                  {selectedEvent.location ? (
+                    <span>
+                      <svg fill="none" height="13" viewBox="0 0 16 16" width="13" xmlns="http://www.w3.org/2000/svg"><path d="M8 1.5A4.5 4.5 0 0 1 12.5 6c0 3.75-4.5 8.5-4.5 8.5S3.5 9.75 3.5 6A4.5 4.5 0 0 1 8 1.5Z" stroke="currentColor" strokeWidth="1.3"/><circle cx="8" cy="6" fill="currentColor" r="1.5"/></svg>
+                      {selectedEvent.location}
+                    </span>
                   ) : null}
                 </div>
               </div>
@@ -415,7 +371,7 @@ export function MemberEventsClient({ events }) {
             </div>
 
             <div className="member-event-dialog-body">
-              {selectedEvent.themes.length ? (
+              {selectedEvent.themes?.length ? (
                 <div className="member-directory-tag-row">
                   {selectedEvent.themes.map((theme) => (
                     <span className="status-chip chip-neutral" key={theme}>
@@ -425,28 +381,26 @@ export function MemberEventsClient({ events }) {
                 </div>
               ) : null}
 
-              <div className="member-event-detail-grid">
-                <div className="member-detail-card">
+              {(selectedEvent.body || selectedEvent.summary) ? (
+                <div className="member-event-detail-section">
                   <dt>About this event</dt>
-                  <dd>{selectedEvent.body || selectedEvent.summary || "Summary pending."}</dd>
+                  <dd>{selectedEvent.body || selectedEvent.summary}</dd>
                 </div>
-                <div className="member-detail-card">
+              ) : null}
+
+              {selectedEvent.organising_institutions?.length ? (
+                <div className="member-event-detail-section">
                   <dt>Organising institutions</dt>
-                  <dd>
-                    {selectedEvent.organising_institutions.length
-                      ? selectedEvent.organising_institutions.join(", ")
-                      : "Not recorded"}
-                  </dd>
+                  <dd>{selectedEvent.organising_institutions.join(" · ")}</dd>
                 </div>
-                <div className="member-detail-card">
+              ) : null}
+
+              {selectedEvent.patna_involvement ? (
+                <div className="member-event-detail-section">
                   <dt>PATNA involvement</dt>
-                  <dd>{selectedEvent.patna_involvement || "Not recorded"}</dd>
+                  <dd>{selectedEvent.patna_involvement}</dd>
                 </div>
-                <div className="member-detail-card">
-                  <dt>Visibility</dt>
-                  <dd>{formatVisibilityLabel(selectedEvent.visibility)}</dd>
-                </div>
-              </div>
+              ) : null}
             </div>
 
             <div className="member-event-dialog-actions">
