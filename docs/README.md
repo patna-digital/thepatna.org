@@ -2,7 +2,9 @@
 
 Planning docs:
 - `planning/project-review-and-build-plan.md`
+- `planning/release-workflow.md`
 - `planning/supabase-schema-outline.md`
+- `planning/supabase-remote-workflow.md`
 
 Source docs:
 - `source/product/`: PRD, concept notes, proposal, stories
