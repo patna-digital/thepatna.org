@@ -36,6 +36,7 @@ This runbook defines how code moves from a local machine to PATNA production whe
 - PRs should be merged only after local build success and PATNA review
 - Direct pushes to `main` are discouraged
 - Emergency direct pushes should be rare and treated as exceptions
+- On the current private free-plan GitHub setup, branch rulesets are not enforced. PATNA should apply this policy manually until the organization upgrades.
 
 ## Deployment policy
 
@@ -46,6 +47,7 @@ This runbook defines how code moves from a local machine to PATNA production whe
   - production deploy timing
 - Contributors should not deploy production from local machines
 - If preview deployments are available, they are for review only and do not replace PATNA’s production deploy step
+- Contributor PRs may show a failed Vercel deployment check because Fitzroy does not have Vercel project access. That failure should not be treated as a release-quality signal on the current setup.
 
 ## Hotfix procedure
 
@@ -91,9 +93,26 @@ After deploy:
 ### GitHub
 
 - Add Fitzroy as a collaborator
-- Require PRs before merging to `main`
-- Prevent force-pushes to `main`
-- Require one approval if practical
+- Configure a ruleset named `Protect main`
+- Set target branch to the default branch / `main`
+- Enable:
+  - `Require a pull request before merging`
+  - `Block force pushes`
+- Leave off:
+  - `Require deployments to succeed`
+  - `Require status checks to pass`
+  - `Restrict creations`
+  - `Restrict updates`
+  - `Restrict deletions`
+  - `Require signed commits`
+  - `Require code scanning results`
+  - `Require code quality results`
+  - `Automatically request Copilot code review`
+- Optional later:
+  - `Require linear history`
+- Important:
+  - GitHub will not enforce these rules on this private repository until the PATNA organization upgrades to GitHub Team
+  - until then, PATNA must enforce the merge policy manually
 
 ### Vercel
 
@@ -101,3 +120,4 @@ After deploy:
 - Keep PATNA in control of env vars and domains
 - Use the PATNA GitHub repo as the connected source
 - Deploy merged `main` commits to production
+- Do not make the Vercel deployment check a required merge gate while contributor branches cannot create preview deployments

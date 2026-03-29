@@ -37,6 +37,7 @@ PR titles should describe the user-facing change, not just the implementation de
 4. PATNA manually redeploys the merged `main` commit from the Vercel dashboard.
 
 PATNA is the production approver even when Fitzroy authored the change.
+On the current private free-plan setup, GitHub rulesets are guidance only and Vercel preview failures on contributor branches are not merge blockers.
 
 ## Hotfix flow
 
@@ -60,6 +61,7 @@ If production is broken:
 - PATNA has reviewed the diff
 - PATNA agrees on release timing
 - Any required Vercel or Supabase settings changes are understood
+- A failed Vercel preview on a contributor PR is treated as an access limitation, not automatically as an application failure
 
 ## Before deploying
 
@@ -84,3 +86,28 @@ These controls live outside the repo and should be managed by PATNA:
 - Vercel production env vars
 - Vercel domains
 - Vercel framework, root directory, and build settings
+
+### Recommended GitHub ruleset for `main`
+
+On a private repository in a free organization, GitHub shows these rules but does not enforce them until the organization upgrades to Team.
+
+Configure the ruleset like this anyway so the intended policy is documented:
+
+- Ruleset name: `Protect main`
+- Enforcement status: `Active`
+- Target branch: default branch / `main`
+- Enable:
+  - `Require a pull request before merging`
+  - `Block force pushes`
+- Leave off for now:
+  - `Require deployments to succeed`
+  - `Require status checks to pass`
+  - `Restrict creations`
+  - `Restrict updates`
+  - `Restrict deletions`
+  - `Require signed commits`
+  - `Require code scanning results`
+  - `Require code quality results`
+  - `Automatically request Copilot code review`
+- Optional later:
+  - `Require linear history` if PATNA wants squash/rebase-only merges
