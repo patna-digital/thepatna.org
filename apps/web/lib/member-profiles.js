@@ -184,7 +184,6 @@ export async function fetchMemberProfileView({
   includeAuthUser = false,
   includeInviteHistory = false,
 }) {
-
   const [
     authUsers,
     profileResult,
@@ -217,17 +216,18 @@ export async function fetchMemberProfileView({
     supabase.from("space_memberships").select("space_id, user_id").eq("user_id", userId),
   ]);
 
-  const error =
-    profileResult.error ||
-    cohortRowsResult.error ||
-    tagRowsResult.error ||
-    inviteRowsResult.error ||
-    cohortProfileResult.error ||
-    spaceMembershipsResult.error;
-
-  if (error || !profileResult.data) {
+  // Only treat profile query errors as fatal - other queries can fail gracefully
+  // space_memberships may fail due to RLS infinite recursion (known issue)
+  if (profileResult.error) {
     return {
-      error: error || new Error("Member profile not found."),
+      error: profileResult.error,
+      member: null,
+    };
+  }
+
+  if (!profileResult.data) {
+    return {
+      error: new Error("Member profile not found."),
       member: null,
     };
   }
@@ -242,6 +242,12 @@ export async function fetchMemberProfileView({
       null
     : null;
 
+  // Handle space_memberships query error gracefully (default to 0 spaces)
+  // This is a workaround for RLS infinite recursion issue in space_memberships
+  const spaceCount = spaceMembershipsResult.error
+    ? 0
+    : new Set((spaceMembershipsResult.data || []).map((row) => row.space_id).filter(Boolean)).size;
+
   return {
     error: null,
     member: buildMemberProfileView({
@@ -250,7 +256,7 @@ export async function fetchMemberProfileView({
       cohortRows: cohortRowsResult.data,
       inviteRows: inviteRowsResult.data,
       profile: profileResult.data,
-      spaceCount: new Set((spaceMembershipsResult.data || []).map((row) => row.space_id).filter(Boolean)).size,
+      spaceCount,
       tagRows: tagRowsResult.data,
     }),
   };
