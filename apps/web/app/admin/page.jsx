@@ -40,10 +40,10 @@ export default async function AdminPage() {
       spotlight={{
         label: "Live workflow",
         title: "Community application review",
-        body: "This area is already writing to Supabase, so design changes now sit on top of a working operational workflow.",
+        body: "This workspace supports application review, member preparation, and operational coordination across PATNA.",
       }}
       title="Admin overview"
-      subtitle="This area is now connected to live Supabase data, starting with the community application review workflow."
+      subtitle="Monitor applications, imported members, and the operational queues that support PATNA’s community workflows."
     >
       <div className="summary-grid">
         <div className="summary-tile">
@@ -88,8 +88,13 @@ export default async function AdminPage() {
           </div>
         </article>
         <article className="dashboard-card">
-          <h3>Content</h3>
-          <p>Manage insights, projects, attachments, events, and partner records.</p>
+          <h3>Events</h3>
+          <p>Manage the PATNA events register, publication state, and ownership-aware event metadata.</p>
+          <div className="content-meta">
+            <Link className="primary-button" href="/admin/events">
+              Open events workspace
+            </Link>
+          </div>
         </article>
         <article className="dashboard-card">
           <h3>Pipelines</h3>

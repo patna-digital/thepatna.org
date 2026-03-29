@@ -10,8 +10,8 @@ export function SiteFooter() {
           <div className="footer-brand">
             <BrandLogo href="/" label="The PATNA Initiative" size="md" theme="footer" variant="full" />
             <p>
-              PATNA connects public evidence, community coordination, and operational workflows
-              for African climate, maritime, and energy transition leadership.
+              PATNA connects evidence, coordination, and institutional action for African climate,
+              maritime, and energy transition leadership.
             </p>
           </div>
 
@@ -28,7 +28,7 @@ export function SiteFooter() {
         </div>
 
         <div className="footer-bottom">
-          <p>Built for The Professional African Technical Network Advisory Initiative.</p>
+          <p>Built for African technical coordination, evidence, and collective positioning.</p>
           <div className="footer-langs">
             <Link href="/contact">Contact</Link>
             <Link href="/legal">Legal</Link>

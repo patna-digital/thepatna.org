@@ -10,8 +10,8 @@ export default function ResetPasswordPage() {
           <div className="eyebrow">Secure setup</div>
           <h1>Set your PATNA password</h1>
           <p>
-            This step completes your invite or reset flow and hands you into the PATNA onboarding
-            route for any missing profile details.
+            This step completes your invite or reset flow and returns you to PATNA onboarding for
+            any missing profile details.
           </p>
         </article>
 

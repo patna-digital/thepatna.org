@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { MemberDirectoryClient } from "@/components/member-directory-client";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchActiveMemberDirectory } from "@/lib/member-profiles";
+import {
+  buildMemberDirectoryView,
+  fetchMemberWorkspaceFrameData,
+} from "@/lib/member-workspace";
 
 export default async function MembersPage() {
   const { user, supabase } = await getCurrentUserContext();
@@ -13,12 +17,22 @@ export default async function MembersPage() {
   }
 
   const adminClient = createSupabaseAdminClient();
-  const { error, members } = await fetchActiveMemberDirectory({ adminClient });
+  const [{ error, members }, frameData] = await Promise.all([
+    fetchActiveMemberDirectory({ adminClient }),
+    fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
+  ]);
+
+  if (frameData.error || !frameData.member) {
+    redirect("/app/profile");
+  }
 
   return (
-    <DashboardShell
+    <MemberWorkspaceShell
+      eyebrow="Community"
+      headerActions={<span className="member-lock-chip">Members only</span>}
+      sidebarUser={frameData.sidebarUser}
+      subtitle={`${members.length} active members across ${new Set(members.map((member) => member.primaryCohort?.slug).filter(Boolean)).size} cohorts, visible to current PATNA members.`}
       title="Member directory"
-      subtitle="All onboarded members with active profiles are visible here. Missing optional details can still be completed later without removing anyone from the directory."
     >
       {error ? (
         <article className="dashboard-card">
@@ -26,8 +40,10 @@ export default async function MembersPage() {
           <p>{error.message}</p>
         </article>
       ) : (
-        <MemberDirectoryClient currentUserId={user.id} members={members} />
+        <MemberDirectoryClient
+          directory={buildMemberDirectoryView({ currentUserId: user.id, members })}
+        />
       )}
-    </DashboardShell>
+    </MemberWorkspaceShell>
   );
 }

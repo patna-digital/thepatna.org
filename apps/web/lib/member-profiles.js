@@ -35,12 +35,76 @@ function normaliseTag(tag) {
   };
 }
 
+function toDisplayCase(value) {
+  const text = String(value || "").trim();
+
+  if (!text) {
+    return "";
+  }
+
+  const isMostlyUppercase =
+    text === text.toUpperCase() &&
+    /[A-Z]/.test(text) &&
+    !/\b(?:IMO|UCL|PATNA|MOWCA|MOESNA|NIMASA|COP\d+|GHG|LDCs|SIDS)\b/.test(text);
+
+  if (!isMostlyUppercase) {
+    return text;
+  }
+
+  return text
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase())
+    .replace(/\bImo\b/g, "IMO")
+    .replace(/\bUcl\b/g, "UCL")
+    .replace(/\bPatna\b/g, "PATNA")
+    .replace(/\bMowca\b/g, "MOWCA")
+    .replace(/\bMoesna\b/g, "MOESNA")
+    .replace(/\bNimasa\b/g, "NIMASA")
+    .replace(/\bSids\b/g, "SIDS")
+    .replace(/\bLdcs\b/g, "LDCs")
+    .replace(/\bCop(\d+)\b/g, "COP$1")
+    .replace(/\bGhg\b/g, "GHG");
+}
+
+function getDisplayField(value, fallback) {
+  return toDisplayCase(value) || fallback;
+}
+
+function inferRoleFromBio(professionalBio) {
+  const bio = String(professionalBio || "").replace(/\s+/g, " ").trim();
+
+  if (!bio) {
+    return "";
+  }
+
+  const patterns = [
+    /^i am (?:currently )?(?:an?|the)\s+([^,.]{3,96})/i,
+    /^i'?m (?:currently )?(?:an?|the)\s+([^,.]{3,96})/i,
+    /^(?:dr\.\s+)?[a-z][a-z.' -]+ is (?:currently )?(?:an?|the)\s+([^,.]{3,96})/i,
+  ];
+
+  const rawMatch = patterns
+    .map((pattern) => bio.match(pattern)?.[1] || "")
+    .find(Boolean);
+
+  if (!rawMatch) {
+    return "";
+  }
+
+  return rawMatch
+    .split(/\b(?:with|working|focusing|specialising|specializing|supporting|researching|currently serving|serving)\b/i)[0]
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(a|an|the)\s+/i, "");
+}
+
 export function buildMemberProfileView({
   authUser,
   cohortProfile,
   cohortRows,
   inviteRows,
   profile,
+  spaceCount = 0,
   tagRows,
 }) {
   const primaryCohortRow = (cohortRows || []).find((row) => row.is_primary && row.cohorts);
@@ -63,10 +127,18 @@ export function buildMemberProfileView({
     primaryCohort,
     profile,
   });
+  const inferredRoleTitle = inferRoleFromBio(profile?.professional_bio);
 
   return {
     ...profile,
     displayName: [profile?.title, profile?.first_name, profile?.surname].filter(Boolean).join(" ") || "PATNA Member",
+    displayNameLabel: getDisplayField(
+      [profile?.title, profile?.first_name, profile?.surname].filter(Boolean).join(" "),
+      "PATNA Member",
+    ),
+    roleTitleLabel: getDisplayField(profile?.role_title, inferredRoleTitle),
+    organisationLabel: getDisplayField(profile?.organisation_name, ""),
+    spaceCount,
     profileStatus: profile?.profile_status || "active",
     availabilityStatus: profile?.availability_status || "available",
     authUser: authUser || null,
@@ -106,7 +178,15 @@ export function buildMemberProfileView({
 }
 
 export async function fetchMemberProfileView({ adminClient, supabase, userId }) {
-  const [authUsers, profileResult, cohortRowsResult, tagRowsResult, inviteRowsResult, cohortProfileResult] =
+  const [
+    authUsers,
+    profileResult,
+    cohortRowsResult,
+    tagRowsResult,
+    inviteRowsResult,
+    cohortProfileResult,
+    spaceMembershipsResult,
+  ] =
     await Promise.all([
       listSupabaseAuthUsers(adminClient),
       supabase
@@ -126,6 +206,7 @@ export async function fetchMemberProfileView({ adminClient, supabase, userId }) 
         .eq("user_id", userId),
       supabase.from("invites").select("user_id, delivery_method, created_at").eq("user_id", userId),
       supabase.from("cohort_member_profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("space_memberships").select("space_id, user_id").eq("user_id", userId),
     ]);
 
   const error =
@@ -133,7 +214,8 @@ export async function fetchMemberProfileView({ adminClient, supabase, userId }) 
     cohortRowsResult.error ||
     tagRowsResult.error ||
     inviteRowsResult.error ||
-    cohortProfileResult.error;
+    cohortProfileResult.error ||
+    spaceMembershipsResult.error;
 
   if (error || !profileResult.data) {
     return {
@@ -159,6 +241,7 @@ export async function fetchMemberProfileView({ adminClient, supabase, userId }) 
       cohortRows: cohortRowsResult.data,
       inviteRows: inviteRowsResult.data,
       profile: profileResult.data,
+      spaceCount: new Set((spaceMembershipsResult.data || []).map((row) => row.space_id).filter(Boolean)).size,
       tagRows: tagRowsResult.data,
     }),
   };
@@ -186,7 +269,7 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
     };
   }
 
-  const [profilesResult, cohortRowsResult, tagRowsResult, cohortProfilesResult] = await Promise.all([
+  const [profilesResult, cohortRowsResult, tagRowsResult, cohortProfilesResult, spaceMembershipsResult] = await Promise.all([
     adminClient
       .from("profiles")
       .select(
@@ -208,13 +291,18 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
       .from("cohort_member_profiles")
       .select("*")
       .in("user_id", memberIds),
+    adminClient
+      .from("space_memberships")
+      .select("user_id, space_id")
+      .in("user_id", memberIds),
   ]);
 
   const error =
     profilesResult.error ||
     cohortRowsResult.error ||
     tagRowsResult.error ||
-    cohortProfilesResult.error;
+    cohortProfilesResult.error ||
+    spaceMembershipsResult.error;
 
   if (error) {
     return {
@@ -240,6 +328,17 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
   const cohortProfileByUserId = new Map(
     (cohortProfilesResult.data || []).map((row) => [row.user_id, row]),
   );
+  const spaceCountsByUserId = new Map();
+
+  for (const row of spaceMembershipsResult.data || []) {
+    if (!row.user_id || !row.space_id) {
+      continue;
+    }
+
+    const existing = spaceCountsByUserId.get(row.user_id) || new Set();
+    existing.add(row.space_id);
+    spaceCountsByUserId.set(row.user_id, existing);
+  }
 
   return {
     error: null,
@@ -250,6 +349,7 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
         cohortRows: allCohortsByUserId.get(profile.id) || [],
         inviteRows: [],
         profile,
+        spaceCount: spaceCountsByUserId.get(profile.id)?.size || 0,
         tagRows: allTagsByUserId.get(profile.id) || [],
       }),
     ),

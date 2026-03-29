@@ -35,13 +35,13 @@ export default function CommunityPage() {
             <SectionIntro
               label="Four cohorts"
               title="A community model built around how PATNA actually organises expertise"
-              subtitle="The public page now reflects the cohort-based structure shown in the original mockup while staying aligned with the application and membership schema."
+              subtitle="The community is organised around the real working structure of PATNA’s policy, academic, industry, and civil-society expertise."
             />
 
             <article className="content-card">
               <h3>How the community works</h3>
               <ul className="check-list">
-                <li>Expressions of interest are captured through the live Supabase application flow.</li>
+                <li>Expressions of interest are captured through a structured PATNA application.</li>
                 <li>Admins review applications, record notes, and manage status changes in-platform.</li>
                 <li>Approved members join spaces, discussions, events, and knowledge-sharing surfaces.</li>
                 <li>Each cohort can branch into working groups, constituencies, and thematic collaboration.</li>
@@ -68,7 +68,7 @@ export default function CommunityPage() {
           <SectionIntro
             label="How joining works"
             title="From application to participation"
-            subtitle="This stage-by-stage flow mirrors the real PATNA review pipeline already connected to the admin workspace."
+            subtitle="A clear path from application review to active participation in spaces, cohorts, and working groups."
           />
 
           <div className="steps-row">
@@ -88,7 +88,7 @@ export default function CommunityPage() {
           <SectionIntro
             label="Community spaces"
             title="Cohort rooms, constituencies, and working groups"
-            subtitle="The live dashboard shell now inherits this same space structure so the public and member experiences stay visually connected."
+            subtitle="PATNA’s spaces reflect how coordination happens in practice: by cohort, constituency, and focused collaboration."
           />
 
           <div className="spaces-grid">
@@ -113,8 +113,8 @@ export default function CommunityPage() {
           <div className="section-label">Applications open</div>
           <h2>Join a network designed for evidence, coordination, and impact.</h2>
           <p>
-            Start the PATNA application flow today and route directly into the review process now
-            live in the admin workspace.
+            Start the PATNA application process and enter a network built for evidence,
+            coordination, and shared African positioning.
           </p>
           <div className="join-band-btns">
             <Link className="secondary-button" href="/community/join">

@@ -321,51 +321,88 @@ export type Database = {
       }
       community_applications: {
         Row: {
+          assigned_cohort_id: string | null
+          consent_data_storage: boolean | null
+          consent_updates: boolean | null
           country: string | null
           created_at: string
+          engagement_other_text: string | null
+          engagement_slugs: string[]
+          expertise_other_text: string | null
+          expertise_slugs: string[]
           first_name: string
           id: string
           motivation_text: string
           organisation: string | null
+          phone_number: string | null
           review_notes: string | null
           reviewed_by_user_id: string | null
           role_title: string | null
+          source: string
           status: string
+          submitted_at: string
           submitted_by_email: string
           surname: string
           updated_at: string
         }
         Insert: {
+          assigned_cohort_id?: string | null
+          consent_data_storage?: boolean | null
+          consent_updates?: boolean | null
           country?: string | null
           created_at?: string
+          engagement_other_text?: string | null
+          engagement_slugs?: string[]
+          expertise_other_text?: string | null
+          expertise_slugs?: string[]
           first_name: string
           id?: string
           motivation_text: string
           organisation?: string | null
+          phone_number?: string | null
           review_notes?: string | null
           reviewed_by_user_id?: string | null
           role_title?: string | null
+          source?: string
           status?: string
+          submitted_at?: string
           submitted_by_email: string
           surname: string
           updated_at?: string
         }
         Update: {
+          assigned_cohort_id?: string | null
+          consent_data_storage?: boolean | null
+          consent_updates?: boolean | null
           country?: string | null
           created_at?: string
+          engagement_other_text?: string | null
+          engagement_slugs?: string[]
+          expertise_other_text?: string | null
+          expertise_slugs?: string[]
           first_name?: string
           id?: string
           motivation_text?: string
           organisation?: string | null
+          phone_number?: string | null
           review_notes?: string | null
           reviewed_by_user_id?: string | null
           role_title?: string | null
+          source?: string
           status?: string
+          submitted_at?: string
           submitted_by_email?: string
           surname?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "community_applications_assigned_cohort_id_fkey"
+            columns: ["assigned_cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "community_applications_reviewed_by_user_id_fkey"
             columns: ["reviewed_by_user_id"]
@@ -447,6 +484,7 @@ export type Database = {
         Row: {
           author_id: string | null
           body: string | null
+          created_by_user_id: string | null
           content_type: string
           created_at: string
           id: string
@@ -455,12 +493,14 @@ export type Database = {
           slug: string
           summary: string | null
           title: string
+          updated_by_user_id: string | null
           updated_at: string
           visibility: string
         }
         Insert: {
           author_id?: string | null
           body?: string | null
+          created_by_user_id?: string | null
           content_type: string
           created_at?: string
           id?: string
@@ -469,12 +509,14 @@ export type Database = {
           slug: string
           summary?: string | null
           title: string
+          updated_by_user_id?: string | null
           updated_at?: string
           visibility?: string
         }
         Update: {
           author_id?: string | null
           body?: string | null
+          created_by_user_id?: string | null
           content_type?: string
           created_at?: string
           id?: string
@@ -483,6 +525,7 @@ export type Database = {
           slug?: string
           summary?: string | null
           title?: string
+          updated_by_user_id?: string | null
           updated_at?: string
           visibility?: string
         }
@@ -490,6 +533,20 @@ export type Database = {
           {
             foreignKeyName: "content_items_author_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_updated_by_user_id_fkey"
+            columns: ["updated_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -593,49 +650,88 @@ export type Database = {
         Row: {
           body: string | null
           created_at: string
+          created_by_user_id: string | null
+          display_date: string | null
           ends_at: string | null
           event_type: string | null
           id: string
           location: string | null
+          official_link: string | null
+          organising_institutions: string[]
+          patna_involvement: string | null
+          schedule_status: string
           slug: string
           starts_at: string | null
           status: string
           summary: string | null
+          themes: string[]
           title: string
+          updated_by_user_id: string | null
           updated_at: string
           visibility: string
         }
         Insert: {
           body?: string | null
           created_at?: string
+          created_by_user_id?: string | null
+          display_date?: string | null
           ends_at?: string | null
           event_type?: string | null
           id?: string
           location?: string | null
+          official_link?: string | null
+          organising_institutions?: string[]
+          patna_involvement?: string | null
+          schedule_status?: string
           slug: string
           starts_at?: string | null
           status?: string
           summary?: string | null
+          themes?: string[]
           title: string
+          updated_by_user_id?: string | null
           updated_at?: string
           visibility?: string
         }
         Update: {
           body?: string | null
           created_at?: string
+          created_by_user_id?: string | null
+          display_date?: string | null
           ends_at?: string | null
           event_type?: string | null
           id?: string
           location?: string | null
+          official_link?: string | null
+          organising_institutions?: string[]
+          patna_involvement?: string | null
+          schedule_status?: string
           slug?: string
           starts_at?: string | null
           status?: string
           summary?: string | null
+          themes?: string[]
           title?: string
+          updated_by_user_id?: string | null
           updated_at?: string
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_updated_by_user_id_fkey"
+            columns: ["updated_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invites: {
         Row: {

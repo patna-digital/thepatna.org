@@ -64,7 +64,7 @@ export function DashboardShell({
           <strong>{spotlight?.title || "Community platform in motion"}</strong>
           <p>
             {spotlight?.body ||
-              "The dashboard inherits the community mockup structure so future product work can expand without redesigning the shell."}
+              "The workspace is organised for coordination, review, and evidence-led action across PATNA."}
           </p>
         </div>
       </aside>

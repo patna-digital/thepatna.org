@@ -2,15 +2,17 @@ import { MarketingPageHero } from "@/components/marketing-page-hero";
 import { EventGalleryStrip } from "@/components/public/event-gallery-strip";
 import { MediaArticleCard } from "@/components/public/media-article-card";
 import { SectionIntro } from "@/components/section-intro";
-import { publicEvents } from "@/lib/patna-data";
-import { eventMediaBySlug, publicPageMedia } from "@/lib/public-media";
+import { fetchPublicEvents } from "@/lib/events";
+import { getEventMedia, publicPageMedia } from "@/lib/public-media";
 
-export default function EventsPage() {
+export default async function EventsPage() {
+  const publicEvents = await fetchPublicEvents();
+
   return (
     <>
       <MarketingPageHero
         label="Events"
-        subtitle="PATNA events are now presented as first-class content with the same card language used throughout the redesigned site."
+        subtitle="Convenings, workshops, and coalition moments documented with the same editorial discipline as the rest of the PATNA archive."
         title="Convenings, workshops, and coordination moments"
       />
 
@@ -20,21 +22,28 @@ export default function EventsPage() {
         <div className="section-inner">
           <SectionIntro
             label="Event register"
-            title="Upcoming and past events can share one event model with optional outputs"
-            subtitle="The route now leads with real PATNA event imagery and then falls back to structured metadata, which is much closer to how an events archive should feel."
+            title="An event register for upcoming convenings and documented outputs"
+            subtitle="Each entry pairs institutional context with clear metadata so the archive remains useful beyond the event itself."
           />
 
           <div className="media-article-grid">
-            {publicEvents.map((event) => (
-              <MediaArticleCard
-                key={event.slug}
-                label={event.type}
-                media={eventMediaBySlug[event.slug]}
-                meta={[event.date, event.location]}
-                summary={event.summary}
-                title={event.title}
-              />
-            ))}
+            {publicEvents.length ? (
+              publicEvents.map((event) => (
+                <MediaArticleCard
+                  key={event.slug}
+                  label={event.event_type || "Event"}
+                  media={getEventMedia(event.slug)}
+                  meta={[event.display_date, event.location].filter(Boolean)}
+                  summary={event.summary}
+                  title={event.title}
+                />
+              ))
+            ) : (
+              <article className="content-card">
+                <h3>No events published yet</h3>
+                <p>The PATNA event register will appear here as soon as published records are available.</p>
+              </article>
+            )}
           </div>
         </div>
       </section>

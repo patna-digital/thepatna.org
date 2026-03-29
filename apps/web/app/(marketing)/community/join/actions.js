@@ -14,18 +14,31 @@ export async function submitCommunityApplicationAction(_previousState, formData)
   const firstName = String(formData.get("first_name") || "").trim();
   const surname = String(formData.get("surname") || "").trim();
   const email = String(formData.get("email") || "").trim().toLowerCase();
+  const phoneNumber = String(formData.get("phone_number") || "").trim();
   const country = String(formData.get("country") || "").trim();
   const organisation = String(formData.get("organisation") || "").trim();
   const roleTitle = String(formData.get("role_title") || "").trim();
   const motivationText = String(formData.get("motivation_text") || "").trim();
-  const cohortSlugs = formData
-    .getAll("cohort_interests")
-    .map((value) => String(value).trim())
-    .filter(Boolean);
-  const tagSlugs = formData
-    .getAll("domain_interests")
-    .map((value) => String(value).trim())
-    .filter(Boolean);
+  const expertiseSlugs = [
+    ...new Set(
+      formData
+        .getAll("expertise_slugs")
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  ];
+  const expertiseOtherText = String(formData.get("expertise_other_text") || "").trim();
+  const engagementSlugs = [
+    ...new Set(
+      formData
+        .getAll("engagement_slugs")
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  ];
+  const engagementOtherText = String(formData.get("engagement_other_text") || "").trim();
+  const consentDataStorage = formData.get("consent_data_storage") === "yes";
+  const consentUpdates = formData.get("consent_updates") === "yes";
 
   if (!firstName || !surname || !email || !motivationText) {
     return {
@@ -34,21 +47,42 @@ export async function submitCommunityApplicationAction(_previousState, formData)
     };
   }
 
-  const supabase = createSupabaseAdminClient();
+  if (!consentDataStorage) {
+    return {
+      status: "error",
+      message: "Consent to store application information is required.",
+    };
+  }
 
-  const { data: application, error: applicationError } = await supabase
-    .from("community_applications")
-    .insert({
-      submitted_by_email: email,
-      first_name: firstName,
-      surname,
-      country: country || null,
-      organisation: organisation || null,
-      role_title: roleTitle || null,
-      motivation_text: motivationText,
-    })
-    .select("id")
-    .single();
+  const supabase = createSupabaseAdminClient();
+  const nextExpertiseSlugs =
+    expertiseOtherText && !expertiseSlugs.includes("other")
+      ? [...expertiseSlugs, "other"]
+      : expertiseSlugs;
+  const nextEngagementSlugs =
+    engagementOtherText && !engagementSlugs.includes("other")
+      ? [...engagementSlugs, "other"]
+      : engagementSlugs;
+
+  const { error: applicationError } = await supabase.from("community_applications").insert({
+    submitted_by_email: email,
+    first_name: firstName,
+    surname,
+    phone_number: phoneNumber || null,
+    country: country || null,
+    organisation: organisation || null,
+    role_title: roleTitle || null,
+    motivation_text: motivationText,
+    expertise_slugs: nextExpertiseSlugs,
+    expertise_other_text: expertiseOtherText || null,
+    engagement_slugs: nextEngagementSlugs,
+    engagement_other_text: engagementOtherText || null,
+    consent_data_storage: consentDataStorage,
+    consent_updates: consentUpdates,
+    source: "patna_web_form",
+    submitted_at: new Date().toISOString(),
+    status: "submitted",
+  });
 
   if (applicationError) {
     return {
@@ -57,63 +91,9 @@ export async function submitCommunityApplicationAction(_previousState, formData)
     };
   }
 
-  if (cohortSlugs.length > 0) {
-    const { data: cohorts, error: cohortLookupError } = await supabase
-      .from("cohorts")
-      .select("id, slug")
-      .in("slug", cohortSlugs);
-
-    if (cohortLookupError) {
-      return {
-        status: "error",
-        message: cohortLookupError.message,
-      };
-    }
-
-    if (cohorts?.length) {
-      const { error: cohortInsertError } = await supabase
-        .from("application_cohort_interests")
-        .insert(cohorts.map((cohort) => ({ application_id: application.id, cohort_id: cohort.id })));
-
-      if (cohortInsertError) {
-        return {
-          status: "error",
-          message: cohortInsertError.message,
-        };
-      }
-    }
-  }
-
-  if (tagSlugs.length > 0) {
-    const { data: tags, error: tagLookupError } = await supabase
-      .from("domain_tags")
-      .select("id, slug")
-      .in("slug", tagSlugs);
-
-    if (tagLookupError) {
-      return {
-        status: "error",
-        message: tagLookupError.message,
-      };
-    }
-
-    if (tags?.length) {
-      const { error: tagInsertError } = await supabase
-        .from("application_tag_interests")
-        .insert(tags.map((tag) => ({ application_id: application.id, tag_id: tag.id })));
-
-      if (tagInsertError) {
-        return {
-          status: "error",
-          message: tagInsertError.message,
-        };
-      }
-    }
-  }
-
   return {
     status: "success",
     message:
-      "Your application has been submitted. PATNA can now review it in Supabase and move it into the interview or invite workflow.",
+      "Your application has been submitted. PATNA will review it, route it to interview where relevant, and assign cohort fit internally.",
   };
 }

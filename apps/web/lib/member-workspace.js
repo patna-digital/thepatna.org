@@ -1,0 +1,291 @@
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchMemberEvents } from "@/lib/events";
+import { fetchActiveMemberDirectory, fetchMemberProfileView } from "@/lib/member-profiles";
+import {
+  memberApplications,
+  memberHighlights,
+  memberSpaces,
+  publicInsights,
+} from "@/lib/patna-data";
+
+function getSpaceKindLabel(space) {
+  if (space.kind) {
+    return space.kind;
+  }
+
+  if (space.type === "Cohort Space") {
+    return "cohort";
+  }
+
+  if (space.type === "Constituency") {
+    return "constituency";
+  }
+
+  return "working_group";
+}
+
+export function buildSidebarUser(member) {
+  return {
+    name: member.displayName,
+    role: member.roleTitleLabel || member.role_title || "PATNA Member",
+    organisation: member.organisationLabel || member.organisation_name || member.country_of_residence || "Community workspace",
+    cohort: member.primaryCohort?.name || "Member workspace",
+    profileStatus: member.profileStatus,
+    tags: member.domainTags.slice(0, 3).map((tag) => tag.name),
+    headshotSrc: member.headshotSrc,
+    initials: member.displayName
+      .split(/\s+/)
+      .map((part) => part[0] || "")
+      .slice(0, 2)
+      .join("")
+      .toUpperCase(),
+  };
+}
+
+function parseEventDateBadge(event) {
+  if (event.starts_at) {
+    const parsed = new Date(event.starts_at);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return {
+        month: new Intl.DateTimeFormat("en-GB", { month: "short" }).format(parsed).toUpperCase(),
+        day: String(parsed.getUTCDate()),
+      };
+    }
+  }
+
+  const monthOnlyMatch = String(event.display_date || "").match(/^([A-Za-z]+) (\d{4})(?: \(TBC\))?$/i);
+
+  if (monthOnlyMatch) {
+    return {
+      month: monthOnlyMatch[1].slice(0, 3).toUpperCase(),
+      day: /tbc/i.test(event.display_date || "") ? "TBC" : "1",
+    };
+  }
+
+  return {
+    month: "TBD",
+    day: "TBC",
+  };
+}
+
+export async function fetchMemberWorkspaceFrameData({ supabase, userId }) {
+  const adminClient = createSupabaseAdminClient();
+  const profileResult = await fetchMemberProfileView({ adminClient, supabase, userId });
+
+  if (profileResult.error || !profileResult.member) {
+    return {
+      error: profileResult.error || new Error("Member profile not found."),
+      member: null,
+      sidebarUser: null,
+    };
+  }
+
+  return {
+    error: null,
+    member: profileResult.member,
+    sidebarUser: buildSidebarUser(profileResult.member),
+  };
+}
+
+export async function fetchMemberDashboardView({ supabase, userId }) {
+  const adminClient = createSupabaseAdminClient();
+  const [profileResult, directoryResult, memberEventsResult] = await Promise.all([
+    fetchMemberProfileView({ adminClient, supabase, userId }),
+    fetchActiveMemberDirectory({ adminClient }),
+    fetchMemberEvents({ supabase }),
+  ]);
+
+  if (profileResult.error || !profileResult.member) {
+    return {
+      error: profileResult.error || new Error("Member profile not found."),
+      view: null,
+    };
+  }
+
+  const member = profileResult.member;
+  const activeMembers = directoryResult.members || [];
+  const cohortSlug = member.primaryCohort?.slug || "";
+  const cohortMemberCount = cohortSlug
+    ? activeMembers.filter((item) => item.primaryCohort?.slug === cohortSlug).length
+    : activeMembers.length;
+  const unreadDiscussionCount = memberSpaces.reduce((sum, space) => sum + Number(space.unread || 0), 0);
+  const activeSpacesCount = memberSpaces.length;
+  const pendingApplicationsCount = memberApplications.filter((item) =>
+    ["submitted", "interviewing"].includes(item.status),
+  ).length;
+  const publishedInsightsCount = publicInsights.length;
+  const liveEvents = memberEventsResult.events || [];
+  const highlightedEvents = liveEvents
+    .filter((event) => ["upcoming", "tbc"].includes(event.schedule_status))
+    .slice(0, 3)
+    .map((event) => ({
+      ...event,
+      ...parseEventDateBadge(event),
+    }));
+
+  return {
+    error: profileResult.error || directoryResult.error || null,
+    view: {
+      member,
+      sidebarUser: buildSidebarUser(member),
+      stats: [
+        {
+          label: `${member.primaryCohort?.name || "PATNA"} members`,
+          value: cohortMemberCount,
+          note: `${activeMembers.length} active members in directory`,
+          tone: "blue",
+        },
+        {
+          label: "Active spaces",
+          value: activeSpacesCount,
+          note: `${memberSpaces.filter((space) => space.unread > 0).length} spaces with updates`,
+          tone: "blue",
+        },
+        {
+          label: "Applications in review",
+          value: pendingApplicationsCount,
+          note: "Current seeded review queue",
+          tone: "orange",
+        },
+        {
+          label: "Published insights",
+          value: publishedInsightsCount,
+          note: "Current shared library",
+          tone: "blue",
+        },
+      ],
+      mySpaces: memberSpaces.map((space) => ({
+        ...space,
+        kind: getSpaceKindLabel(space),
+      })),
+      recentDiscussions: memberHighlights,
+      applicationQueue: memberApplications,
+      upcomingEvents: highlightedEvents,
+      recentInsights: publicInsights,
+      profileSnapshot: {
+        role: member.roleTitleLabel || member.role_title || "PATNA Member",
+        organisation:
+          member.organisationLabel || member.organisation_name || member.country_of_residence || "Organisation pending",
+        country: member.country_of_residence || "Country pending",
+        cohort: member.primaryCohort?.name || "Cohort pending",
+        tags: member.domainTags.slice(0, 4).map((tag) => tag.name),
+        completionPercent: member.completionPercent,
+        availability: member.availabilityStatus,
+        profileStatus: member.profileStatus,
+      },
+      counts: {
+        unreadDiscussions: unreadDiscussionCount,
+      },
+    },
+  };
+}
+
+export function buildMemberDirectoryView({ currentUserId, members }) {
+  const cohortOrder = ["policy", "academic", "industry", "civil-society"];
+  const cohortsBySlug = new Map();
+  const tagsBySlug = new Map();
+  const countries = new Set();
+
+  for (const member of members) {
+    if (member.primaryCohort?.slug) {
+      const existing = cohortsBySlug.get(member.primaryCohort.slug) || {
+        slug: member.primaryCohort.slug,
+        name: member.primaryCohort.name,
+        count: 0,
+      };
+      existing.count += 1;
+      cohortsBySlug.set(member.primaryCohort.slug, existing);
+    }
+
+    for (const tag of member.domainTags || []) {
+      if (!tagsBySlug.has(tag.slug)) {
+        tagsBySlug.set(tag.slug, { slug: tag.slug, name: tag.name });
+      }
+    }
+
+    if (member.country_of_residence) {
+      countries.add(member.country_of_residence);
+    }
+  }
+
+  return {
+    currentUserId,
+    members,
+    summary: [...cohortsBySlug.values()].sort((left, right) => {
+      const leftIndex = cohortOrder.indexOf(left.slug);
+      const rightIndex = cohortOrder.indexOf(right.slug);
+
+      if (leftIndex !== -1 || rightIndex !== -1) {
+        return (leftIndex === -1 ? 99 : leftIndex) - (rightIndex === -1 ? 99 : rightIndex);
+      }
+
+      return left.name.localeCompare(right.name);
+    }),
+    filters: {
+      cohorts: [...cohortsBySlug.values()].sort((left, right) => {
+        const leftIndex = cohortOrder.indexOf(left.slug);
+        const rightIndex = cohortOrder.indexOf(right.slug);
+
+        if (leftIndex !== -1 || rightIndex !== -1) {
+          return (leftIndex === -1 ? 99 : leftIndex) - (rightIndex === -1 ? 99 : rightIndex);
+        }
+
+        return left.name.localeCompare(right.name);
+      }),
+      tags: [...tagsBySlug.values()].sort((left, right) => left.name.localeCompare(right.name)),
+      countries: [...countries].sort((left, right) => left.localeCompare(right)),
+    },
+  };
+}
+
+export function buildMemberSpaceGroups(spaces) {
+  const groups = new Map();
+
+  for (const space of spaces) {
+    const kind = getSpaceKindLabel(space);
+    const existing = groups.get(kind) || [];
+    groups.set(kind, [...existing, space]);
+  }
+
+  return [
+    {
+      id: "cohort",
+      title: "Cohort spaces",
+      subtitle: "Your primary coordination rooms and cohort-level updates.",
+      spaces: groups.get("cohort") || [],
+    },
+    {
+      id: "constituency",
+      title: "Constituencies",
+      subtitle: "Affinity or negotiation-alignment groups across the network.",
+      spaces: groups.get("constituency") || [],
+    },
+    {
+      id: "working_group",
+      title: "Working groups",
+      subtitle: "Focused taskforces and drafting spaces connected to live priorities.",
+      spaces: groups.get("working_group") || [],
+    },
+  ].filter((group) => group.spaces.length > 0);
+}
+
+export function buildApplicationSummary(applications) {
+  const counts = {
+    total: applications.length,
+    submitted: 0,
+    interviewing: 0,
+  };
+
+  for (const item of applications) {
+    if (item.status === "submitted") {
+      counts.submitted += 1;
+    }
+
+    if (item.status === "interviewing") {
+      counts.interviewing += 1;
+    }
+  }
+
+  return counts;
+}

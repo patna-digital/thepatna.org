@@ -10,7 +10,7 @@ export default function InsightsPage() {
     <>
       <MarketingPageHero
         label="Insights"
-        subtitle="Briefs, reports, and commentary now sit inside the same publishing aesthetic established by the original PATNA mockup."
+        subtitle="Briefs, reports, and commentary presented with the clarity expected of a serious policy archive."
         title="Knowledge products with a clearer editorial identity"
       />
 
@@ -21,7 +21,7 @@ export default function InsightsPage() {
           <SectionIntro
             label="Editorial system"
             title="One content system for public articles, reports, briefs, and event outputs"
-            subtitle="The listing below now uses real PATNA event and article imagery so the insight archive feels connected to actual rooms, audiences, and institutions."
+            subtitle="The archive connects content to audience, context, and source so each item feels grounded in real PATNA work."
           />
 
           <div className="media-article-grid">

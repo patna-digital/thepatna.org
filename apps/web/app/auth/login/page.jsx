@@ -14,8 +14,8 @@ export default async function LoginPage({ searchParams }) {
           <div className="eyebrow">Member Access</div>
           <h1>Secure login for the PATNA community workspace</h1>
           <p>
-            Sign in to access spaces, insights, members, onboarding, and the live application
-            review workflow. New members should begin with the community application form.
+            Sign in to access spaces, insights, members, onboarding, and PATNA review workflows.
+            New members should begin with the community application form.
           </p>
           <div className="hero-actions">
             <Link className="secondary-button" href="/community/join">

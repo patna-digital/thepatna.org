@@ -1,10 +1,11 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import {
-  applicationCohortOptions,
-  applicationDomainOptions,
+  applicationEngagementOptions,
+  applicationExpertiseOptions,
 } from "@/lib/patna-data";
 import { submitCommunityApplicationAction } from "./actions";
 
@@ -25,6 +26,30 @@ function SubmitButton() {
 
 export function CommunityApplicationForm() {
   const [state, formAction] = useActionState(submitCommunityApplicationAction, initialState);
+  const [selectedExpertise, setSelectedExpertise] = useState([]);
+  const [selectedEngagement, setSelectedEngagement] = useState([]);
+  const showOtherExpertise = useMemo(
+    () => selectedExpertise.includes("other"),
+    [selectedExpertise],
+  );
+  const showOtherEngagement = useMemo(
+    () => selectedEngagement.includes("other"),
+    [selectedEngagement],
+  );
+
+  function handleExpertiseChange(event) {
+    const { value, checked } = event.target;
+    setSelectedExpertise((current) =>
+      checked ? [...current, value] : current.filter((item) => item !== value),
+    );
+  }
+
+  function handleEngagementChange(event) {
+    const { value, checked } = event.target;
+    setSelectedEngagement((current) =>
+      checked ? [...current, value] : current.filter((item) => item !== value),
+    );
+  }
 
   return (
     <form action={formAction} className="form-card">
@@ -45,42 +70,75 @@ export function CommunityApplicationForm() {
           <input name="email" placeholder="name@example.org" type="email" />
         </label>
         <label>
+          Phone number
+          <input name="phone_number" placeholder="+234..." />
+        </label>
+      </div>
+      <div className="two-column-grid">
+        <label>
           Country
           <input name="country" placeholder="Senegal" />
         </label>
+        <label>
+          Organisation / institution
+          <input name="organisation" placeholder="Institution or organisation" />
+        </label>
       </div>
       <label>
-        Organisation
-        <input name="organisation" placeholder="Institution or organisation" />
-      </label>
-      <label>
-        Role title
+        Role / title
         <input name="role_title" placeholder="Policy adviser" />
       </label>
 
       <fieldset className="checkbox-group">
-        <legend>Cohort interests</legend>
+        <legend>Area(s) of expertise</legend>
         <div className="checkbox-grid">
-          {applicationCohortOptions.map((cohort) => (
-            <label className="checkbox-item" key={cohort.slug}>
-              <input name="cohort_interests" type="checkbox" value={cohort.slug} />
-              <span>{cohort.label}</span>
+          {applicationExpertiseOptions.map((option) => (
+            <label className="checkbox-item" key={option.slug}>
+              <input
+                name="expertise_slugs"
+                onChange={handleExpertiseChange}
+                type="checkbox"
+                value={option.slug}
+              />
+              <span>{option.label}</span>
             </label>
           ))}
         </div>
       </fieldset>
 
+      {showOtherExpertise ? (
+        <label>
+          Other expertise
+          <input name="expertise_other_text" placeholder="Enter additional expertise areas" />
+        </label>
+      ) : null}
+
       <fieldset className="checkbox-group">
-        <legend>Domain interests</legend>
+        <legend>How would you like to engage with PATNA?</legend>
         <div className="checkbox-grid">
-          {applicationDomainOptions.map((tag) => (
-            <label className="checkbox-item" key={tag.slug}>
-              <input name="domain_interests" type="checkbox" value={tag.slug} />
-              <span>{tag.label}</span>
+          {applicationEngagementOptions.map((option) => (
+            <label className="checkbox-item" key={option.slug}>
+              <input
+                name="engagement_slugs"
+                onChange={handleEngagementChange}
+                type="checkbox"
+                value={option.slug}
+              />
+              <span>{option.label}</span>
             </label>
           ))}
         </div>
       </fieldset>
+
+      {showOtherEngagement ? (
+        <label>
+          Other engagement
+          <input
+            name="engagement_other_text"
+            placeholder="Enter another way you would like to engage"
+          />
+        </label>
+      ) : null}
 
       <label>
         Motivation
@@ -90,13 +148,24 @@ export function CommunityApplicationForm() {
         />
       </label>
 
+      <div className="stack">
+        <label className="checkbox-item">
+          <input name="consent_data_storage" required type="checkbox" value="yes" />
+          <span>I consent to PATNA storing my information for community engagement.</span>
+        </label>
+        <label className="checkbox-item">
+          <input name="consent_updates" type="checkbox" value="yes" />
+          <span>I would like to receive updates, newsletters, and invitations from PATNA.</span>
+        </label>
+      </div>
+
       <SubmitButton />
 
       {state.message ? (
         <p className={state.status === "error" ? "form-error" : "form-success"}>{state.message}</p>
       ) : (
         <p className="muted-note">
-          This form now writes to the Supabase application tables when the project env vars are set.
+          PATNA reviews applications first, then assigns cohort fit and interview routing internally.
         </p>
       )}
     </form>

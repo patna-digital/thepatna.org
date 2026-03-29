@@ -8,30 +8,31 @@ import {
   featuredProjects,
   heroStats,
   partnerGroups,
-  publicEvents,
   publicInsights,
 } from "@/lib/patna-data";
+import { fetchPublicEvents } from "@/lib/events";
 import {
-  eventMediaBySlug,
+  getEventMedia,
   insightMediaBySlug,
   projectMediaBySlug,
   publicPageMedia,
 } from "@/lib/public-media";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const publicEvents = await fetchPublicEvents({ limit: 3 });
+
   return (
     <>
       <section className="hero">
         <div className="hero-inner">
           <div className="hero-copy">
-            <div className="eyebrow">Africa&apos;s voice in global climate decisions</div>
+            <div className="eyebrow">African coordination for climate, maritime, and energy transitions</div>
             <h1>
-              Data-Driven Climate Action and <em>Energy Transition</em> for Africa
+              Evidence, coordination, and <em>transition strategy</em> for Africa
             </h1>
             <p>
-              PATNA brings together experts, policymakers, industry leaders, and civil society to
-              advance a just, inclusive, and evidence-based energy transition across maritime,
-              energy, and climate systems.
+              PATNA convenes African professionals across policy, maritime, energy, industry, and
+              civil society to generate evidence, align positions, and strengthen implementation.
             </p>
 
             <div className="hero-actions">
@@ -103,7 +104,7 @@ export default function HomePage() {
           <SectionIntro
             label="Our work"
             title="Featured projects and initiatives"
-            subtitle="Project sections now use official PATNA imagery and source metadata so programme work reads like a credible archive rather than a set of abstract cards."
+            subtitle="Programme work, convenings, and technical support presented as a clear institutional record."
           />
 
           <div className="media-article-grid media-article-grid-projects">
@@ -126,8 +127,8 @@ export default function HomePage() {
         <div className="section-inner">
           <SectionIntro
             label="Insights"
-            title="A unified publishing system for reports, briefs, and commentary"
-            subtitle="The interface now mirrors the darker insights band in the original mockup while keeping the content model ready for Supabase-backed publishing."
+            title="Reports, briefs, and commentary organised for decision-making"
+            subtitle="Knowledge products structured around source, audience, and policy relevance."
           />
 
           <div className="media-article-grid">
@@ -149,17 +150,17 @@ export default function HomePage() {
         <div className="section-inner">
           <SectionIntro
             label="Partners and convenings"
-            title="Public credibility comes from visible institutions, events, and outcomes"
-            subtitle="Partner organisations, event outputs, and cohort-facing evidence all now sit inside one coherent visual system."
+            title="Public credibility is built through institutions, convenings, and outcomes"
+            subtitle="PATNA’s work is grounded in visible partnerships, documented events, and shared outputs."
           />
 
           <div className="media-article-grid">
             {publicEvents.map((event) => (
               <MediaArticleCard
                 key={event.slug}
-                label={event.type}
-                media={eventMediaBySlug[event.slug]}
-                meta={[event.date, event.location]}
+                label={event.event_type || "Event"}
+                media={getEventMedia(event.slug)}
+                meta={[event.display_date, event.location].filter(Boolean)}
                 summary={event.summary}
                 title={event.title}
               />
@@ -186,8 +187,8 @@ export default function HomePage() {
           <div className="section-label">Join the network</div>
           <h2>Bring evidence, expertise, and coordination into one PATNA system.</h2>
           <p>
-            The redesigned site now connects the public story to the real community application and
-            review workflow already running on Supabase.
+            Join a network built for African technical coordination, shared evidence, and stronger
+            positioning across climate, maritime, and energy transitions.
           </p>
           <div className="join-band-btns">
             <Link className="secondary-button" href="/community">

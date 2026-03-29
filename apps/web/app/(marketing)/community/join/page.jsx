@@ -6,7 +6,7 @@ export default function JoinCommunityPage() {
     <>
       <MarketingPageHero
         label="Join PATNA"
-        subtitle="This route is now visually aligned with the main community mockup while still mapping directly to the live Supabase application tables."
+        subtitle="Submit your interest through a structured PATNA application designed around expertise, motivation, and how you want to engage."
         title="Submit your expression of interest"
       />
 
@@ -16,14 +16,14 @@ export default function JoinCommunityPage() {
             <article className="content-card">
               <h3>Application stages</h3>
               <p>
-                The form fields map directly onto the first-stage application table and interest
-                join tables already connected to Supabase.
+                The form captures the information PATNA needs to assess fit, route applications,
+                and prepare review decisions.
               </p>
               <ul className="check-list">
-                <li>Applicant details and organization</li>
+                <li>Applicant details, contact information, and organisation</li>
                 <li>Motivation statement</li>
-                <li>Cohort interests and domain interests</li>
-                <li>Admin review, interview, approval, and invite issuance</li>
+                <li>Expertise areas and engagement preferences</li>
+                <li>Admin review, interview, cohort assignment, approval, and invite issuance</li>
               </ul>
             </article>
 

@@ -152,7 +152,14 @@ export const eventMediaBySlug = {
   "policy-cohort-monthly-sync": mediaAssets.acs2Session,
   "mepc-83": mediaAssets.abujaStage,
   "dakar-maritime-prep-workshop": mediaAssets.dakarWorkshop,
+  "african-strategic-summit-on-shipping-decarbonisation": mediaAssets.abujaSummit,
+  "dakar-maritime-decarbonisation-workshop": mediaAssets.dakarWorkshop,
+  "african-climate-summit-ii-acs2": mediaAssets.acs2Hero,
 };
+
+export function getEventMedia(slug) {
+  return eventMediaBySlug[slug] || mediaAssets.acs2Hero;
+}
 
 export const publicPageMedia = {
   home: {
