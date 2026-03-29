@@ -21,9 +21,8 @@ export default async function MemberEventsPage() {
     fetchMemberEvents({ supabase }),
   ]);
 
-  if (frameData.error || !frameData.member) {
-    redirect("/app/profile");
-  }
+  // Allow navigation even with incomplete profile
+  const sidebarUser = frameData.sidebarUser || null;
 
   return (
     <MemberWorkspaceShell
@@ -38,7 +37,7 @@ export default async function MemberEventsPage() {
           </Link>
         </>
       )}
-      sidebarUser={frameData.sidebarUser}
+      sidebarUser={sidebarUser}
       subtitle="Workshops, summits, and coordination meetings across the live PATNA events register, organised into upcoming, past, and still-to-be-confirmed records."
       title="Events"
     >
