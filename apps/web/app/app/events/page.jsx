@@ -28,17 +28,12 @@ export default async function MemberEventsPage() {
     <MemberWorkspaceShell
       eyebrow="Calendar"
       headerActions={(
-        <>
-          <Link className="secondary-button" href="/events">
-            Public archive
-          </Link>
-          <Link className="primary-button" href="/contact">
-            Submit an event
-          </Link>
-        </>
+        <Link className="primary-button" href="/contact">
+          + Submit an Event
+        </Link>
       )}
       sidebarUser={sidebarUser}
-      subtitle="Workshops, summits, and coordination meetings across the live PATNA events register, organised into upcoming, past, and still-to-be-confirmed records."
+      subtitle="Workshops, summits, and coordination meetings — upcoming and past"
       title="Events"
     >
       {memberEventsResult.error ? (
