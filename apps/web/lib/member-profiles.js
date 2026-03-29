@@ -177,7 +177,8 @@ export function buildMemberProfileView({
   };
 }
 
-export async function fetchMemberProfileView({ adminClient, supabase, userId }) {
+export async function fetchMemberProfileView({ adminClient, supabase, userId, includeAuthUser = false }) {
+
   const [
     authUsers,
     profileResult,
@@ -186,28 +187,27 @@ export async function fetchMemberProfileView({ adminClient, supabase, userId }) 
     inviteRowsResult,
     cohortProfileResult,
     spaceMembershipsResult,
-  ] =
-    await Promise.all([
-      listSupabaseAuthUsers(adminClient),
-      supabase
-        .from("profiles")
-        .select(
-          "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
-        )
-        .eq("id", userId)
-        .maybeSingle(),
-      supabase
-        .from("user_cohorts")
-        .select("user_id, is_primary, cohorts(name, slug)")
-        .eq("user_id", userId),
-      supabase
-        .from("user_tags")
-        .select("tag_id, domain_tags(name, slug)")
-        .eq("user_id", userId),
-      supabase.from("invites").select("user_id, delivery_method, created_at").eq("user_id", userId),
-      supabase.from("cohort_member_profiles").select("*").eq("user_id", userId).maybeSingle(),
-      supabase.from("space_memberships").select("space_id, user_id").eq("user_id", userId),
-    ]);
+  ] = await Promise.all([
+    includeAuthUser ? listSupabaseAuthUsers(adminClient) : Promise.resolve([]),
+    supabase
+      .from("profiles")
+      .select(
+        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
+      )
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("user_cohorts")
+      .select("user_id, is_primary, cohorts(name, slug)")
+      .eq("user_id", userId),
+    supabase
+      .from("user_tags")
+      .select("tag_id, domain_tags(name, slug)")
+      .eq("user_id", userId),
+    supabase.from("invites").select("user_id, delivery_method, created_at").eq("user_id", userId),
+    supabase.from("cohort_member_profiles").select("*").eq("user_id", userId).maybeSingle(),
+    supabase.from("space_memberships").select("space_id, user_id").eq("user_id", userId),
+  ]);
 
   const error =
     profileResult.error ||
@@ -224,14 +224,15 @@ export async function fetchMemberProfileView({ adminClient, supabase, userId }) 
     };
   }
 
-  const authUser =
-    authUsers.find((candidate) => candidate.id === userId) ||
-    authUsers.find(
-      (candidate) =>
-        String(candidate.email || "").trim().toLowerCase() ===
-        String(profileResult.data.email || "").trim().toLowerCase(),
-    ) ||
-    null;
+  const authUser = includeAuthUser
+    ? authUsers.find((candidate) => candidate.id === userId) ||
+      authUsers.find(
+        (candidate) =>
+          String(candidate.email || "").trim().toLowerCase() ===
+          String(profileResult.data.email || "").trim().toLowerCase(),
+      ) ||
+      null
+    : null;
 
   return {
     error: null,
@@ -244,6 +245,85 @@ export async function fetchMemberProfileView({ adminClient, supabase, userId }) 
       spaceCount: new Set((spaceMembershipsResult.data || []).map((row) => row.space_id).filter(Boolean)).size,
       tagRows: tagRowsResult.data,
     }),
+  };
+}
+
+export async function fetchActiveMemberCounts({ adminClient, cohortSlug = "" }) {
+  const { data: memberRoleRows, error: memberRoleError } = await adminClient
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "member");
+
+  if (memberRoleError) {
+    return {
+      error: memberRoleError,
+      totalActiveMembers: 0,
+      cohortMemberCount: 0,
+    };
+  }
+
+  const memberIds = [...new Set((memberRoleRows || []).map((row) => row.user_id).filter(Boolean))];
+
+  if (!memberIds.length) {
+    return {
+      error: null,
+      totalActiveMembers: 0,
+      cohortMemberCount: 0,
+    };
+  }
+
+  const { data: activeProfiles, error: activeProfilesError } = await adminClient
+    .from("profiles")
+    .select("id")
+    .in("id", memberIds)
+    .eq("onboarding_status", "active")
+    .eq("profile_status", "active");
+
+  if (activeProfilesError) {
+    return {
+      error: activeProfilesError,
+      totalActiveMembers: 0,
+      cohortMemberCount: 0,
+    };
+  }
+
+  const activeMemberIds = [...new Set((activeProfiles || []).map((row) => row.id).filter(Boolean))];
+
+  if (!activeMemberIds.length) {
+    return {
+      error: null,
+      totalActiveMembers: 0,
+      cohortMemberCount: 0,
+    };
+  }
+
+  if (!cohortSlug) {
+    return {
+      error: null,
+      totalActiveMembers: activeMemberIds.length,
+      cohortMemberCount: activeMemberIds.length,
+    };
+  }
+
+  const { data: cohortRows, error: cohortRowsError } = await adminClient
+    .from("user_cohorts")
+    .select("user_id, cohorts!inner(slug)")
+    .in("user_id", activeMemberIds)
+    .eq("is_primary", true)
+    .eq("cohorts.slug", cohortSlug);
+
+  if (cohortRowsError) {
+    return {
+      error: cohortRowsError,
+      totalActiveMembers: activeMemberIds.length,
+      cohortMemberCount: activeMemberIds.length,
+    };
+  }
+
+  return {
+    error: null,
+    totalActiveMembers: activeMemberIds.length,
+    cohortMemberCount: new Set((cohortRows || []).map((row) => row.user_id).filter(Boolean)).size,
   };
 }
 

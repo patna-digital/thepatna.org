@@ -1,6 +1,5 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchMemberEvents } from "@/lib/events";
-import { fetchActiveMemberDirectory, fetchMemberProfileView } from "@/lib/member-profiles";
+import { fetchActiveMemberCounts, fetchMemberProfileView } from "@/lib/member-profiles";
 import {
   memberApplications,
   memberHighlights,
@@ -70,8 +69,7 @@ function parseEventDateBadge(event) {
 }
 
 export async function fetchMemberWorkspaceFrameData({ supabase, userId }) {
-  const adminClient = createSupabaseAdminClient();
-  const profileResult = await fetchMemberProfileView({ adminClient, supabase, userId });
+  const profileResult = await fetchMemberProfileView({ supabase, userId });
 
   if (profileResult.error || !profileResult.member) {
     return {
@@ -88,35 +86,62 @@ export async function fetchMemberWorkspaceFrameData({ supabase, userId }) {
   };
 }
 
-export async function fetchMemberDashboardView({ supabase, userId }) {
-  const adminClient = createSupabaseAdminClient();
-  const [profileResult, directoryResult, memberEventsResult] = await Promise.all([
-    fetchMemberProfileView({ adminClient, supabase, userId }),
-    fetchActiveMemberDirectory({ adminClient }),
-    fetchMemberEvents({ supabase }),
-  ]);
-
-  if (profileResult.error || !profileResult.member) {
-    return {
-      error: profileResult.error || new Error("Member profile not found."),
-      view: null,
-    };
-  }
-
-  const member = profileResult.member;
-  const activeMembers = directoryResult.members || [];
-  const cohortSlug = member.primaryCohort?.slug || "";
-  const cohortMemberCount = cohortSlug
-    ? activeMembers.filter((item) => item.primaryCohort?.slug === cohortSlug).length
-    : activeMembers.length;
+export async function fetchMemberDashboardMainData({ adminClient, member }) {
+  const { error, totalActiveMembers, cohortMemberCount } = await fetchActiveMemberCounts({
+    adminClient,
+    cohortSlug: member.primaryCohort?.slug || "",
+  });
   const unreadDiscussionCount = memberSpaces.reduce((sum, space) => sum + Number(space.unread || 0), 0);
   const activeSpacesCount = memberSpaces.length;
   const pendingApplicationsCount = memberApplications.filter((item) =>
     ["submitted", "interviewing"].includes(item.status),
   ).length;
   const publishedInsightsCount = publicInsights.length;
+
+  return {
+    error,
+    stats: [
+      {
+        label: `${member.primaryCohort?.name || "PATNA"} members`,
+        value: cohortMemberCount,
+        note: `${totalActiveMembers} active members in directory`,
+        tone: "blue",
+      },
+      {
+        label: "Active spaces",
+        value: activeSpacesCount,
+        note: `${memberSpaces.filter((space) => space.unread > 0).length} spaces with updates`,
+        tone: "blue",
+      },
+      {
+        label: "Applications in review",
+        value: pendingApplicationsCount,
+        note: "Current seeded review queue",
+        tone: "orange",
+      },
+      {
+        label: "Published insights",
+        value: publishedInsightsCount,
+        note: "Current shared library",
+        tone: "blue",
+      },
+    ],
+    mySpaces: memberSpaces.map((space) => ({
+      ...space,
+      kind: getSpaceKindLabel(space),
+    })),
+    recentDiscussions: memberHighlights,
+    applicationQueue: memberApplications,
+    counts: {
+      unreadDiscussions: unreadDiscussionCount,
+    },
+  };
+}
+
+export async function fetchMemberDashboardRailData({ supabase, member }) {
+  const memberEventsResult = await fetchMemberEvents({ supabase });
   const liveEvents = memberEventsResult.events || [];
-  const highlightedEvents = liveEvents
+  const upcomingEvents = liveEvents
     .filter((event) => ["upcoming", "tbc"].includes(event.schedule_status))
     .slice(0, 3)
     .map((event) => ({
@@ -125,58 +150,19 @@ export async function fetchMemberDashboardView({ supabase, userId }) {
     }));
 
   return {
-    error: profileResult.error || directoryResult.error || null,
-    view: {
-      member,
-      sidebarUser: buildSidebarUser(member),
-      stats: [
-        {
-          label: `${member.primaryCohort?.name || "PATNA"} members`,
-          value: cohortMemberCount,
-          note: `${activeMembers.length} active members in directory`,
-          tone: "blue",
-        },
-        {
-          label: "Active spaces",
-          value: activeSpacesCount,
-          note: `${memberSpaces.filter((space) => space.unread > 0).length} spaces with updates`,
-          tone: "blue",
-        },
-        {
-          label: "Applications in review",
-          value: pendingApplicationsCount,
-          note: "Current seeded review queue",
-          tone: "orange",
-        },
-        {
-          label: "Published insights",
-          value: publishedInsightsCount,
-          note: "Current shared library",
-          tone: "blue",
-        },
-      ],
-      mySpaces: memberSpaces.map((space) => ({
-        ...space,
-        kind: getSpaceKindLabel(space),
-      })),
-      recentDiscussions: memberHighlights,
-      applicationQueue: memberApplications,
-      upcomingEvents: highlightedEvents,
-      recentInsights: publicInsights,
-      profileSnapshot: {
-        role: member.roleTitleLabel || member.role_title || "PATNA Member",
-        organisation:
-          member.organisationLabel || member.organisation_name || member.country_of_residence || "Organisation pending",
-        country: member.country_of_residence || "Country pending",
-        cohort: member.primaryCohort?.name || "Cohort pending",
-        tags: member.domainTags.slice(0, 4).map((tag) => tag.name),
-        completionPercent: member.completionPercent,
-        availability: member.availabilityStatus,
-        profileStatus: member.profileStatus,
-      },
-      counts: {
-        unreadDiscussions: unreadDiscussionCount,
-      },
+    error: memberEventsResult.error,
+    upcomingEvents,
+    recentInsights: publicInsights,
+    profileSnapshot: {
+      role: member.roleTitleLabel || member.role_title || "PATNA Member",
+      organisation:
+        member.organisationLabel || member.organisation_name || member.country_of_residence || "Organisation pending",
+      country: member.country_of_residence || "Country pending",
+      cohort: member.primaryCohort?.name || "Cohort pending",
+      tags: member.domainTags.slice(0, 4).map((tag) => tag.name),
+      completionPercent: member.completionPercent,
+      availability: member.availabilityStatus,
+      profileStatus: member.profileStatus,
     },
   };
 }

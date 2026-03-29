@@ -9,7 +9,6 @@ import {
   normaliseProfileSectionId,
   PROFILE_SECTIONS,
 } from "@/lib/profile-onboarding";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberProfileView } from "@/lib/member-profiles";
 import { buildSidebarUser } from "@/lib/member-workspace";
@@ -88,13 +87,15 @@ function getSectionHref(sectionId, editMode) {
 }
 
 export default async function MemberProfilePage({ searchParams }) {
-  const { supabase, user } = await getCurrentUserContext();
+  const { supabase, user } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
 
   if (!user || !supabase) {
     redirect("/auth/login?next=/app/profile");
   }
 
-  const adminClient = createSupabaseAdminClient();
   const [{ data: cohorts }, { data: tags }, { data: currentCohorts }, { data: currentTags }, resolvedSearchParams, profileResult] =
     await Promise.all([
       supabase.from("cohorts").select("id, name, slug").order("name"),
@@ -105,7 +106,7 @@ export default async function MemberProfilePage({ searchParams }) {
         .eq("user_id", user.id),
       supabase.from("user_tags").select("tag_id, domain_tags!inner(name, slug)").eq("user_id", user.id),
       searchParams,
-      fetchMemberProfileView({ adminClient, supabase, userId: user.id }),
+      fetchMemberProfileView({ supabase, userId: user.id }),
     ]);
 
   if (profileResult.error || !profileResult.member) {

@@ -8,7 +8,10 @@ function formatVisibility(value) {
 }
 
 export default async function SettingsPage() {
-  const { user, supabase } = await getCurrentUserContext();
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
 
   if (!user || !supabase) {
     redirect("/auth/login?next=/app/settings");

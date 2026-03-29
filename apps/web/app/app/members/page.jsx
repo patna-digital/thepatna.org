@@ -10,7 +10,10 @@ import {
 } from "@/lib/member-workspace";
 
 export default async function MembersPage() {
-  const { user, supabase } = await getCurrentUserContext();
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
 
   if (!user || !supabase) {
     redirect("/auth/login?next=/app/members");

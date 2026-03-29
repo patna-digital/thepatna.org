@@ -5,7 +5,10 @@ import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 
 export default async function MemberInsightsPage() {
-  const { user, supabase } = await getCurrentUserContext();
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
 
   if (!user || !supabase) {
     redirect("/auth/login?next=/app/insights");

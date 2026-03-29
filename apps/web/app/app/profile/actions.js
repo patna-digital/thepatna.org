@@ -26,7 +26,10 @@ function buildProfileRedirect({ editMode = false, notice = "", step = "" }) {
 }
 
 export async function saveMemberProfileAction(formData) {
-  const { supabase, user } = await getCurrentUserContext();
+  const { supabase, user } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
 
   if (!user || !supabase) {
     redirect("/auth/login?next=/app/profile");

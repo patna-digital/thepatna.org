@@ -31,7 +31,10 @@ export async function markOnboardingStarted(supabase, userId) {
   return updatedProfile ?? profile;
 }
 
-export async function getCurrentUserContext() {
+export async function getCurrentUserContext({
+  includeProfile = true,
+  includeRoles = true,
+} = {}) {
   if (!isSupabaseConfigured()) {
     return {
       supabase: null,
@@ -59,14 +62,18 @@ export async function getCurrentUserContext() {
     };
   }
 
-  const profile = await getProfileRecord(supabase, user.id);
-  const { data: roleRows } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id);
+  const [profile, roleRowsResult] = await Promise.all([
+    includeProfile ? getProfileRecord(supabase, user.id) : Promise.resolve(null),
+    includeRoles
+      ? supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+      : Promise.resolve({ data: [] }),
+  ]);
 
-  const roles = roleRows?.map((item) => item.role) ?? [];
-  const needsOnboarding = profile?.onboarding_status !== "active";
+  const roles = includeRoles ? roleRowsResult?.data?.map((item) => item.role) ?? [] : [];
+  const needsOnboarding = includeProfile ? profile?.onboarding_status !== "active" : false;
 
   return {
     supabase,
@@ -79,7 +86,7 @@ export async function getCurrentUserContext() {
 }
 
 export async function requireAdminContext() {
-  const context = await getCurrentUserContext();
+  const context = await getCurrentUserContext({ includeProfile: false, includeRoles: true });
 
   if (!context.user) {
     redirect("/auth/login?next=/admin");

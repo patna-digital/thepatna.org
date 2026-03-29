@@ -42,10 +42,16 @@ export async function proxy(request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const pathname = request.nextUrl.pathname;
+  const shouldCheckOnboarding =
+    Boolean(user) &&
+    pathname.startsWith("/app") &&
+    pathname !== "/app" &&
+    pathname !== "/app/profile";
 
   let onboardingStatus = null;
 
-  if (user) {
+  if (shouldCheckOnboarding) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("onboarding_status")
@@ -62,8 +68,7 @@ export async function proxy(request) {
   }
 
   if (request.nextUrl.pathname === "/auth/login" && user) {
-    const target = onboardingStatus !== "active" ? onboardingPath : "/app";
-    return NextResponse.redirect(new URL(target, request.url));
+    return NextResponse.redirect(new URL("/app", request.url));
   }
 
   if (request.nextUrl.pathname.startsWith("/admin") && user) {
@@ -80,8 +85,7 @@ export async function proxy(request) {
   }
 
   if (
-    user &&
-    request.nextUrl.pathname.startsWith("/app") &&
+    shouldCheckOnboarding &&
     request.nextUrl.pathname !== onboardingPath &&
     request.nextUrl.pathname !== "/app/onboarding" &&
     onboardingStatus !== "active"
@@ -89,11 +93,7 @@ export async function proxy(request) {
     return NextResponse.redirect(new URL(onboardingPath, request.url));
   }
 
-  if (user && request.nextUrl.pathname === "/app/onboarding") {
-    return NextResponse.redirect(new URL(onboardingPath, request.url));
-  }
-
-  if (user && request.nextUrl.pathname === "/app/onboarding" && onboardingStatus === "active") {
+  if (shouldCheckOnboarding && request.nextUrl.pathname === "/app/onboarding" && onboardingStatus === "active") {
     return NextResponse.redirect(new URL("/app", request.url));
   }
 

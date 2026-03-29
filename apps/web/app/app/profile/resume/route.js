@@ -5,7 +5,10 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 
 export async function GET() {
-  const { supabase, user } = await getCurrentUserContext();
+  const { supabase, user } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
 
   if (!user || !supabase) {
     return NextResponse.redirect(new URL("/auth/login?next=/app/profile", getSiteUrl()));

@@ -7,7 +7,10 @@ import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 
 export default async function MemberEventsPage() {
-  const { user, supabase } = await getCurrentUserContext();
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
 
   if (!user || !supabase) {
     redirect("/auth/login?next=/app/events");
