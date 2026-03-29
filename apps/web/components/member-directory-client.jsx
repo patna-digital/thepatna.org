@@ -46,6 +46,20 @@ function getBioExcerpt(member) {
   return source.length > 148 ? `${source.slice(0, 145)}...` : source;
 }
 
+const LOWERCASE_WORDS = new Set(["a", "an", "the", "and", "but", "or", "nor", "for", "so", "yet", "at", "by", "in", "of", "on", "to", "up", "as", "is", "it"]);
+
+function toRoleCase(str) {
+  if (!str) return str;
+  return str
+    .split(" ")
+    .map((word, i) =>
+      i === 0 || !LOWERCASE_WORDS.has(word.toLowerCase())
+        ? word.charAt(0).toUpperCase() + word.slice(1)
+        : word.toLowerCase()
+    )
+    .join(" ");
+}
+
 function getCohortTone(cohortSlug) {
   if (cohortSlug === "academic") {
     return "academic";
@@ -171,9 +185,9 @@ export function MemberDirectoryClient({ directory }) {
         {filteredMembers.map((member) => {
           const isSelf = member.id === directory.currentUserId;
           const tone = getCohortTone(member.primaryCohort?.slug);
-          const roleLabel = member.roleTitleLabel || "";
+          const roleLabel = toRoleCase(member.roleTitleLabel || "");
           const organisationLabel = member.organisationLabel || "";
-          const organisationLine = [organisationLabel, member.country_of_residence].filter(Boolean).join(" · ");
+          const countryLabel = member.country_of_residence || "";
 
           const allCohorts = [
             member.primaryCohort,
@@ -208,9 +222,20 @@ export function MemberDirectoryClient({ directory }) {
                   <p className={`member-directory-role-line${roleLabel ? "" : " is-placeholder"}`}>
                     {roleLabel || "Role pending"}
                   </p>
-                  <p className={`member-directory-organisation-line${organisationLine ? "" : " is-placeholder"}`}>
-                    {organisationLine || "Organisation pending"}
-                  </p>
+                  <div className="member-directory-meta-lines">
+                    {organisationLabel ? (
+                      <span className="member-directory-meta-line-item">
+                        <svg aria-hidden="true" fill="none" height="11" viewBox="0 0 12 12" width="11" xmlns="http://www.w3.org/2000/svg"><rect height="7" rx="0.8" stroke="currentColor" strokeWidth="1.2" width="8" x="2" y="4"/><path d="M4 4V3a2 2 0 0 1 4 0v1" stroke="currentColor" strokeWidth="1.2"/></svg>
+                        {organisationLabel}
+                      </span>
+                    ) : null}
+                    {countryLabel ? (
+                      <span className="member-directory-meta-line-item">
+                        <svg aria-hidden="true" fill="none" height="11" viewBox="0 0 12 12" width="11" xmlns="http://www.w3.org/2000/svg"><path d="M6 1a3.5 3.5 0 0 1 3.5 3.5C9.5 7.5 6 11 6 11S2.5 7.5 2.5 4.5A3.5 3.5 0 0 1 6 1Z" stroke="currentColor" strokeWidth="1.2"/><circle cx="6" cy="4.5" fill="currentColor" r="1.2"/></svg>
+                        {countryLabel}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
