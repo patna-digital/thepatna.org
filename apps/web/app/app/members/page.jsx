@@ -26,11 +26,13 @@ export default async function MembersPage() {
   ]);
 
   // Allow navigation even with incomplete profile
+  const sidebarUser = frameData.sidebarUser || null;
+
   return (
     <MemberWorkspaceShell
       eyebrow="Community"
       headerActions={<span className="member-lock-chip">Members only</span>}
-      sidebarUser={frameData.sidebarUser}
+      sidebarUser={sidebarUser}
       subtitle={`${members.length} active members across ${new Set(members.map((member) => member.primaryCohort?.slug).filter(Boolean)).size} cohorts, visible to current PATNA members.`}
       title="Member directory"
     >

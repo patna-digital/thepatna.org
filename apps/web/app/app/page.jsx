@@ -297,10 +297,7 @@ export default async function MemberDashboardPage() {
 
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
-  if (frameData.error || !frameData.member) {
-    redirect("/app/profile");
-  }
-
+  // Allow access even with incomplete/missing profile data
   const headerActions = (
     <>
       <Link className="secondary-button" href="/app/events">
@@ -312,6 +309,11 @@ export default async function MemberDashboardPage() {
     </>
   );
 
+  // Handle incomplete profile gracefully
+  const member = frameData.member || {};
+  const sidebarUser = frameData.sidebarUser || null;
+  const firstName = member.first_name || member.displayName || "Member";
+
   return (
     <MemberWorkspaceShell
       dateLabel={formatToday()}
@@ -319,15 +321,15 @@ export default async function MemberDashboardPage() {
       headerActions={headerActions}
       rightRail={
         <Suspense fallback={<DashboardShellFallback />}>
-          <MemberDashboardRightRail member={frameData.member} sidebarUser={frameData.sidebarUser} />
+          <MemberDashboardRightRail member={member} sidebarUser={sidebarUser} />
         </Suspense>
       }
-      sidebarUser={frameData.sidebarUser}
+      sidebarUser={sidebarUser}
       subtitle="Your current spaces, review queue, events, and profile progress are gathered here in one member workspace."
-      title={`Welcome back, ${frameData.member.first_name || frameData.member.displayName}`}
+      title={`Welcome back, ${firstName}`}
     >
       <Suspense fallback={<DashboardShellFallback />}>
-        <MemberDashboardMain member={frameData.member} />
+        <MemberDashboardMain member={member} />
       </Suspense>
     </MemberWorkspaceShell>
   );

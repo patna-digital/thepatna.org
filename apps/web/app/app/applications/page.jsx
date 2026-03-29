@@ -26,12 +26,13 @@ export default async function ApplicationsPage() {
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
   // Allow navigation even with incomplete profile
+  const sidebarUser = frameData.sidebarUser || null;
   const summary = buildApplicationSummary(memberApplications);
 
   return (
     <MemberWorkspaceShell
       eyebrow="Review"
-      sidebarUser={frameData.sidebarUser}
+      sidebarUser={sidebarUser}
       subtitle="A structured review workspace for applicant notes, cohort context, and current decision status."
       title="Applications"
     >

@@ -17,13 +17,14 @@ export default async function SpacesPage() {
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
   // Allow navigation even with incomplete profile
+  const sidebarUser = frameData.sidebarUser || null;
 
   const groups = buildMemberSpaceGroups(memberSpaces);
 
   return (
     <MemberWorkspaceShell
       eyebrow="Community"
-      sidebarUser={frameData.sidebarUser}
+      sidebarUser={sidebarUser}
       subtitle="Cohort, constituency, and working-group spaces organised around how PATNA coordinates expertise."
       title="My spaces"
     >

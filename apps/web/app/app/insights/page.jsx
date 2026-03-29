@@ -17,12 +17,13 @@ export default async function MemberInsightsPage() {
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
   // Allow navigation even with incomplete profile
+  const sidebarUser = frameData.sidebarUser || null;
   const [featuredInsight, ...libraryItems] = publicInsights;
 
   return (
     <MemberWorkspaceShell
       eyebrow="Knowledge"
-      sidebarUser={frameData.sidebarUser}
+      sidebarUser={sidebarUser}
       subtitle="A member-facing library organised around briefs, reports, commentary, and audience relevance."
       title="Insights library"
     >

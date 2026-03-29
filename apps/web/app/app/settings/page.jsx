@@ -20,12 +20,13 @@ export default async function SettingsPage() {
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
   // Allow navigation even with incomplete profile
-  const member = frameData.member;
+  const member = frameData.member || {};
+  const sidebarUser = frameData.sidebarUser || null;
 
   return (
     <MemberWorkspaceShell
       eyebrow="Workspace"
-      sidebarUser={frameData.sidebarUser}
+      sidebarUser={sidebarUser}
       subtitle="Current settings are organized around the fields PATNA already stores, with future account controls clearly separated."
       title="Settings"
     >
