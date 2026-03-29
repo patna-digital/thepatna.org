@@ -1,0 +1,17 @@
+{
+  "name": "patna-platform",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "pnpm --filter @patna/web dev",
+    "build": "pnpm --filter @patna/web build",
+    "start": "pnpm --filter @patna/web start",
+    "lint": "pnpm --filter @patna/web lint",
+    "cohorts:import": "pnpm --filter @patna/web exec node ./scripts/import-cohort-members.mjs",
+    "headshots:migrate": "pnpm --filter @patna/web exec node ./scripts/migrate-headshots-to-storage.mjs",
+    "resumes:migrate": "pnpm --filter @patna/web exec node ./scripts/migrate-resumes-to-storage.mjs",
+    "supabase:link": "./scripts/supabase-link.sh",
+    "supabase:push": "./scripts/supabase-push.sh",
+    "supabase:types": "./scripts/supabase-types.sh"
+  }
+}
