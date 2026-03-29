@@ -59,24 +59,33 @@ export async function ensureProfileRecord({ supabase, user }) {
     return existingProfile;
   }
 
+  const { firstName, surname } = splitAuthName(user);
+  const profilePayload = {
+    id: user.id,
+    email: String(user.email || "").trim().toLowerCase(),
+    first_name: firstName,
+    surname,
+    onboarding_status: "profile_pending",
+  };
+
+  const { data: selfCreatedProfile, error: selfCreateError } = await supabase
+    .from("profiles")
+    .upsert(profilePayload, { onConflict: "id" })
+    .select("*")
+    .single();
+
+  if (!selfCreateError && selfCreatedProfile) {
+    return selfCreatedProfile;
+  }
+
   if (!canUseSupabaseAdmin()) {
     return null;
   }
 
   const adminClient = createSupabaseAdminClient();
-  const { firstName, surname } = splitAuthName(user);
   const { data: createdProfile, error } = await adminClient
     .from("profiles")
-    .upsert(
-      {
-        id: user.id,
-        email: String(user.email || "").trim().toLowerCase(),
-        first_name: firstName,
-        surname,
-        onboarding_status: "profile_pending",
-      },
-      { onConflict: "id" },
-    )
+    .upsert(profilePayload, { onConflict: "id" })
     .select("*")
     .single();
 
