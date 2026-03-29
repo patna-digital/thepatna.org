@@ -5,7 +5,9 @@ This workspace is now organized for development of the PATNA platform as a Verce
 Current state:
 - source strategy and requirements documents are under `docs/source/`
 - visual references for the public website and community space are under `apps/web/mockups/`
-- application, backend, and planning folders are in place, but the production app has not been scaffolded yet
+- the PATNA web application now lives in `apps/web`
+- Supabase migrations and workflow scripts live under `supabase/` and the root package scripts
+- GitHub is the collaboration layer and PATNA-owned Vercel is the production release gate
 
 Recommended stack:
 - `apps/web`: Next.js App Router application deployed to Vercel
@@ -40,7 +42,9 @@ Priority next steps:
 
 Planning references:
 - `docs/planning/project-review-and-build-plan.md`
+- `docs/planning/release-workflow.md`
 - `docs/planning/supabase-schema-outline.md`
 - `docs/planning/supabase-remote-workflow.md`
+- `CONTRIBUTING.md`
 - `apps/web/README.md`
 - `supabase/README.md`
