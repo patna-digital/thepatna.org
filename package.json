@@ -5,6 +5,11 @@
   "engines": {
     "node": ">=22 <25"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
+  },
   "scripts": {
     "dev": "pnpm --filter @patna/web dev",
     "build": "pnpm --filter @patna/web build",
