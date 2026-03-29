@@ -3725,15 +3725,15 @@ img {
 
 .member-directory-identity-row {
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
   gap: 0.85rem;
   align-items: center;
 }
 
 .member-directory-avatar {
   border-radius: 999px;
-  width: 50px;
-  height: 50px;
+  width: 56px;
+  height: 56px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -3813,6 +3813,28 @@ img {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+}
+
+.member-directory-meta-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.2rem;
+}
+
+.member-directory-meta-line-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #7c92ad;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.member-directory-meta-line-item svg {
+  flex-shrink: 0;
+  color: #a0b6cc;
 }
 
 .member-directory-role-line.is-placeholder,
