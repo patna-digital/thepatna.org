@@ -134,6 +134,7 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
   const { error, member } = await fetchMemberProfileView({
     adminClient,
     includeAuthUser: true,
+    includeInviteHistory: true,
     supabase,
     userId: memberId,
   });

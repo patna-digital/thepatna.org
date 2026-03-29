@@ -177,7 +177,13 @@ export function buildMemberProfileView({
   };
 }
 
-export async function fetchMemberProfileView({ adminClient, supabase, userId, includeAuthUser = false }) {
+export async function fetchMemberProfileView({
+  adminClient,
+  supabase,
+  userId,
+  includeAuthUser = false,
+  includeInviteHistory = false,
+}) {
 
   const [
     authUsers,
@@ -204,7 +210,9 @@ export async function fetchMemberProfileView({ adminClient, supabase, userId, in
       .from("user_tags")
       .select("tag_id, domain_tags(name, slug)")
       .eq("user_id", userId),
-    supabase.from("invites").select("user_id, delivery_method, created_at").eq("user_id", userId),
+    includeInviteHistory
+      ? supabase.from("invites").select("user_id, delivery_method, created_at").eq("user_id", userId)
+      : Promise.resolve({ data: [], error: null }),
     supabase.from("cohort_member_profiles").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("space_memberships").select("space_id, user_id").eq("user_id", userId),
   ]);
