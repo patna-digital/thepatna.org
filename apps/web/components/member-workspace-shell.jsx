@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
+import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
 
 function getProfileTone(member) {
@@ -102,6 +103,7 @@ export function MemberWorkspaceShell({
             <span>Admin app</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
+          <SignOutButton />
         </div>
       </aside>
 

@@ -69,10 +69,6 @@ export async function GET(request) {
       return redirectWithCookies(new URL("/auth/reset-password", request.url), response);
     }
 
-    if (profile?.onboarding_status !== "active") {
-      return redirectWithCookies(new URL("/app/profile", request.url), response);
-    }
-
     return redirectWithCookies(new URL("/app", request.url), response);
   }
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
+import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
 
 export function DashboardShell({
@@ -45,7 +46,9 @@ export function DashboardShell({
         <nav aria-label="Member navigation">
           {navItems.map((item) => {
             const isActive =
-              item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
+              item.href === "/app" || item.href === "/admin"
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
 
             return (
               <Link className={isActive ? "active" : undefined} href={item.href} key={item.href}>
@@ -78,6 +81,7 @@ export function DashboardShell({
             <span>Community app</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
+          <SignOutButton />
         </div>
       </aside>
 

@@ -1,7 +1,6 @@
 import { fetchMemberEvents } from "@/lib/events";
 import { fetchActiveMemberCounts, fetchMemberProfileView } from "@/lib/member-profiles";
 import {
-  memberApplications,
   memberHighlights,
   memberSpaces,
   publicInsights,
@@ -91,11 +90,9 @@ export async function fetchMemberDashboardMainData({ adminClient, member }) {
     adminClient,
     cohortSlug: member.primaryCohort?.slug || "",
   });
+
   const unreadDiscussionCount = memberSpaces.reduce((sum, space) => sum + Number(space.unread || 0), 0);
   const activeSpacesCount = memberSpaces.length;
-  const pendingApplicationsCount = memberApplications.filter((item) =>
-    ["submitted", "interviewing"].includes(item.status),
-  ).length;
   const publishedInsightsCount = publicInsights.length;
 
   return {
@@ -114,12 +111,6 @@ export async function fetchMemberDashboardMainData({ adminClient, member }) {
         tone: "blue",
       },
       {
-        label: "Applications in review",
-        value: pendingApplicationsCount,
-        note: "Current seeded review queue",
-        tone: "orange",
-      },
-      {
         label: "Published insights",
         value: publishedInsightsCount,
         note: "Current shared library",
@@ -131,7 +122,6 @@ export async function fetchMemberDashboardMainData({ adminClient, member }) {
       kind: getSpaceKindLabel(space),
     })),
     recentDiscussions: memberHighlights,
-    applicationQueue: memberApplications,
     counts: {
       unreadDiscussions: unreadDiscussionCount,
     },

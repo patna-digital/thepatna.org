@@ -319,7 +319,6 @@ export const memberNav = [
   { href: "/app/members", label: "Members", icon: "◈" },
   { href: "/app/events", label: "Events", icon: "◔" },
   { href: "/app/profile", label: "Profile", icon: "◷" },
-  { href: "/app/applications", label: "Applications", icon: "◻", badge: 4, highlight: true },
   { href: "/app/settings", label: "Settings", icon: "⚙" },
 ];
 
