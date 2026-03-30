@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
@@ -17,6 +18,8 @@ export function DashboardShell({
   spotlight,
 }) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const footerLinks = [
     { href: "/app", label: "Community App" },
     { href: "/admin", label: "Admin App" },
@@ -45,10 +48,11 @@ export function DashboardShell({
 
         <nav aria-label="Member navigation">
           {navItems.map((item) => {
-            const isActive =
+            const isActive = mounted && (
               item.href === "/app" || item.href === "/admin"
                 ? pathname === item.href
-                : pathname.startsWith(item.href);
+                : pathname.startsWith(item.href)
+            );
 
             return (
               <Link className={isActive ? "active" : ""} href={item.href} key={item.href}>
@@ -102,10 +106,11 @@ export function DashboardShell({
 
             <div className="dashboard-footer-links">
               {footerLinks.map((item) => {
-                const isActive =
+                const isActive = mounted && (
                   item.href === "/"
                     ? pathname === item.href
-                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`)
+                );
 
                 return (
                   <Link
