@@ -278,7 +278,7 @@ export default async function MemberDashboardPage() {
         </Suspense>
       }
       sidebarUser={sidebarUser}
-      subtitle="Your current spaces, review queue, events, and profile progress are gathered here in one member workspace."
+      subtitle="Your current spaces, events, insights, and profile progress are gathered here in one member workspace."
       title={`Welcome back, ${firstName}`}
     >
       <Suspense fallback={<DashboardShellFallback />}>
