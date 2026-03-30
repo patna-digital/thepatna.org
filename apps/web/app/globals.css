@@ -5866,3 +5866,239 @@ details[open] .app-row-expand-hint {
     text-align: left;
   }
 }
+
+/* ─── Insights Admin Styles ──────────────────────────────────────────────── */
+
+/* Insight Form Layout */
+.admin-form-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.admin-form-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-form-sidebar .dashboard-card {
+  padding: 1.25rem;
+}
+
+.admin-form-sidebar h3 {
+  font-size: var(--text-md);
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--ink);
+}
+
+@media (max-width: 960px) {
+  .admin-form-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-form-sidebar {
+    order: -1;
+  }
+}
+
+/* Insight Form */
+.insight-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.insight-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.insight-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.insight-form-field-full {
+  grid-column: 1 / -1;
+}
+
+.insight-form-field label {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.insight-form-field .required {
+  color: #dc2626;
+}
+
+.insight-form-field input[type="text"],
+.insight-form-field select,
+.insight-form-field textarea {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.98);
+  font-size: var(--text-md);
+  color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.insight-form-field input:focus,
+.insight-form-field select:focus,
+.insight-form-field textarea:focus {
+  outline: none;
+  border-color: var(--blue-bright);
+  box-shadow: 0 0 0 3px rgba(20, 132, 216, 0.1);
+}
+
+.insight-form-field textarea.insight-form-body {
+  font-family: monospace;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.insight-form-field .field-hint {
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  margin: 0.25rem 0 0;
+}
+
+/* Tags Selection */
+.insight-form-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.insight-form-tag-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.insight-form-tag-option input[type="checkbox"] {
+  display: none;
+}
+
+.insight-form-tag-option .status-chip {
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.insight-form-tag-option input:checked + .status-chip {
+  background: var(--blue-dark);
+  color: white;
+  border-color: var(--blue-dark);
+}
+
+/* Form Actions */
+.insight-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(209, 232, 245, 0.7);
+}
+
+/* Error Banner */
+.form-error-banner {
+  padding: 1rem 1.25rem;
+  background: #fef1f1;
+  border: 1px solid #f8c5c5;
+  border-radius: var(--radius-md);
+  color: #b91c1c;
+  font-size: var(--text-sm);
+}
+
+/* Insight Meta List (Sidebar) */
+.insight-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.insight-meta-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: var(--text-sm);
+}
+
+.insight-meta-label {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.insight-meta-value {
+  color: var(--ink);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-all;
+}
+
+/* Attachments List */
+.insight-attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.insight-attachment-item a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  background: rgba(3, 82, 157, 0.04);
+  color: var(--blue-dark);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.insight-attachment-item a:hover {
+  background: rgba(3, 82, 157, 0.08);
+}
+
+/* Feature List (Sidebar Help) */
+.feature-list ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+
+.feature-list li + li {
+  margin-top: 0.5rem;
+}
+
+/* Compact Definition List */
+dl.compact-list {
+  margin: 0;
+}
+
+dl.compact-list dt {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  margin-top: 0.75rem;
+}
+
+dl.compact-list dt:first-child {
+  margin-top: 0;
+}
+
+dl.compact-list dd {
+  margin: 0.25rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
