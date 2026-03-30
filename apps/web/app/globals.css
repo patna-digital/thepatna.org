@@ -4737,3 +4737,78 @@ details[open] .app-row-expand-hint {
     padding: 1.25rem;
   }
 }
+
+/* ─── Admin member/event row additions ───────────────────────────────────── */
+
+/* Horizontal button row inside expanded detail (members, events) */
+.app-row-actions-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid rgba(209, 232, 245, 0.6);
+}
+
+/* Alert bar inside expanded row */
+.app-row-alert {
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  background: rgba(241, 248, 254, 0.7);
+  border: 1px solid rgba(209, 232, 245, 0.7);
+  margin-bottom: 1rem;
+}
+
+.app-row-alert-warning {
+  color: #7a4800;
+  background: rgba(255, 246, 230, 0.8);
+  border-color: rgba(245, 190, 80, 0.35);
+}
+
+/* Empty state inside app-list-card */
+.app-row-empty {
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.app-row-empty strong {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.app-row-empty p {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* Checkbox label in summary row for bulk actions */
+.app-row-checkbox {
+  display: flex;
+  align-items: center;
+  padding: 0 0.25rem 0 0;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+.app-row-checkbox input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--blue-mid);
+  cursor: pointer;
+}
+
+/* Visual divider between filter groups in dashboard-toolbar */
+.filter-tab-divider {
+  width: 1px;
+  background: var(--border);
+  align-self: stretch;
+  margin: 0 0.25rem;
+  flex-shrink: 0;
+}
