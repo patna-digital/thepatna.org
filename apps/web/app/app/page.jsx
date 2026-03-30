@@ -16,11 +16,6 @@ function formatToday() {
   }).format(new Date());
 }
 
-function formatStatus(status) {
-  return String(status || "")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
 
 function DashboardShellFallback() {
   return (
@@ -38,7 +33,7 @@ function DashboardShellFallback() {
 
 async function MemberDashboardMain({ member }) {
   const adminClient = createSupabaseAdminClient();
-  const { error, stats, mySpaces, recentDiscussions, applicationQueue } = await fetchMemberDashboardMainData({
+  const { error, stats, mySpaces, recentDiscussions } = await fetchMemberDashboardMainData({
     adminClient,
     member,
   });
@@ -117,45 +112,6 @@ async function MemberDashboardMain({ member }) {
         </div>
       </article>
 
-      <article className="dashboard-card member-module-card">
-        <div className="member-section-heading">
-          <div>
-            <h3>Applications in review</h3>
-            <p className="member-section-copy">A compact queue organised around applicant, cohort, and current review state.</p>
-          </div>
-          <Link className="text-link" href="/app/applications">
-            Open queue
-          </Link>
-        </div>
-        <div className="member-review-table">
-          <div className="member-review-table-head">
-            <span>Applicant</span>
-            <span>Country / Org</span>
-            <span>Cohort</span>
-            <span>Status</span>
-            <span>Action</span>
-          </div>
-          {applicationQueue.map((application) => (
-            <div className="member-review-row" key={application.name}>
-              <strong>{application.name}</strong>
-              <span>
-                {application.country} · {application.organisation}
-              </span>
-              <span className="status-chip chip-neutral">{application.cohort}</span>
-              <span
-                className={
-                  application.status === "interviewing"
-                    ? "status-chip chip-warning"
-                    : "status-chip chip-neutral"
-                }
-              >
-                {formatStatus(application.status)}
-              </span>
-              <span className="status-chip chip-neutral">{application.actionLabel}</span>
-            </div>
-          ))}
-        </div>
-      </article>
     </div>
   );
 }
@@ -267,9 +223,6 @@ async function MemberDashboardRightRail({ member, sidebarUser }) {
           <h3>Quick actions</h3>
         </div>
         <div className="member-quick-actions">
-          <Link className="secondary-button" href="/app/applications">
-            Review applications
-          </Link>
           <Link className="secondary-button" href="/app/events">
             Open events
           </Link>
@@ -325,7 +278,7 @@ export default async function MemberDashboardPage() {
         </Suspense>
       }
       sidebarUser={sidebarUser}
-      subtitle="Your current spaces, review queue, events, and profile progress are gathered here in one member workspace."
+      subtitle="Your current spaces, events, insights, and profile progress are gathered here in one member workspace."
       title={`Welcome back, ${firstName}`}
     >
       <Suspense fallback={<DashboardShellFallback />}>

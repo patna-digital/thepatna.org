@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
+import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
 
 function getProfileTone(member) {
@@ -25,6 +27,8 @@ export function MemberWorkspaceShell({
   navItems = memberNav,
 }) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   return (
     <div className="member-workspace-shell">
@@ -77,11 +81,12 @@ export function MemberWorkspaceShell({
 
         <nav aria-label="Member navigation" className="member-workspace-nav">
           {navItems.map((item) => {
-            const isActive =
-              item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
+            const isActive = mounted && (
+              item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href)
+            );
 
             return (
-              <Link className={isActive ? "active" : undefined} href={item.href} key={item.href}>
+              <Link className={isActive ? "active" : ""} href={item.href} key={item.href}>
                 <span className="nav-item-label">
                   <span className="nav-item-icon">{item.icon}</span>
                   <span>{item.label}</span>
@@ -102,6 +107,7 @@ export function MemberWorkspaceShell({
             <span>Admin app</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
+          <SignOutButton />
         </div>
       </aside>
 

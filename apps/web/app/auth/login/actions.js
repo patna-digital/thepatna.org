@@ -44,11 +44,7 @@ export async function signInAction(_previousState, formData) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    const profile = await markOnboardingStarted(supabase, user.id);
-
-    if (profile?.onboarding_status !== "active") {
-      redirect("/app/profile");
-    }
+    await markOnboardingStarted(supabase, user.id);
   }
 
   redirect(nextPath);
