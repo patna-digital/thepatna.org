@@ -1,13 +1,65 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
+import { SettingsCard } from "./components/settings-card";
+import { SettingsSelect } from "./components/settings-select";
+import { 
+  updateVisibilitySettingAction, 
+  updateAvailabilityStatusAction,
+  updateTimezoneAction,
+  requestPasswordResetAction,
+} from "./actions";
+
+// Timezone options (common timezones)
+const TIMEZONE_OPTIONS = [
+  { value: "UTC", label: "UTC" },
+  { value: "Europe/London", label: "London (GMT)" },
+  { value: "Europe/Paris", label: "Paris (CET)" },
+  { value: "Europe/Berlin", label: "Berlin (CET)" },
+  { value: "Europe/Athens", label: "Athens (EET)" },
+  { value: "Africa/Lagos", label: "Lagos (WAT)" },
+  { value: "Africa/Johannesburg", label: "Johannesburg (SAST)" },
+  { value: "Africa/Nairobi", label: "Nairobi (EAT)" },
+  { value: "Asia/Dubai", label: "Dubai (GST)" },
+  { value: "Asia/Singapore", label: "Singapore (SGT)" },
+  { value: "Asia/Shanghai", label: "Shanghai (CST)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+  { value: "Australia/Sydney", label: "Sydney (AEST)" },
+  { value: "Pacific/Auckland", label: "Auckland (NZST)" },
+  { value: "America/New_York", label: "New York (EST)" },
+  { value: "America/Chicago", label: "Chicago (CST)" },
+  { value: "America/Denver", label: "Denver (MST)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (PST)" },
+];
 
 function formatVisibility(value) {
-  return String(value || "members_only").replaceAll("_", " ");
+  const map = {
+    members_only: "Members only",
+    public: "Public",
+    private: "Private (hidden)",
+  };
+  return map[value] || "Members only";
 }
 
-export default async function SettingsPage() {
+function formatAvailability(value) {
+  const map = {
+    available: "Available",
+    limited: "Limited availability",
+    unavailable: "Unavailable",
+  };
+  return map[value] || "Available";
+}
+
+function formatDate(value) {
+  if (!value) return "Not available";
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "long",
+  }).format(new Date(value));
+}
+
+export default async function SettingsPage({ searchParams }) {
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -23,56 +75,195 @@ export default async function SettingsPage() {
   const member = frameData.member || {};
   const sidebarUser = frameData.sidebarUser || null;
 
+  const resolvedSearchParams = await searchParams;
+  const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
+  const noticeType = typeof resolvedSearchParams?.type === "string" ? resolvedSearchParams.type : "success";
+
   return (
     <MemberWorkspaceShell
       eyebrow="Workspace"
       sidebarUser={sidebarUser}
-      subtitle="Current settings are organized around the fields PATNA already stores, with future account controls clearly separated."
+      subtitle="Manage your profile visibility, availability, and account preferences. Changes are saved immediately."
       title="Settings"
     >
       <div className="member-dashboard-stack">
-        <div className="card-grid member-settings-grid">
-          <article className="dashboard-card member-setting-card">
-            <span className="tag">Live</span>
-            <h3>Profile visibility</h3>
-            <p>Current directory visibility is derived from your stored profile settings.</p>
-            <div className="member-setting-value">{formatVisibility(member.visibility_setting)}</div>
-          </article>
-
-          <article className="dashboard-card member-setting-card">
-            <span className="tag">Live</span>
-            <h3>Account state</h3>
-            <p>Your onboarding, visibility, and member status are reflected here from your current PATNA profile.</p>
-            <div className="member-setting-list">
-              <span>Onboarding: {member.onboarding_status}</span>
-              <span>Profile: {member.profileStatus}</span>
-              <span>Availability: {member.availabilityStatus}</span>
-            </div>
-          </article>
-
-          <article className="dashboard-card member-setting-card">
-            <span className="tag">Live</span>
-            <h3>Community context</h3>
-            <p>Current role and cohort placement based on your member profile.</p>
-            <div className="member-setting-list">
-              <span>{member.role_title || "Role pending"}</span>
-              <span>{member.organisation_name || "Organisation pending"}</span>
-              <span>{member.primaryCohort?.name || "Cohort pending"}</span>
-            </div>
-          </article>
-
-          <article className="dashboard-card member-setting-card member-setting-card-muted">
-            <span className="tag">Upcoming</span>
-            <h3>Notifications</h3>
-            <p>Email, digest, and discussion alert preferences will appear here as member messaging controls are added.</p>
-          </article>
-
-          <article className="dashboard-card member-setting-card member-setting-card-muted">
-            <span className="tag">Upcoming</span>
-            <h3>Password and sign-in</h3>
-            <p>Password reset, invite completion, and account security controls will live here once they are exposed in the member workspace.</p>
-          </article>
+        {/* Quick Actions Bar */}
+        <div className="settings-quick-actions">
+          <Link className="secondary-button" href="/app/profile">
+            <span>✎</span> Edit full profile
+          </Link>
+          <Link className="secondary-button" href="/members">
+            <span>👤</span> View public profile
+          </Link>
         </div>
+
+        {/* Notice Messages */}
+        {notice && (
+          <div className={`settings-notice ${noticeType === "error" ? "settings-notice-error" : ""}`}>
+            {notice === "visibility-updated" && "Visibility setting saved successfully."}
+            {notice === "availability-updated" && "Availability status saved successfully."}
+            {notice === "timezone-updated" && "Timezone saved successfully."}
+            {notice === "password-reset-sent" && "Password reset email sent. Check your inbox."}
+            {noticeType === "error" && notice}
+          </div>
+        )}
+
+        {/* Primary Settings Grid */}
+        <div className="settings-grid-primary">
+          {/* Visibility Card */}
+          <SettingsCard
+            description="Control who can see your profile in the PATNA directory"
+            title="Directory visibility"
+          >
+            <SettingsSelect
+              action={updateVisibilitySettingAction}
+              currentValue={member.visibility_setting || "members_only"}
+              name="visibility_setting"
+              options={[
+                { value: "members_only", label: "Members only", description: "Only logged-in PATNA members" },
+                { value: "public", label: "Public", description: "Visible to anyone on the web" },
+                { value: "private", label: "Private", description: "Hidden from directory" },
+              ]}
+            />
+            <div className="settings-card-footer">
+              <span className={`status-chip ${member.visibility_setting === "public" ? "chip-success" : "chip-neutral"}`}>
+                {formatVisibility(member.visibility_setting)}
+              </span>
+            </div>
+          </SettingsCard>
+
+          {/* Availability Card */}
+          <SettingsCard
+            description="Let other members know your current availability for collaboration"
+            title="Availability status"
+          >
+            <SettingsSelect
+              action={updateAvailabilityStatusAction}
+              currentValue={member.availability_status || "available"}
+              name="availability_status"
+              options={[
+                { value: "available", label: "Available", description: "Open to new opportunities" },
+                { value: "limited", label: "Limited", description: "Selective about new projects" },
+                { value: "unavailable", label: "Unavailable", description: "Not taking on new work" },
+              ]}
+            />
+            <div className="settings-card-footer">
+              <span className={`status-chip ${
+                member.availability_status === "available" ? "chip-success" : 
+                member.availability_status === "limited" ? "chip-warning" : "chip-muted"
+              }`}>
+                {formatAvailability(member.availability_status)}
+              </span>
+            </div>
+          </SettingsCard>
+        </div>
+
+        {/* Secondary Settings */}
+        <div className="settings-grid-secondary">
+          {/* Timezone */}
+          <SettingsCard
+            description="Your local timezone for meeting scheduling"
+            title="Timezone"
+          >
+            <SettingsSelect
+              action={updateTimezoneAction}
+              currentValue={member.timezone || "UTC"}
+              name="timezone"
+              options={TIMEZONE_OPTIONS}
+            />
+          </SettingsCard>
+
+          {/* Account State */}
+          <SettingsCard
+            description="Your current PATNA membership status"
+            title="Account status"
+          >
+            <div className="settings-readonly-list">
+              <div className="settings-readonly-item">
+                <span className="settings-readonly-label">Onboarding</span>
+                <span className={`status-chip ${
+                  member.onboarding_status === "active" ? "chip-success" : "chip-warning"
+                }`}>
+                  {member.onboarding_status || "Pending"}
+                </span>
+              </div>
+              <div className="settings-readonly-item">
+                <span className="settings-readonly-label">Profile</span>
+                <span className={`status-chip ${
+                  member.profileStatus === "active" ? "chip-success" : "chip-danger"
+                }`}>
+                  {member.profileStatus || "Pending"}
+                </span>
+              </div>
+              {member.onboarding_completed_at && (
+                <div className="settings-readonly-item">
+                  <span className="settings-readonly-label">Member since</span>
+                  <span className="settings-readonly-value">
+                    {formatDate(member.onboarding_completed_at)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </SettingsCard>
+        </div>
+
+        {/* Account Information */}
+        <section className="settings-section">
+          <h2 className="settings-section-title">Account information</h2>
+          <div className="card-grid member-settings-grid">
+            <article className="dashboard-card member-setting-card">
+              <h3>Community context</h3>
+              <p>Your role and cohort placement within PATNA.</p>
+              <div className="member-setting-list">
+                <div className="settings-info-row">
+                  <span className="settings-info-label">Role</span>
+                  <span className="settings-info-value">{member.role_title || "Not specified"}</span>
+                </div>
+                <div className="settings-info-row">
+                  <span className="settings-info-label">Organisation</span>
+                  <span className="settings-info-value">{member.organisation_name || "Not specified"}</span>
+                </div>
+                <div className="settings-info-row">
+                  <span className="settings-info-label">Primary cohort</span>
+                  <span className="settings-info-value">{member.primaryCohort?.name || "Not assigned"}</span>
+                </div>
+                <div className="settings-info-row">
+                  <span className="settings-info-label">Email</span>
+                  <span className="settings-info-value">{member.email}</span>
+                </div>
+              </div>
+            </article>
+
+            {/* Security */}
+            <article className="dashboard-card member-setting-card">
+              <h3>Security</h3>
+              <p>Manage your account security and access.</p>
+              <div className="settings-actions-stack">
+                <form action={requestPasswordResetAction}>
+                  <button className="secondary-button settings-action-button" type="submit">
+                    <span>🔐</span> Reset password
+                  </button>
+                </form>
+                <p className="settings-action-hint">
+                  We&apos;ll send a password reset link to your email.
+                </p>
+              </div>
+            </article>
+
+            {/* Notifications - Coming Soon */}
+            <article className="dashboard-card member-setting-card member-setting-card-muted">
+              <span className="tag">Upcoming</span>
+              <h3>Notifications</h3>
+              <p>Email preferences, digest settings, and discussion alerts.</p>
+              <div className="settings-coming-soon">
+                <span className="settings-coming-soon-badge">Coming soon</span>
+                <p className="settings-coming-soon-text">
+                  Notification controls will be available once PATNA messaging is launched.
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
       </div>
     </MemberWorkspaceShell>
   );
