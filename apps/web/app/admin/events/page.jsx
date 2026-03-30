@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminEventsList } from "@/components/admin-events-list";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
 import { buildAdminEventSummary, fetchAdminEvents, filterAdminEvents } from "@/lib/events";
@@ -17,18 +18,6 @@ const SCHEDULE_FILTERS = [
   { key: "past", label: "Past" },
   { key: "tbc", label: "TBC" },
 ];
-
-const PUBLISH_CHIP = {
-  published: "chip-success",
-  draft: "chip-neutral",
-  archived: "chip-muted",
-};
-
-const SCHEDULE_CHIP = {
-  upcoming: "chip-warning",
-  past: "chip-muted",
-  tbc: "chip-neutral",
-};
 
 function getNoticeMessage(notice) {
   const messages = {
@@ -81,7 +70,7 @@ export default async function AdminEventsPage({ searchParams }) {
       <div className="summary-grid">
         <div className="summary-tile">
           <strong>{summary.total}</strong>
-          <span>Total</span>
+          <span>Total events</span>
         </div>
         <div className="summary-tile">
           <strong>{summary.published}</strong>
@@ -93,7 +82,7 @@ export default async function AdminEventsPage({ searchParams }) {
         </div>
         <div className="summary-tile">
           <strong>{summary.tbc}</strong>
-          <span>TBC</span>
+          <span>Dates TBC</span>
         </div>
       </div>
 
@@ -123,27 +112,29 @@ export default async function AdminEventsPage({ searchParams }) {
             ))}
           </div>
 
-          {/* Search + visibility + actions */}
-          <div className="admin-member-controls">
+          {/* Filters + actions */}
+          <div className="admin-toolbar-actions">
             <form action="/admin/events" className="inline-filter-form" style={{ flex: 1 }}>
               {publishStatus !== "all" ? <input name="status" type="hidden" value={publishStatus} /> : null}
               {scheduleStatus !== "all" ? <input name="schedule" type="hidden" value={scheduleStatus} /> : null}
+              <span className="admin-search-icon" aria-hidden="true">⌕</span>
               <input
                 defaultValue={search}
                 name="search"
                 placeholder="Search title, institution, theme, location…"
-                style={{ flex: 1, minWidth: "200px" }}
+                style={{ flex: 1, minWidth: "220px" }}
+                type="search"
               />
-              <select defaultValue={visibility} name="visibility" style={{ maxWidth: "140px" }}>
+              <select defaultValue={visibility} name="visibility" style={{ maxWidth: "160px" }}>
                 <option value="all">All visibility</option>
                 <option value="public">Public</option>
                 <option value="members">Members</option>
                 <option value="restricted">Restricted</option>
               </select>
-              <button className="secondary-button" type="submit">Search</button>
+              <button className="secondary-button" type="submit">Filter</button>
             </form>
 
-            <div className="member-toolbar-actions-panel">
+            <div className="admin-toolbar-right">
               <Link className="secondary-button" href="/events">Public view</Link>
               <Link className="primary-button" href="/admin/events/new">+ Add event</Link>
             </div>
@@ -165,107 +156,7 @@ export default async function AdminEventsPage({ searchParams }) {
         </div>
       </article>
 
-      {/* Event list */}
-      <article className="dashboard-card app-list-card">
-        {filteredEvents.length ? (
-          <div className="app-list">
-            {filteredEvents.map((event) => {
-              const publishChip = PUBLISH_CHIP[event.status] || "chip-neutral";
-              const scheduleChip = SCHEDULE_CHIP[event.schedule_status] || "chip-neutral";
-
-              return (
-                <details className="app-row" key={event.id}>
-                  <summary className="app-row-summary">
-                    <div className="app-row-primary">
-                      <div className="app-row-identity">
-                        <strong>{event.title}</strong>
-                        {event.location ? <span>{event.location}</span> : null}
-                      </div>
-                      <div className="app-row-signals">
-                        <span className="status-chip chip-neutral">{event.event_type || "Event"}</span>
-                        <span className={`status-chip ${scheduleChip}`}>{event.schedule_status}</span>
-                        <span className={`status-chip ${publishChip}`}>{event.status}</span>
-                        <span className="app-row-expand-hint">Details</span>
-                      </div>
-                    </div>
-                    <div className="app-row-meta">
-                      <span>{event.display_date || "Date pending"}</span>
-                      {event.organising_institutions?.length ? (
-                        <span>{event.organising_institutions[0]}{event.organising_institutions.length > 1 ? ` +${event.organising_institutions.length - 1}` : ""}</span>
-                      ) : null}
-                      <span>Visibility: {event.visibility}</span>
-                    </div>
-                  </summary>
-
-                  <div className="app-row-detail">
-                    {event.summary ? (
-                      <p className="app-row-detail-motivation">{event.summary}</p>
-                    ) : null}
-
-                    <div className="app-row-detail-grid">
-                      <div className="app-row-detail-field">
-                        <strong>Location</strong>
-                        <p>{event.location || "Not provided"}</p>
-                      </div>
-                      <div className="app-row-detail-field">
-                        <strong>Date</strong>
-                        <p>{event.display_date || "Pending"}</p>
-                      </div>
-                      <div className="app-row-detail-field">
-                        <strong>Institutions</strong>
-                        <p>{event.organising_institutions?.length ? event.organising_institutions.join(", ") : "Not provided"}</p>
-                      </div>
-                      <div className="app-row-detail-field">
-                        <strong>PATNA involvement</strong>
-                        <p>{event.patna_involvement || "Not provided"}</p>
-                      </div>
-                      <div className="app-row-detail-field">
-                        <strong>Visibility</strong>
-                        <p>{event.visibility}</p>
-                      </div>
-                      <div className="app-row-detail-field">
-                        <strong>Creator</strong>
-                        <p>{event.creatorName || "Not recorded"}</p>
-                      </div>
-                      <div className="app-row-detail-field">
-                        <strong>Last editor</strong>
-                        <p>{event.updatedByName || "Not recorded"}</p>
-                      </div>
-                    </div>
-
-                    {event.themes?.length ? (
-                      <div className="app-row-tag-section">
-                        <span className="app-row-tag-label">Themes</span>
-                        <div className="member-directory-tag-row">
-                          {event.themes.map((theme) => (
-                            <span className="status-chip chip-neutral" key={theme}>{theme}</span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div className="app-row-actions-row">
-                      <Link className="primary-button" href={`/admin/events/${event.id}`}>
-                        Edit event
-                      </Link>
-                      <Link className="secondary-button" href="/events">
-                        Public view
-                      </Link>
-                    </div>
-                  </div>
-                </details>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="app-row-empty">
-            <strong>No events found</strong>
-            <p>No events match the current filters.{" "}
-              <Link className="text-link" href="/admin/events">Clear filters</Link>
-            </p>
-          </div>
-        )}
-      </article>
+      <AdminEventsList events={filteredEvents} />
     </DashboardShell>
   );
 }

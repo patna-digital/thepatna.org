@@ -60,11 +60,15 @@ export default async function AdminPage() {
         </div>
         <div className="summary-tile">
           <strong>{membersCount ?? 0}</strong>
-          <span>Members</span>
+          <span>Total members</span>
         </div>
         <div className="summary-tile">
           <strong>{pendingInviteCount ?? 0}</strong>
-          <span>Imported, not contacted</span>
+          <span>Pending invites</span>
+        </div>
+        <div className="summary-tile is-disabled">
+          <strong>—</strong>
+          <span>Active events</span>
         </div>
       </div>
 
@@ -96,9 +100,12 @@ export default async function AdminPage() {
             </Link>
           </div>
         </article>
-        <article className="dashboard-card">
-          <h3>Pipelines</h3>
+        <article className="dashboard-card is-disabled">
+          <h3>Pipelines <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--ink-soft)', marginLeft: '0.5rem' }}>(Coming soon)</span></h3>
           <p>Track service requests, partnership leads, and collaboration proposals from the public site.</p>
+          <div className="content-meta">
+            <span className="status-chip chip-muted">Not available</span>
+          </div>
         </article>
       </div>
     </DashboardShell>

@@ -137,24 +137,21 @@ export default async function AdminMembersPage({ searchParams }) {
       subtitle="Manage cohort members, onboarding state, and login access from one place."
     >
       {/* Toolbar */}
-      <article className="dashboard-card">
+      <article className="dashboard-card admin-toolbar-card">
         <div className="stack">
-          {/* Primary status filters */}
-          <div className="dashboard-toolbar">
-            {PRIMARY_FILTERS.map((f) => (
-              <Link
-                className={activeFilter === f.key ? "filter-tab active-filter" : "filter-tab"}
-                href={buildMembersPath({ status: f.key, cohort: activeCohort })}
-                key={f.key}
-              >
-                {f.label} ({getFilterCount(f.key, members, counts)})
-              </Link>
-            ))}
-          </div>
-
-          {/* Secondary row: diagnostic filters + cohort + actions */}
-          <div className="admin-member-controls">
+          {/* Status filters + Cohort in one row */}
+          <div className="admin-toolbar-main">
             <div className="dashboard-toolbar">
+              {PRIMARY_FILTERS.map((f) => (
+                <Link
+                  className={activeFilter === f.key ? "filter-tab active-filter" : "filter-tab"}
+                  href={buildMembersPath({ status: f.key, cohort: activeCohort })}
+                  key={f.key}
+                >
+                  {f.label} ({getFilterCount(f.key, members, counts)})
+                </Link>
+              ))}
+              <div className="filter-tab-divider" />
               {SECONDARY_FILTERS.map((f) => (
                 <Link
                   className={activeFilter === f.key ? "filter-tab filter-tab-secondary active-filter" : "filter-tab filter-tab-secondary"}
@@ -166,20 +163,33 @@ export default async function AdminMembersPage({ searchParams }) {
               ))}
             </div>
 
-            <div className="member-toolbar-actions-panel">
-              <form className="inline-filter-form" method="get">
-                {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
-                <select defaultValue={activeCohort} name="cohort" style={{ maxWidth: "160px" }}>
-                  <option value="all">All cohorts</option>
-                  {cohortOptions.map((c) => (
-                    <option key={c.slug} value={c.slug}>{c.name}</option>
-                  ))}
-                </select>
-                <button className="secondary-button" type="submit">Filter</button>
-              </form>
+            <form className="inline-filter-form" method="get">
+              {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
+              <select defaultValue={activeCohort} name="cohort">
+                <option value="all">All cohorts</option>
+                {cohortOptions.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.name}</option>
+                ))}
+              </select>
+              <button className="secondary-button" type="submit">Filter</button>
+            </form>
+          </div>
 
-              <Link className="secondary-button" href={exportHref}>Export</Link>
+          {/* Search + Bulk Actions */}
+          <div className="admin-toolbar-actions">
+            <form className="admin-search-form" method="get">
+              {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
+              {activeCohort !== "all" ? <input name="cohort" type="hidden" value={activeCohort} /> : null}
+              <span className="admin-search-icon" aria-hidden="true">⌕</span>
+              <input
+                name="search"
+                placeholder="Search name, email, organisation…"
+                type="search"
+              />
+            </form>
 
+            <div className="admin-toolbar-right">
+              <Link className="secondary-button" href={exportHref}>Export CSV</Link>
               <form action={sendSelectedMemberInvitesAction} id="bulk-member-action-form">
                 <input name="return_to" type="hidden" value={returnPath} />
                 <AdminMembersBulkAction />
@@ -206,13 +216,12 @@ export default async function AdminMembersPage({ searchParams }) {
               const hasIssues = issues.length > 0;
 
               return (
-                <details className="app-row" key={member.id}>
+                <div className="app-row-wrap" key={member.id}>
+                  <label className="app-row-checkbox">
+                    <input form="bulk-member-action-form" name="profile_ids" type="checkbox" value={member.id} />
+                  </label>
+                <details className="app-row app-row-indented">
                   <summary className="app-row-summary">
-                    {/* Checkbox stays accessible in summary */}
-                    <label className="app-row-checkbox" onClick={(e) => e.stopPropagation()}>
-                      <input form="bulk-member-action-form" name="profile_ids" type="checkbox" value={member.id} />
-                    </label>
-
                     <div className="app-row-primary">
                       <div className="app-row-identity">
                         <strong>{member.displayName}</strong>
@@ -347,6 +356,7 @@ export default async function AdminMembersPage({ searchParams }) {
                     </div>
                   </div>
                 </details>
+                </div>
               );
             })}
           </div>
