@@ -82,7 +82,7 @@ export function MemberWorkspaceShell({
               item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
 
             return (
-              <Link className={isActive ? "active" : undefined} href={item.href} key={item.href}>
+              <Link className={isActive ? "active" : ""} href={item.href} key={item.href}>
                 <span className="nav-item-label">
                   <span className="nav-item-icon">{item.icon}</span>
                   <span>{item.label}</span>
