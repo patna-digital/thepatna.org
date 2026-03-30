@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { applicationEngagementOptions, applicationExpertiseOptions } from "@/lib/patna-data";
-import { approveAndInviteApplicationAction, reviewApplicationAction } from "../app/admin/applications/actions";
+import {
+  approveAndInviteApplicationAction,
+  resendApplicationInviteAction,
+  reviewApplicationAction,
+  sendPasswordResetLinkAction,
+} from "../app/admin/applications/actions";
 
 const STATUS_OPTIONS = ["submitted", "interviewing", "approved", "waitlist", "declined"];
 
@@ -161,18 +166,56 @@ export function AdminApplicationsList({ applications, cohorts }) {
                     ) : null}
 
                     <div className="app-row-actions">
-                      {application.status !== "declined" ? (
-                        <form action={approveAndInviteApplicationAction} className="app-row-action-form app-row-action-form-primary">
-                          <input name="application_id" type="hidden" value={application.id} />
-                          <div className="app-row-action-form-body">
-                            <div>
-                              <strong>Approve &amp; invite</strong>
-                              <p>Creates the member profile and sends a password-setup email.</p>
+                      {(() => {
+                        const profile = application.member_profile;
+                        const isDeclined = application.status === "declined";
+                        const isApproved = application.status === "approved";
+
+                        if (isDeclined) return null;
+
+                        if (!isApproved || !profile) {
+                          return (
+                            <form action={approveAndInviteApplicationAction} className="app-row-action-form app-row-action-form-primary">
+                              <input name="application_id" type="hidden" value={application.id} />
+                              <div className="app-row-action-form-body">
+                                <div>
+                                  <strong>Approve &amp; invite</strong>
+                                  <p>Creates the member profile and sends a password-setup email.</p>
+                                </div>
+                                <button className="primary-button" type="submit">Approve &amp; invite</button>
+                              </div>
+                            </form>
+                          );
+                        }
+
+                        if (profile.onboarding_status === "active") {
+                          return (
+                            <form action={sendPasswordResetLinkAction} className="app-row-action-form app-row-action-form-primary">
+                              <input name="application_id" type="hidden" value={application.id} />
+                              <div className="app-row-action-form-body">
+                                <div>
+                                  <strong>Send password reset</strong>
+                                  <p>Member has an active account. Sends a password reset link to their email.</p>
+                                </div>
+                                <button className="primary-button" type="submit">Send password reset</button>
+                              </div>
+                            </form>
+                          );
+                        }
+
+                        return (
+                          <form action={resendApplicationInviteAction} className="app-row-action-form app-row-action-form-primary">
+                            <input name="application_id" type="hidden" value={application.id} />
+                            <div className="app-row-action-form-body">
+                              <div>
+                                <strong>Resend invite link</strong>
+                                <p>Invite was sent but account not yet set up. Sends a fresh invite link.</p>
+                              </div>
+                              <button className="primary-button" type="submit">Resend invite link</button>
                             </div>
-                            <button className="primary-button" type="submit">Approve &amp; invite</button>
-                          </div>
-                        </form>
-                      ) : null}
+                          </form>
+                        );
+                      })()}
 
                       <form action={reviewApplicationAction} className="app-row-action-form">
                         <input name="application_id" type="hidden" value={application.id} />

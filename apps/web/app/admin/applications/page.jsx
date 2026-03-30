@@ -11,7 +11,9 @@ function getNoticeMessage(notice) {
     saved: "Application review saved.",
     error: "Review update failed. Please retry.",
     "missing-fields": "Status and application ID are required.",
-    invited: "Applicant invited. Profile seeded from application data.",
+    invited: "Applicant approved and invited. Profile seeded from application data.",
+    "invite-resent": "Invite link resent.",
+    "password-reset-sent": "Password reset link sent.",
   };
   return messages[notice] || "";
 }
@@ -37,6 +39,25 @@ export default async function AdminApplicationsPage({ searchParams }) {
     query,
     supabase.from("cohorts").select("id, name, slug").order("name", { ascending: true }),
   ]);
+
+  // Fetch profile data for all applications so the UI can show the right action button
+  const emails = (applications || [])
+    .map((a) => a.submitted_by_email?.toLowerCase())
+    .filter(Boolean);
+
+  const { data: profiles } = emails.length
+    ? await supabase
+        .from("profiles")
+        .select("email, onboarding_status, invited_at")
+        .in("email", emails)
+    : { data: [] };
+
+  const profileByEmail = new Map((profiles || []).map((p) => [p.email?.toLowerCase(), p]));
+
+  const applicationsWithProfile = (applications || []).map((app) => ({
+    ...app,
+    member_profile: profileByEmail.get(app.submitted_by_email?.toLowerCase()) || null,
+  }));
 
   const statusCounts = Object.fromEntries(
     await Promise.all(
@@ -95,7 +116,7 @@ export default async function AdminApplicationsPage({ searchParams }) {
         </div>
       </article>
 
-      <AdminApplicationsList applications={applications || []} cohorts={cohorts || []} />
+      <AdminApplicationsList applications={applicationsWithProfile} cohorts={cohorts || []} />
     </DashboardShell>
   );
 }
