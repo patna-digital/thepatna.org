@@ -92,8 +92,8 @@ export default async function SettingsPage({ searchParams }) {
           <Link className="secondary-button" href="/app/profile">
             <span>✎</span> Edit full profile
           </Link>
-          <Link className="secondary-button" href="/members">
-            <span>👤</span> View public profile
+          <Link className="secondary-button" href="/app/members">
+            <span>👤</span> View in directory
           </Link>
         </div>
 
