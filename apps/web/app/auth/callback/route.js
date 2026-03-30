@@ -65,11 +65,11 @@ export async function GET(request) {
         .eq("id", user.id);
     }
 
-    if (type === "recovery") {
+    if (type === "recovery" || type === "invite") {
       return redirectWithCookies(new URL("/auth/reset-password", request.url), response);
     }
 
-    return redirectWithCookies(new URL("/app", request.url), response);
+    return redirectWithCookies(new URL(nextPath, request.url), response);
   }
 
   return response;

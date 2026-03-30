@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { MemberProfileModal } from "./member-profile-modal";
 
 function getInitials(name) {
   const parts = String(name || "")
@@ -11,7 +12,6 @@ function getInitials(name) {
 
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("") || "P";
 }
-
 
 function getSearchText(member) {
   return [
@@ -61,18 +61,9 @@ function toRoleCase(str) {
 }
 
 function getCohortTone(cohortSlug) {
-  if (cohortSlug === "academic") {
-    return "academic";
-  }
-
-  if (cohortSlug === "industry") {
-    return "industry";
-  }
-
-  if (cohortSlug === "civil-society") {
-    return "civil";
-  }
-
+  if (cohortSlug === "academic") return "academic";
+  if (cohortSlug === "industry") return "industry";
+  if (cohortSlug === "civil-society") return "civil";
   return "policy";
 }
 
@@ -85,33 +76,23 @@ export function MemberDirectoryClient({ directory }) {
   const [cohortFilter, setCohortFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
+  const [selectedMember, setSelectedMember] = useState(null);
 
   const filteredMembers = useMemo(() => {
     const normalisedSearch = searchTerm.trim().toLowerCase();
 
     return directory.members.filter((member) => {
-      if (cohortFilter !== "all" && member.primaryCohort?.slug !== cohortFilter) {
-        return false;
-      }
-
-      if (tagFilter !== "all" && !member.domainTags.some((tag) => tag.slug === tagFilter)) {
-        return false;
-      }
-
-      if (countryFilter !== "all" && member.country_of_residence !== countryFilter) {
-        return false;
-      }
-
-      if (normalisedSearch && !getSearchText(member).includes(normalisedSearch)) {
-        return false;
-      }
-
+      if (cohortFilter !== "all" && member.primaryCohort?.slug !== cohortFilter) return false;
+      if (tagFilter !== "all" && !member.domainTags.some((tag) => tag.slug === tagFilter)) return false;
+      if (countryFilter !== "all" && member.country_of_residence !== countryFilter) return false;
+      if (normalisedSearch && !getSearchText(member).includes(normalisedSearch)) return false;
       return true;
     });
   }, [cohortFilter, countryFilter, directory.members, searchTerm, tagFilter]);
 
   return (
     <div className="member-directory-shell">
+      {/* Cohort summary tiles */}
       <div className="member-directory-summary-row">
         {directory.summary.map((item) => (
           <button
@@ -129,6 +110,7 @@ export function MemberDirectoryClient({ directory }) {
         ))}
       </div>
 
+      {/* Search + filter toolbar */}
       <article className="member-directory-toolbar-card">
         <div className="member-directory-toolbar-grid">
           <label className="member-directory-search">
@@ -181,6 +163,7 @@ export function MemberDirectoryClient({ directory }) {
         </div>
       </article>
 
+      {/* Member grid */}
       <div className="member-directory-grid member-directory-grid-rich">
         {filteredMembers.map((member) => {
           const isSelf = member.id === directory.currentUserId;
@@ -197,7 +180,20 @@ export function MemberDirectoryClient({ directory }) {
           const remainingCount = member.domainTags.length - visibleTags.length;
 
           return (
-            <article className={`member-directory-profile-card tone-${tone}`} key={member.id}>
+            <article
+              className={`member-directory-profile-card tone-${tone}`}
+              key={member.id}
+              onClick={() => setSelectedMember(member)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedMember(member);
+                }
+              }}
+              aria-label={`View profile: ${member.displayNameLabel || member.displayName}`}
+            >
               {isSelf ? (
                 <span className="member-directory-you-chip">YOU</span>
               ) : null}
@@ -264,25 +260,42 @@ export function MemberDirectoryClient({ directory }) {
 
               <div className="member-directory-card-footer">
                 <span className="member-directory-footer-note">{getSpaceCountLabel(member.spaceCount || 0)}</span>
-                {isSelf ? (
-                  <Link className="member-directory-card-button" href="/app/profile">
-                    Edit Profile
-                  </Link>
-                ) : (
+                <div
+                  className="member-directory-card-action-stack"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {isSelf ? (
+                    <Link className="member-directory-card-button" href="/app/profile">
+                      Edit Profile
+                    </Link>
+                  ) : null}
                   <button
                     className="member-directory-card-button"
-                    disabled
-                    title="Coming soon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedMember(member);
+                    }}
                     type="button"
                   >
-                    Contact
+                    View profile
                   </button>
-                )}
+                </div>
               </div>
             </article>
           );
         })}
       </div>
+
+      {/* Profile modal */}
+      {selectedMember ? (
+        <MemberProfileModal
+          isAdmin={false}
+          isSelf={selectedMember.id === directory.currentUserId}
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+        />
+      ) : null}
     </div>
   );
 }
