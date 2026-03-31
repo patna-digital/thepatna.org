@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
+import Link from "next/link";
 import { signInAction } from "./actions";
 
 const initialState = {
@@ -57,6 +58,9 @@ export function LoginForm({ next }) {
         Password
         <input name="password" placeholder="Your password" type="password" />
       </label>
+      <div className="forgot-password-link">
+        <Link href="/auth/forgot-password">Forgot password?</Link>
+      </div>
       <SubmitButton />
       {errorMessage ? (
         <p className="form-error">{errorMessage}</p>

@@ -23,6 +23,10 @@ export async function createInsightAction(formData) {
   const visibility = String(formData.get("visibility") || "members").trim();
   const slug = String(formData.get("slug") || "").trim() || generateInsightSlug(title);
   const tag_ids = formData.getAll("tag_ids").map(String);
+  const featured = formData.get("featured") === "true";
+  const cover_image_url = String(formData.get("cover_image_url") || "").trim() || null;
+  const cover_image_alt = String(formData.get("cover_image_alt") || "").trim() || null;
+  const meta_description = String(formData.get("meta_description") || "").trim() || null;
 
   // Validation
   if (!title) {
@@ -43,6 +47,10 @@ export async function createInsightAction(formData) {
       visibility,
       slug,
       tag_ids,
+      featured,
+      cover_image_url,
+      cover_image_alt,
+      meta_description,
     },
     userId: user.id,
   });
@@ -52,7 +60,8 @@ export async function createInsightAction(formData) {
   }
 
   revalidatePath("/admin/insights");
-  revalidatePath("/app/insights");
+  revalidatePath("/app/publications");
+  revalidatePath("/publications");
   redirect("/admin/insights?notice=created");
 }
 
@@ -67,6 +76,10 @@ export async function updateInsightAction(insightId, formData) {
   const publish_status = String(formData.get("publish_status") || "draft").trim();
   const visibility = String(formData.get("visibility") || "members").trim();
   const tag_ids = formData.getAll("tag_ids").map(String);
+  const featured = formData.get("featured") === "true";
+  const cover_image_url = String(formData.get("cover_image_url") || "").trim() || null;
+  const cover_image_alt = String(formData.get("cover_image_alt") || "").trim() || null;
+  const meta_description = String(formData.get("meta_description") || "").trim() || null;
 
   // Validation
   if (!title) {
@@ -87,6 +100,10 @@ export async function updateInsightAction(insightId, formData) {
       publish_status,
       visibility,
       tag_ids,
+      featured,
+      cover_image_url,
+      cover_image_alt,
+      meta_description,
     },
     userId: user.id,
   });
@@ -96,8 +113,10 @@ export async function updateInsightAction(insightId, formData) {
   }
 
   revalidatePath("/admin/insights");
-  revalidatePath("/app/insights");
-  revalidatePath(`/app/insights/${insight.slug}`);
+  revalidatePath("/app/publications");
+  revalidatePath(`/app/publications/${insight.slug}`);
+  revalidatePath("/publications");
+  revalidatePath(`/publications/${insight.slug}`);
   
   return { ok: true, insight };
 }
@@ -116,7 +135,8 @@ export async function deleteInsightAction(insightId) {
   }
 
   revalidatePath("/admin/insights");
-  revalidatePath("/app/insights");
-  
+  revalidatePath("/app/publications");
+  revalidatePath("/publications");
+
   return { ok: true };
 }

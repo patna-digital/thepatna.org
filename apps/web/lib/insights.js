@@ -186,6 +186,10 @@ export async function createInsight({ adminSupabase, data, userId }) {
     slug,
     published_at,
     tag_ids = [],
+    featured = false,
+    cover_image_url = null,
+    cover_image_alt = null,
+    meta_description = null,
   } = data;
 
   // Create content item
@@ -199,6 +203,10 @@ export async function createInsight({ adminSupabase, data, userId }) {
       publish_status,
       visibility,
       slug,
+      featured,
+      cover_image_url,
+      cover_image_alt,
+      meta_description,
       published_at: published_at || (publish_status === "published" ? new Date().toISOString() : null),
       created_by_user_id: userId,
       updated_by_user_id: userId,
@@ -241,6 +249,10 @@ export async function updateInsight({ adminSupabase, id, data, userId }) {
     visibility,
     published_at,
     tag_ids,
+    featured,
+    cover_image_url,
+    cover_image_alt,
+    meta_description,
   } = data;
 
   // Update content item
@@ -253,6 +265,10 @@ export async function updateInsight({ adminSupabase, id, data, userId }) {
     visibility,
     updated_by_user_id: userId,
     updated_at: new Date().toISOString(),
+    ...(featured !== undefined && { featured }),
+    ...(cover_image_url !== undefined && { cover_image_url }),
+    ...(cover_image_alt !== undefined && { cover_image_alt }),
+    ...(meta_description !== undefined && { meta_description }),
   };
 
   // Set published_at if transitioning to published

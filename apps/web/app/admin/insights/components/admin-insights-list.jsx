@@ -124,7 +124,14 @@ export function AdminInsightsList({ insights }) {
                 </Link>
                 <Link
                   className="secondary-button"
-                  href={`/app/insights/${insight.slug}`}
+                  href={`/app/publications/${insight.slug}`}
+                  target="_blank"
+                >
+                  View in app
+                </Link>
+                <Link
+                  className="secondary-button"
+                  href={`/publications/${insight.slug}`}
                   target="_blank"
                 >
                   View public

@@ -271,7 +271,7 @@ export async function sendPasswordResetLinkAction(formData) {
   }
 
   const { error } = await adminClient.auth.resetPasswordForEmail(email, {
-    redirectTo: `${getSiteUrl()}/auth/callback?next=/app`,
+    redirectTo: `${getSiteUrl()}/auth/verify`,
   });
 
   if (error) {
