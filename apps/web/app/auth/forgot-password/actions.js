@@ -1,7 +1,7 @@
 "use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/env";
+import { getSiteUrl, isSupabaseConfigured } from "@/lib/env";
 
 export async function forgotPasswordAction(_previousState, formData) {
   if (!isSupabaseConfigured()) {
@@ -24,7 +24,7 @@ export async function forgotPasswordAction(_previousState, formData) {
   const supabase = await createSupabaseServerClient();
   
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/verify`,
+    redirectTo: `${getSiteUrl()}/auth/callback`,
   });
 
   if (error) {

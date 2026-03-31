@@ -9,7 +9,7 @@ function readEnv(name) {
 }
 
 export function getSiteUrl() {
-  return readEnv("NEXT_PUBLIC_SITE_URL") || "http://localhost:3000";
+  return (readEnv("NEXT_PUBLIC_SITE_URL") || "http://localhost:3000").replace(/\/+$/, "");
 }
 
 export function getSupabaseUrl() {

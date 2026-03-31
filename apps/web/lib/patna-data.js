@@ -314,6 +314,7 @@ export const applicationEngagementOptions = [
 
 export const memberNav = [
   { href: "/app", label: "Dashboard", icon: "⊞" },
+  { href: "/app/calendar", label: "Calendar", icon: "◷" },
   { href: "/app/spaces", label: "My Spaces", icon: "◎", badge: 3 },
   { href: "/app/publications", label: "Publications", icon: "⊡" },
   { href: "/app/members", label: "Members", icon: "◈" },
