@@ -139,9 +139,12 @@ export default async function EditInsightPage({ params }) {
 
           <div className="dashboard-card">
             <h3>Quick links</h3>
-            <div className="content-meta">
-              <Link className="text-link" href={`/app/insights/${insight.slug}`} target="_blank">
-                View on site ↗
+            <div className="content-meta stack" style={{ gap: "0.5rem" }}>
+              <Link className="text-link" href={`/publications/${insight.slug}`} target="_blank">
+                View public ↗
+              </Link>
+              <Link className="text-link" href={`/app/publications/${insight.slug}`} target="_blank">
+                View in app ↗
               </Link>
             </div>
           </div>

@@ -7,15 +7,15 @@ import {
   INSIGHT_CONTENT_TYPES,
   INSIGHT_STATUSES,
   INSIGHT_VISIBILITY,
-  formatContentType,
   generateInsightSlug,
 } from "@/lib/insights";
+import { RichTextEditor } from "@/components/rich-text-editor";
 
 export function InsightForm({
   insight,
   tags,
   action,
-  submitLabel = "Save insight",
+  submitLabel = "Save publication",
   cancelHref = "/admin/insights",
 }) {
   const router = useRouter();
@@ -26,9 +26,8 @@ export function InsightForm({
   const isEdit = Boolean(insight?.id);
 
   function handleTitleChange(e) {
-    const title = e.target.value;
     if (!isEdit) {
-      setSlugPreview(generateInsightSlug(title));
+      setSlugPreview(generateInsightSlug(e.target.value));
     }
   }
 
@@ -38,8 +37,6 @@ export function InsightForm({
     setError(null);
 
     const formData = new FormData(e.target);
-    
-    // Add slug if creating new
     if (!isEdit) {
       formData.set("slug", slugPreview);
     }
@@ -50,7 +47,6 @@ export function InsightForm({
       setError(result.error);
       setIsPending(false);
     } else if (result?.ok === true) {
-      // Update successful, refresh and redirect
       router.refresh();
       router.push("/admin/insights?notice=updated");
     }
@@ -75,7 +71,7 @@ export function InsightForm({
             id="title"
             name="title"
             onChange={handleTitleChange}
-            placeholder="Enter insight title"
+            placeholder="Enter publication title"
             required
             type="text"
           />
@@ -141,6 +137,58 @@ export function InsightForm({
           </select>
         </div>
 
+        {/* Featured */}
+        <div className="insight-form-field insight-form-field-full">
+          <label className="insight-form-checkbox-label">
+            <input
+              defaultChecked={insight?.featured || false}
+              name="featured"
+              type="checkbox"
+              value="true"
+            />
+            <span>Feature this publication (shown prominently across the platform)</span>
+          </label>
+        </div>
+
+        {/* Cover Image URL */}
+        <div className="insight-form-field insight-form-field-full">
+          <label htmlFor="cover_image_url">Cover image URL</label>
+          <input
+            defaultValue={insight?.cover_image_url || ""}
+            id="cover_image_url"
+            name="cover_image_url"
+            placeholder="https://… (use the Supabase storage URL)"
+            type="url"
+          />
+          <p className="field-hint">
+            Upload the image to <strong>publications/covers/</strong> in Supabase Storage and paste the public URL here.
+          </p>
+        </div>
+
+        {/* Cover Image Alt */}
+        <div className="insight-form-field insight-form-field-full">
+          <label htmlFor="cover_image_alt">Cover image alt text</label>
+          <input
+            defaultValue={insight?.cover_image_alt || ""}
+            id="cover_image_alt"
+            name="cover_image_alt"
+            placeholder="Descriptive alt text for the cover image"
+            type="text"
+          />
+        </div>
+
+        {/* Meta Description */}
+        <div className="insight-form-field insight-form-field-full">
+          <label htmlFor="meta_description">SEO description</label>
+          <textarea
+            defaultValue={insight?.meta_description || ""}
+            id="meta_description"
+            name="meta_description"
+            placeholder="Short description for search engines and social sharing (150–250 characters)"
+            rows={2}
+          />
+        </div>
+
         {/* Tags */}
         <div className="insight-form-field insight-form-field-full">
           <label>Tags</label>
@@ -169,32 +217,24 @@ export function InsightForm({
             defaultValue={insight?.summary || ""}
             id="summary"
             name="summary"
-            placeholder="Brief summary of the insight (shown in lists)"
+            placeholder="Brief summary shown in publication lists and cards"
             rows={3}
           />
         </div>
 
-        {/* Body */}
+        {/* Body — Rich text */}
         <div className="insight-form-field insight-form-field-full">
-          <label htmlFor="body">Body Content</label>
-          <textarea
-            className="insight-form-body"
+          <label>Body content</label>
+          <RichTextEditor
             defaultValue={insight?.body || ""}
-            id="body"
             name="body"
-            placeholder="Full content of the insight (supports markdown)"
-            rows={12}
+            placeholder="Write the full content of this publication. Use the toolbar for headings, lists, bold, links, and blockquotes."
           />
-          <p className="field-hint">Full content. Markdown formatting supported.</p>
         </div>
       </div>
 
       <div className="insight-form-actions">
-        <button
-          className="primary-button"
-          disabled={isPending}
-          type="submit"
-        >
+        <button className="primary-button" disabled={isPending} type="submit">
           {isPending ? (
             <>
               <span className="settings-spinner" />

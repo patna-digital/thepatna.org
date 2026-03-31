@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData, buildMemberSpaceGroups } from "@/lib/member-workspace";
-import { memberSpaces } from "@/lib/patna-data";
+import { fetchMemberSpaces } from "@/lib/spaces";
 
 export default async function SpacesPage() {
   const { user, supabase } = await getCurrentUserContext({
@@ -14,12 +14,31 @@ export default async function SpacesPage() {
     redirect("/auth/login?next=/app/spaces");
   }
 
-  const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
+  const [frameData, { spaces, error }] = await Promise.all([
+    fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
+    fetchMemberSpaces({ supabase, userId: user.id }),
+  ]);
 
-  // Allow navigation even with incomplete profile
   const sidebarUser = frameData.sidebarUser || null;
 
-  const groups = buildMemberSpaceGroups(memberSpaces);
+  // Normalise shape to match buildMemberSpaceGroups expectations
+  const normalised = (spaces || []).map((space) => ({
+    slug:    space.slug,
+    name:    space.name,
+    type:    formatSpaceType(space.space_type),
+    kind:    space.space_type,
+    members: space.member_count ?? 0,
+    threads: space.threads ?? 0,
+    unread:  space.unread  ?? 0,
+    role:    capitalise(space.role || "member"),
+    summary: space.description || "",
+    tags:    space.tags || [],
+  }));
+
+  const groups = buildMemberSpaceGroups(normalised);
+
+  const totalUnread = normalised.reduce((sum, s) => sum + s.unread, 0);
+  const leadCount   = normalised.filter((s) => s.role === "Lead").length;
 
   return (
     <MemberWorkspaceShell
@@ -29,23 +48,36 @@ export default async function SpacesPage() {
       title="My spaces"
     >
       <div className="member-dashboard-stack">
+        {error && (
+          <p className="form-error">Could not load spaces. Please refresh and try again.</p>
+        )}
+
         <div className="member-dashboard-summary-grid member-dashboard-summary-grid-compact">
           <article className="member-stat-card tone-blue">
-            <strong>{memberSpaces.length}</strong>
+            <strong>{normalised.length}</strong>
             <h3>Total visible spaces</h3>
             <p>Visible across your current PATNA workspace</p>
           </article>
           <article className="member-stat-card tone-blue">
-            <strong>{memberSpaces.reduce((sum, item) => sum + item.unread, 0)}</strong>
+            <strong>{totalUnread}</strong>
             <h3>New updates</h3>
             <p>Unread activity across your current spaces</p>
           </article>
           <article className="member-stat-card tone-blue">
-            <strong>{memberSpaces.filter((item) => item.role === "Lead").length}</strong>
+            <strong>{leadCount}</strong>
             <h3>Lead roles</h3>
             <p>Spaces where you currently coordinate</p>
           </article>
         </div>
+
+        {groups.length === 0 && !error && (
+          <article className="dashboard-card">
+            <div className="app-row-empty">
+              <strong>No spaces yet</strong>
+              <p>You haven't been added to any spaces. Contact your cohort coordinator to get access.</p>
+            </div>
+          </article>
+        )}
 
         {groups.map((group) => (
           <article className="dashboard-card member-module-card" key={group.id}>
@@ -66,8 +98,16 @@ export default async function SpacesPage() {
                     <span className="status-chip chip-neutral">{space.role}</span>
                   </div>
                   <p className="member-space-card-summary">{space.summary}</p>
+                  {space.tags?.length > 0 && (
+                    <div className="member-space-card-tags">
+                      {space.tags.slice(0, 3).map((tag) => (
+                        <span className="status-chip chip-neutral" key={tag.slug} style={{ fontSize: "0.7rem" }}>
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="member-space-card-meta">
-                    <span>{space.members} members</span>
                     <span>{space.threads} threads</span>
                     <span className={space.unread ? "member-meta-emphasis" : undefined}>
                       {space.unread} new
@@ -81,4 +121,19 @@ export default async function SpacesPage() {
       </div>
     </MemberWorkspaceShell>
   );
+}
+
+function formatSpaceType(type) {
+  const map = {
+    cohort:        "Cohort Space",
+    constituency:  "Constituency",
+    working_group: "Working Group",
+    geography:     "Geography",
+  };
+  return map[type] || type;
+}
+
+function capitalise(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }

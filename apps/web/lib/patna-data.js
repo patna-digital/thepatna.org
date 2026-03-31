@@ -2,7 +2,7 @@ export const siteNavigation = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/projects", label: "Projects" },
-  { href: "/insights", label: "Insights" },
+  { href: "/publications", label: "Publications" },
   { href: "/events", label: "Events" },
   { href: "/community", label: "Community" },
   { href: "/work-with-us", label: "Work With Us" },
@@ -15,7 +15,7 @@ export const footerLinkGroups = [
     links: [
       { href: "/about", label: "About PATNA" },
       { href: "/projects", label: "Projects" },
-      { href: "/insights", label: "Insights" },
+      { href: "/publications", label: "Publications" },
       { href: "/events", label: "Events" },
     ],
   },
@@ -315,7 +315,7 @@ export const applicationEngagementOptions = [
 export const memberNav = [
   { href: "/app", label: "Dashboard", icon: "⊞" },
   { href: "/app/spaces", label: "My Spaces", icon: "◎", badge: 3 },
-  { href: "/app/insights", label: "Insights", icon: "⊡" },
+  { href: "/app/publications", label: "Publications", icon: "⊡" },
   { href: "/app/members", label: "Members", icon: "◈" },
   { href: "/app/events", label: "Events", icon: "◔" },
   { href: "/app/profile", label: "Profile", icon: "◷" },
@@ -326,8 +326,9 @@ export const adminNav = [
   { href: "/admin", label: "Overview", icon: "⊞" },
   { href: "/admin/applications", label: "Applications", icon: "◻", badge: 4, highlight: true },
   { href: "/admin/members", label: "Members", icon: "◈" },
-  { href: "/admin/events", label: "Events", icon: "◫" },
-  { href: "/app", label: "Community App", icon: "◎" },
+  { href: "/admin/spaces", label: "Spaces", icon: "◫" },
+  { href: "/admin/events", label: "Events", icon: "◔" },
+  { href: "/admin/insights", label: "Publications", icon: "⊡" },
 ];
 
 export const memberSpaces = [

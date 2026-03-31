@@ -36,7 +36,7 @@ async function sendMemberAccessEmail({ adminClient, authUsers, createdByUserId, 
 
   if (!authUser) {
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=/app`,
+      redirectTo: `${getSiteUrl()}/auth/verify`,
     });
 
     if (error) {
@@ -47,7 +47,7 @@ async function sendMemberAccessEmail({ adminClient, authUsers, createdByUserId, 
     deliveryMethod = "supabase_invite";
   } else {
     const { error } = await adminClient.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=/app`,
+      redirectTo: `${getSiteUrl()}/auth/verify`,
     });
 
     if (error) {
