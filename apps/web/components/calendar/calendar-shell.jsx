@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useEffect, useTransition } from "react";
 import { formatDate, getCalendarDays, getMonthName, getNextMonth, getPreviousMonth } from "@/lib/calendar/core";
 import { setEventRsvp } from "../../app/app/calendar/actions";
+import "./calendar-styles.css";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -236,6 +237,10 @@ function EventList({ events, pendingEventIds, onRsvp }) {
 function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBack, onMonthChange }) {
   const days = useMemo(() => getCalendarDays(month, year), [month, year]);
   const monthEvents = useMemo(() => eventsForMonth(events, year, month), [events, year, month]);
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  // Reset selection when the month changes
+  useEffect(() => { setSelectedDay(null); }, [month, year]);
 
   const filteredEvents = useMemo(() => {
     if (filter === "community") return monthEvents.filter((e) => e.event_source === "community");
@@ -243,19 +248,34 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
     return monthEvents;
   }, [monthEvents, filter]);
 
-  const eventsByDate = useMemo(() =>
-    filteredEvents.reduce((acc, e) => {
-      const k = dateKey(e.starts_at);
-      acc[k] = acc[k] || [];
-      acc[k].push(e);
-      return acc;
-    }, {}),
-  [filteredEvents]);
+  // Expand multi-day events so they appear on every day they span
+  const eventsByDate = useMemo(() => {
+    const acc = {};
+    filteredEvents.forEach((e) => {
+      const start = new Date(e.starts_at);
+      const end = new Date(e.ends_at || e.starts_at);
+      const cur = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+      const last = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
+      while (cur <= last) {
+        const k = cur.toISOString().split("T")[0];
+        if (!acc[k]) acc[k] = [];
+        if (!acc[k].find((ev) => ev.id === e.id)) acc[k].push(e);
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    });
+    return acc;
+  }, [filteredEvents]);
+
+  const listEvents = selectedDay ? (eventsByDate[selectedDay] || []) : filteredEvents;
 
   const { month: prevMonth, year: prevYear } = getPreviousMonth(month, year);
   const { month: nextMonth, year: nextYear } = getNextMonth(month, year);
 
   const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(new Date(year, month, 1));
+
+  function handleDayClick(k) {
+    setSelectedDay((cur) => (cur === k ? null : k));
+  }
 
   return (
     <div className="cal-month-view">
@@ -282,7 +302,18 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
           </button>
         </div>
         <span className="cal-month-count">
-          {filteredEvents.length} {filteredEvents.length === 1 ? "item" : "items"}
+          {selectedDay ? (
+            <>
+              {listEvents.length} {listEvents.length === 1 ? "item" : "items"} on{" "}
+              {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(selectedDay + "T00:00:00"))}
+              {" · "}
+              <button className="cal-clear-day-btn" onClick={() => setSelectedDay(null)} type="button">
+                show all
+              </button>
+            </>
+          ) : (
+            <>{filteredEvents.length} {filteredEvents.length === 1 ? "item" : "items"}</>
+          )}
         </span>
       </div>
 
@@ -297,27 +328,34 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
           {days.map(({ date, isCurrentMonth, isToday }) => {
             const k = dateKey(date);
             const dayEvents = eventsByDate[k] || [];
+            const isSelected = selectedDay === k;
             return (
               <div
-                className={`cal-day ${isCurrentMonth ? "current" : "other"} ${isToday ? "today" : ""} ${dayEvents.length ? "has-events" : ""}`}
+                className={`cal-day ${isCurrentMonth ? "current" : "other"} ${isToday ? "today" : ""} ${dayEvents.length ? "has-events" : ""} ${isSelected ? "selected" : ""}`}
                 key={k}
+                onClick={() => handleDayClick(k)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(ev) => ev.key === "Enter" && handleDayClick(k)}
               >
                 <span className="cal-day-num">{date.getDate()}</span>
                 {dayEvents.length > 0 && (
-                  <div className="cal-day-dots">
+                  <div className="cal-day-event-labels">
                     {dayEvents.slice(0, 3).map((e) => {
                       const cfg = getEventTypeLabel(e);
                       return (
                         <span
-                          className="cal-day-dot"
+                          className="cal-day-event-label"
                           key={e.id}
-                          style={{ background: cfg.color }}
+                          style={{ background: cfg.bg, color: cfg.color }}
                           title={e.title}
-                        />
+                        >
+                          {e.title}
+                        </span>
                       );
                     })}
                     {dayEvents.length > 3 && (
-                      <span className="cal-day-dot-more">+{dayEvents.length - 3}</span>
+                      <span className="cal-day-label-more">+{dayEvents.length - 3}</span>
                     )}
                   </div>
                 )}
@@ -327,8 +365,8 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
         </div>
       </div>
 
-      {/* Event list */}
-      <EventList events={filteredEvents} onRsvp={onRsvp} pendingEventIds={pendingEventIds} />
+      {/* Event list — filtered to selected day, or all month events */}
+      <EventList events={listEvents} onRsvp={onRsvp} pendingEventIds={pendingEventIds} />
     </div>
   );
 }
@@ -546,600 +584,6 @@ export function CalendarShell({ initialEvents = [], initialYear, isAdmin = false
         />
       )}
 
-      <style jsx>{`
-        /* ── Shell ────────────────────────────────── */
-        .cal-shell {
-          display: grid;
-          gap: 1rem;
-        }
-
-        /* ── Toolbar ──────────────────────────────── */
-        .cal-toolbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .cal-toolbar-left {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .cal-view-toggle {
-          display: inline-flex;
-          border: 1px solid var(--border);
-          border-radius: 999px;
-          overflow: hidden;
-        }
-
-        .cal-view-toggle button {
-          padding: 0.45rem 1.05rem;
-          font-size: var(--text-sm);
-          font-weight: 500;
-          background: var(--white);
-          color: var(--ink-soft);
-          border: none;
-          cursor: pointer;
-          transition: background 0.14s, color 0.14s;
-        }
-
-        .cal-view-toggle button.active {
-          background: var(--ink);
-          color: var(--white);
-        }
-
-        .cal-filter-row {
-          display: inline-flex;
-          gap: 0.4rem;
-        }
-
-        .cal-filter-btn {
-          padding: 0.45rem 1rem;
-          font-size: var(--text-sm);
-          font-weight: 500;
-          border: 1px solid var(--border);
-          border-radius: 999px;
-          background: var(--white);
-          color: var(--ink-soft);
-          cursor: pointer;
-          transition: border-color 0.14s, background 0.14s, color 0.14s;
-        }
-
-        .cal-filter-btn.active {
-          background: var(--ink);
-          color: var(--white);
-          border-color: var(--ink);
-        }
-
-        /* ── Summary tiles ────────────────────────── */
-        .cal-summary {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 0.75rem;
-        }
-
-        .cal-summary-tile {
-          padding: 1rem 1.1rem;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          background: var(--white);
-          display: flex;
-          flex-direction: column;
-          gap: 0.2rem;
-        }
-
-        .cal-summary-tile strong {
-          font-size: 1.65rem;
-          font-weight: 700;
-          color: var(--ink);
-          line-height: 1;
-        }
-
-        .cal-summary-tile span {
-          font-size: var(--text-sm);
-          color: var(--ink-soft);
-        }
-
-        /* ── Notice / admin note ─────────────────── */
-        .cal-notice {
-          padding: 0.8rem 1rem;
-          border-radius: var(--radius-lg);
-          border: 1px solid rgba(14, 116, 144, 0.25);
-          background: rgba(14, 116, 144, 0.07);
-          font-size: var(--text-sm);
-          color: #0e7490;
-        }
-
-        .cal-admin-note {
-          padding: 0.7rem 1rem;
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--border);
-          background: var(--white);
-          font-size: var(--text-sm);
-          color: var(--ink-soft);
-        }
-
-        /* ── Year view ────────────────────────────── */
-        .cal-year-view {
-          display: grid;
-          gap: 1rem;
-        }
-
-        .cal-year-nav-row {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          justify-content: center;
-        }
-
-        .cal-year-title {
-          font-size: 1.4rem;
-          font-weight: 700;
-          color: var(--ink);
-          margin: 0;
-          min-width: 5ch;
-          text-align: center;
-        }
-
-        .cal-nav-btn {
-          padding: 0.45rem 0.95rem;
-          border: 1px solid var(--border);
-          border-radius: 999px;
-          background: var(--white);
-          color: var(--ink);
-          font-size: var(--text-sm);
-          font-weight: 500;
-          cursor: pointer;
-          transition: border-color 0.14s, background 0.14s;
-        }
-
-        .cal-nav-btn:hover {
-          border-color: rgba(14, 116, 144, 0.35);
-          background: rgba(14, 116, 144, 0.06);
-        }
-
-        .cal-year-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 0.75rem;
-        }
-
-        .cal-year-month-card {
-          padding: 1rem;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          background: var(--white);
-          cursor: pointer;
-          text-align: left;
-          transition: border-color 0.14s, box-shadow 0.14s, transform 0.1s;
-        }
-
-        .cal-year-month-card:hover {
-          border-color: rgba(14, 116, 144, 0.4);
-          box-shadow: 0 4px 16px rgba(14, 116, 144, 0.1);
-          transform: translateY(-1px);
-        }
-
-        .cal-year-month-card.current-month {
-          border-color: rgba(14, 116, 144, 0.45);
-          background: linear-gradient(135deg, rgba(14, 116, 144, 0.05), var(--white));
-        }
-
-        .cal-year-month-label {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 0.55rem;
-        }
-
-        .cal-year-month-name {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: var(--ink);
-        }
-
-        .cal-year-month-count {
-          font-size: 0.72rem;
-          font-weight: 700;
-          background: rgba(14, 116, 144, 0.12);
-          color: #0e7490;
-          padding: 0.15rem 0.5rem;
-          border-radius: 999px;
-        }
-
-        .cal-year-dot-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.3rem;
-          align-items: center;
-        }
-
-        .cal-year-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 999px;
-          background: rgba(14, 116, 144, 0.5);
-          flex-shrink: 0;
-        }
-
-        .cal-year-dot-overflow {
-          font-size: 10px;
-          color: var(--ink-soft);
-        }
-
-        .cal-year-month-empty {
-          font-size: var(--text-xs);
-          color: var(--ink-soft);
-        }
-
-        /* ── Month view ───────────────────────────── */
-        .cal-month-view {
-          display: grid;
-          gap: 1rem;
-        }
-
-        .cal-month-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .cal-back-btn {
-          font-size: var(--text-sm);
-          font-weight: 500;
-          color: var(--ink-soft);
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 0.35rem 0.6rem;
-          border-radius: var(--radius-sm);
-          transition: color 0.12s, background 0.12s;
-        }
-
-        .cal-back-btn:hover {
-          color: var(--ink);
-          background: rgba(148, 163, 184, 0.12);
-        }
-
-        .cal-month-nav {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .cal-month-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: var(--ink);
-          margin: 0;
-          min-width: 16ch;
-          text-align: center;
-        }
-
-        .cal-month-count {
-          font-size: var(--text-sm);
-          color: var(--ink-soft);
-          white-space: nowrap;
-        }
-
-        /* ── Day grid ─────────────────────────────── */
-        .cal-grid-card {
-          border: 1px solid var(--border);
-          border-radius: var(--radius-xl);
-          background: var(--white);
-          overflow: hidden;
-          padding: 1.1rem;
-        }
-
-        .cal-weekdays {
-          display: grid;
-          grid-template-columns: repeat(7, minmax(0, 1fr));
-          margin-bottom: 0.5rem;
-        }
-
-        .cal-weekdays span {
-          text-align: center;
-          font-size: 0.7rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: var(--ink-soft);
-          padding: 0.3rem 0;
-        }
-
-        .cal-days-grid {
-          display: grid;
-          grid-template-columns: repeat(7, minmax(0, 1fr));
-          gap: 0.3rem;
-        }
-
-        .cal-day {
-          min-height: 5rem;
-          padding: 0.4rem;
-          border-radius: 0.75rem;
-          border: 1px solid transparent;
-          transition: border-color 0.12s, background 0.12s;
-        }
-
-        .cal-day.current {
-          background: rgba(248, 250, 253, 1);
-          border-color: rgba(209, 228, 245, 0.5);
-        }
-
-        .cal-day.other {
-          opacity: 0.35;
-        }
-
-        .cal-day.today {
-          border-color: rgba(14, 116, 144, 0.5);
-          background: rgba(14, 116, 144, 0.06);
-        }
-
-        .cal-day.has-events {
-          border-color: rgba(14, 116, 144, 0.2);
-        }
-
-        .cal-day-num {
-          display: inline-flex;
-          width: 1.7rem;
-          height: 1.7rem;
-          align-items: center;
-          justify-content: center;
-          border-radius: 999px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: var(--ink);
-        }
-
-        .today .cal-day-num {
-          background: var(--ink);
-          color: var(--white);
-        }
-
-        .cal-day-dots {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 3px;
-          margin-top: 0.3rem;
-        }
-
-        .cal-day-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 999px;
-          flex-shrink: 0;
-          opacity: 0.85;
-        }
-
-        .cal-day-dot-more {
-          font-size: 9px;
-          color: var(--ink-soft);
-          line-height: 1;
-        }
-
-        /* ── Event list ───────────────────────────── */
-        .cal-event-list {
-          display: grid;
-          gap: 0.4rem;
-        }
-
-        .cal-empty {
-          color: var(--ink-soft);
-          font-size: var(--text-sm);
-          padding: 1.2rem;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          background: var(--white);
-          margin: 0;
-        }
-
-        .cal-event-item {
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          background: var(--white);
-          overflow: hidden;
-          transition: border-color 0.14s;
-        }
-
-        .cal-event-item.expanded {
-          border-color: rgba(14, 116, 144, 0.3);
-          box-shadow: 0 4px 16px rgba(14, 116, 144, 0.08);
-        }
-
-        .cal-event-row {
-          display: flex;
-          align-items: center;
-          gap: 0.7rem;
-          width: 100%;
-          padding: 0.8rem 1rem;
-          background: none;
-          border: none;
-          cursor: pointer;
-          text-align: left;
-          transition: background 0.12s;
-        }
-
-        .cal-event-row:hover {
-          background: rgba(241, 248, 254, 0.7);
-        }
-
-        .cal-event-item.expanded .cal-event-row {
-          background: rgba(241, 248, 254, 0.5);
-          border-bottom: 1px solid rgba(209, 232, 245, 0.7);
-        }
-
-        .cal-type-tag {
-          flex-shrink: 0;
-          font-size: 10px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 0.2rem 0.55rem;
-          border-radius: 999px;
-          white-space: nowrap;
-        }
-
-        .cal-event-row-title {
-          flex: 1;
-          font-size: var(--text-sm);
-          font-weight: 600;
-          color: var(--ink);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .cal-event-row-date {
-          flex-shrink: 0;
-          font-size: var(--text-xs);
-          color: var(--ink-soft);
-          white-space: nowrap;
-        }
-
-        .cal-rsvped-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 999px;
-          background: #16a34a;
-          flex-shrink: 0;
-        }
-
-        .cal-chevron {
-          flex-shrink: 0;
-          color: var(--ink-soft);
-          transition: transform 0.2s;
-        }
-
-        .cal-chevron.open {
-          transform: rotate(180deg);
-        }
-
-        /* ── Event detail card ────────────────────── */
-        .cal-event-detail {
-          padding: 1.1rem 1.2rem 1.2rem;
-        }
-
-        .cal-event-detail-header {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.6rem;
-        }
-
-        .cal-event-rsvped-badge {
-          font-size: 10px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 0.2rem 0.55rem;
-          border-radius: 999px;
-          background: rgba(22, 163, 74, 0.12);
-          color: #166534;
-        }
-
-        .cal-event-detail-title {
-          margin: 0 0 0.8rem;
-          font-size: 1.05rem;
-          font-weight: 700;
-          color: var(--ink);
-          line-height: 1.3;
-        }
-
-        .cal-event-detail-meta {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-          gap: 0.6rem 1.2rem;
-          margin: 0 0 0.8rem;
-          padding: 0;
-        }
-
-        .cal-event-detail-meta > div {
-          display: flex;
-          flex-direction: column;
-          gap: 0.1rem;
-        }
-
-        .cal-event-detail-meta dt {
-          font-size: 10px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.07em;
-          color: var(--ink-soft);
-        }
-
-        .cal-event-detail-meta dd {
-          font-size: var(--text-sm);
-          color: var(--ink);
-          margin: 0;
-        }
-
-        .cal-event-detail-summary {
-          font-size: var(--text-sm);
-          color: var(--ink-soft);
-          line-height: 1.6;
-          margin: 0 0 0.85rem;
-          max-width: 68ch;
-        }
-
-        .cal-event-detail-actions {
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-          flex-wrap: wrap;
-          padding-top: 0.5rem;
-          border-top: 1px solid rgba(209, 228, 245, 0.7);
-        }
-
-        .cal-event-detail-status {
-          font-size: var(--text-sm);
-          font-weight: 600;
-        }
-
-        .cal-event-detail-status.confirmed { color: #166534; }
-        .cal-event-detail-status.external  { color: #6b21a8; }
-
-        /* ── Responsive ───────────────────────────── */
-        @media (max-width: 900px) {
-          .cal-year-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-          .cal-summary {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-
-        @media (max-width: 640px) {
-          .cal-year-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .cal-toolbar {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          .cal-filter-row {
-            justify-content: center;
-          }
-          .cal-month-header {
-            flex-direction: column;
-            align-items: stretch;
-            text-align: center;
-          }
-          .cal-month-nav {
-            justify-content: center;
-          }
-          .cal-event-row-date {
-            display: none;
-          }
-          .cal-summary {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-      `}</style>
     </div>
   );
 }
