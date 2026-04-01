@@ -24,7 +24,8 @@ export const metadata = {
     default: "The PATNA Initiative",
     template: "%s | The PATNA Initiative",
   },
-  description: "PATNA public website and community platform.",
+  description:
+    "African-centred climate action, maritime decarbonisation, and energy transition coordination through evidence, convenings, and institutional collaboration.",
   icons: {
     icon: "/brand/patna-mark.png",
     shortcut: "/brand/patna-mark.png",

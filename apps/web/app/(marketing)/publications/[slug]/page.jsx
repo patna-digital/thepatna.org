@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchPublicPublicationBySlug } from "@/lib/publications";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const pub = await fetchPublication(slug);
+  const pub = await fetchPublicPublicationBySlug(slug);
   if (!pub) return {};
   return {
     title: `${pub.title} | PATNA Publications`,
@@ -13,28 +13,9 @@ export async function generateMetadata({ params }) {
   };
 }
 
-async function fetchPublication(slug) {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("content_items")
-    .select(`*, content_attachments(*), content_tag_map(domain_tags(id, name, slug))`)
-    .eq("slug", slug)
-    .eq("publish_status", "published")
-    .eq("visibility", "public")
-    .single();
-
-  if (error || !data) return null;
-
-  return {
-    ...data,
-    attachments: data.content_attachments || [],
-    tags: data.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || [],
-  };
-}
-
 export default async function PublicationDetailPage({ params }) {
   const { slug } = await params;
-  const pub = await fetchPublication(slug);
+  const pub = await fetchPublicPublicationBySlug(slug);
 
   if (!pub) notFound();
 

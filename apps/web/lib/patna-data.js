@@ -22,10 +22,9 @@ export const footerLinkGroups = [
   {
     title: "Community",
     links: [
-      { href: "/community", label: "Community model" },
-      { href: "/community/join", label: "Apply to join" },
+      { href: "/community", label: "Community overview" },
+      { href: "/community/join", label: "Join community" },
       { href: "/auth/login", label: "Member login" },
-      { href: "/admin", label: "Admin workspace" },
     ],
   },
   {
@@ -40,9 +39,9 @@ export const footerLinkGroups = [
 ];
 
 export const heroStats = [
-  { value: "54", label: "African states engaged" },
-  { value: "4", label: "Expert cohorts" },
-  { value: "3+", label: "Years of coordinated impact" },
+  { value: "100+", label: "Specialists already collaborating through PATNA" },
+  { value: "4", label: "Core cohorts across policy, academia, industry, and civil society" },
+  { value: "25", label: "African IMO member states represented at the Dakar workshop" },
 ];
 
 export const homeHeroCards = [
@@ -81,94 +80,92 @@ export const featuredProjects = [
     slug: "leap-phase-ii",
     title: "Leading Effective Afrocentric Participation (LEAP) Phase II",
     summary:
-      "Phase II expands from negotiation participation into financing, implementation pathways, and a stronger Africa-centred policy architecture for net-zero transitions.",
+      "LEAP Phase II deepens Africa's technical and diplomatic capacity so African countries can influence the rules, mechanisms, and funding structures shaping the transition to net-zero shipping.",
     type: "Flagship Programme",
-    outcomes: ["Capacity building", "Policy strategy", "Implementation pathways"],
+    outcomes: ["Workshops", "Technical analysis", "Just transition"],
+    sourceUrl:
+      "https://thepatna.org/projects/leading-effective-afrocentric-participation-leap-phase-ii/",
     featured: true,
   },
   {
     slug: "leap-phase-i",
-    title: "Leading Effective Afrocentric Participation (LEAP) Phase I",
+    title: "Leading Effective Afrocentric Participation (LEAP) Project Phase I",
     summary:
-      "The first LEAP phase built African technical coordination around maritime decarbonisation and supported stronger engagement in IMO processes.",
+      "LEAP Phase I laid the foundations for African leadership in maritime decarbonisation through emissions inventories, country case studies, and regional workshops that strengthened evidence-backed participation at the IMO.",
     type: "Flagship Programme",
-    outcomes: ["Evidence briefs", "Delegation support", "Convenings"],
-  },
-  {
-    slug: "abuja-summit",
-    title: "African Strategic Summit on Shipping Decarbonisation",
-    summary:
-      "A continental summit in Abuja that aligned policymakers, negotiators, and industry stakeholders around shared priorities.",
-    type: "Summit",
-    outcomes: ["Communique", "Regional alignment", "Outputs library"],
-  },
-  {
-    slug: "dakar-workshop",
-    title: "Dakar Maritime Decarbonisation Workshop",
-    summary:
-      "A three-day workshop convening more than 100 delegates from 25 African IMO member states and partner institutions.",
-    type: "Workshop",
-    outcomes: ["Workshop proceedings", "Technical findings", "Regional partnerships"],
+    outcomes: ["Emissions inventories", "Country case studies", "Regional workshops"],
+    sourceUrl:
+      "https://thepatna.org/projects/leading-effective-afrocentric-participation-leap-project-phase-i/",
   },
 ];
 
 export const publicInsights = [
   {
-    slug: "african-positions-on-imo-net-zero-framework",
-    title: "African Positions on the IMO Net-Zero Framework",
+    slug: "kenyas-national-maritime-ghg-emissions-inventory",
+    title: "Kenya's National Maritime GHG Emissions Inventory",
     summary:
-      "A policy brief mapping the issues most likely to shape African negotiating positions and implementation priorities.",
-    type: "Brief",
-    date: "February 2026",
-    audience: "Policy cohort",
-  },
-  {
-    slug: "leap-phase-ii-interim-findings",
-    title: "LEAP Phase II Interim Findings",
-    summary:
-      "Early lessons from PATNA's second-phase technical support work across policy, diplomacy, and coordination.",
+      "Kenya's first voyage-based national maritime greenhouse gas inventory, developed to strengthen the country's evidence base for IMO negotiations and domestic decarbonisation strategy.",
     type: "Report",
-    date: "January 2026",
-    audience: "All cohorts",
+    date: "20 March 2026",
+    audience: "Country case study",
   },
   {
-    slug: "why-sids-need-a-stronger-voice",
-    title: "Why SIDS Need a Stronger Voice in Shipping Decarbonisation",
+    slug: "dakar-decarbonization-workshop-advancing-africas-maritime-sector-to-net-zero",
+    title: "Dakar Decarbonization Workshop: Advancing Africa's Maritime Sector to Net-Zero",
     summary:
-      "A commentary connecting climate justice, maritime vulnerability, and coalition-building across SIDS and African states.",
-    type: "Article",
-    date: "March 2026",
-    audience: "Public",
+      "A workshop report documenting the Dakar convening that brought together more than 100 participants from 25 African IMO member states and partner institutions.",
+    type: "Report",
+    date: "19 March 2026",
+    audience: "Workshop report",
+  },
+  {
+    slug: "report-of-the-second-extraordinary-session-of-the-marine-environment-protection-committee-mepc-es-2",
+    title:
+      "Report of the Second Extraordinary Session of the Marine Environment Protection Committee (MEPC/ES.2)",
+    summary:
+      "A PATNA news analysis of the extraordinary IMO session that considered adoption of the Net Zero Framework and its implications for African states.",
+    type: "News",
+    date: "18 October 2025",
+    audience: "IMO policy update",
   },
 ];
 
 export const publicEvents = [
   {
-    slug: "policy-cohort-monthly-sync",
-    title: "Policy Cohort Monthly Sync",
-    location: "Virtual",
-    date: "14 March 2026",
-    type: "Internal",
+    slug: "african-strategic-summit-on-shipping-decarbonisation",
+    title: "African Strategic Summit on Shipping Decarbonisation",
+    location: "Abuja, Nigeria",
+    date: "01 March 2025 to 02 March 2025",
+    type: "Summit",
     summary:
-      "Monthly coordination call covering IMO debriefs, COP30 preparation, and onboarding for new members.",
+      "Held in Abuja in March 2025, the summit brought together African maritime policymakers, negotiators, and industry leaders to build a unified continental position on shipping decarbonisation.",
   },
   {
-    slug: "mepc-83",
-    title: "IMO MEPC 83",
-    location: "London, UK",
-    date: "24 to 28 March 2026",
-    type: "International",
+    slug: "dakar-maritime-decarbonisation-workshop",
+    title: "Dakar Maritime Decarbonisation Workshop",
+    location: "Dakar, Senegal",
+    date: "04 August 2025 to 06 August 2025",
+    type: "Workshop",
     summary:
-      "PATNA members supporting African delegations with technical briefings, side meetings, and position coordination.",
+      "Over three days, more than 100 delegates from 25 African IMO member states gathered for high-level panel discussions on policy, capacity-building, and just transition.",
   },
   {
-    slug: "dakar-maritime-prep-workshop",
-    title: "Dakar Maritime Decarbonisation Prep Workshop",
-    location: "Virtual",
-    date: "3 April 2026",
-    type: "PATNA Event",
+    slug: "african-climate-summit-ii-acs2",
+    title: "African Climate Summit II (ACS2)",
+    location: "Addis Ababa, Ethiopia",
+    date: "08 September 2025 to 10 September 2025",
+    type: "Summit",
     summary:
-      "A preparatory session for the Dakar workshop series to align themes, contributors, and expected outputs.",
+      "At ACS2, PATNA co-facilitated sessions in the Africa Ocean-Climate Solutions Pavilion and reframed maritime decarbonisation as an African opportunity for resilience and industrialisation.",
+  },
+  {
+    slug: "iswg-ghg-21-intersessional-working-group-on-ghg-emissions-from-ships",
+    title: "ISWG-GHG 21 — Intersessional Working Group on GHG Emissions from Ships",
+    location: "London, United Kingdom",
+    date: "20 April 2026 to 24 April 2026",
+    type: "IMO Meeting",
+    summary:
+      "The 21st ISWG-GHG meeting continues technical guideline development for the IMO Net-Zero Framework ahead of MEPC 84.",
   },
 ];
 
@@ -235,22 +232,22 @@ export const communityJourney = [
   {
     step: "01",
     title: "Apply",
-    body: "Share your motivation, affiliation, cohort interests, and thematic expertise.",
+    body: "Tell PATNA about your background, institutional role, and the areas of work where you want to contribute.",
   },
   {
     step: "02",
     title: "Review",
-    body: "PATNA administrators assess applications, record notes, and identify follow-up needs.",
+    body: "The team reviews your application to understand the best cohort, constituency, or collaboration pathway.",
   },
   {
     step: "03",
-    title: "Onboard",
-    body: "Approved members receive access, complete profiles, and join cohort or working-group spaces.",
+    title: "Connect",
+    body: "Accepted applicants are introduced to the parts of the network that best match their expertise and interests.",
   },
   {
     step: "04",
     title: "Contribute",
-    body: "Members participate in discussions, events, knowledge exchange, and coordinated outputs.",
+    body: "Members contribute through convenings, research, technical exchange, coalition-building, and shared public outputs.",
   },
 ];
 
@@ -258,19 +255,69 @@ export const workWithUsPaths = [
   {
     title: "Request Technical Support",
     href: "/work-with-us/request-support",
-    summary: "Briefings, analysis, convening design, and coordination support for institutions and governments.",
+    summary: "Briefings, technical analysis, convening design, and coordination support for institutions, governments, and public-interest partners.",
   },
   {
     title: "Explore Partnership",
     href: "/work-with-us/partner",
-    summary: "Funding, programme partnership, and long-term strategic collaboration with PATNA.",
+    summary: "Funding, programme partnership, and strategic collaboration around long-term African climate and maritime priorities.",
   },
   {
     title: "Co-create Initiatives",
     href: "/work-with-us/collaborate",
-    summary: "Joint projects, pilots, workshops, and thematic collaborations across the PATNA network.",
+    summary: "Joint projects, workshops, pilots, and research collaborations developed with the PATNA network.",
   },
 ];
+
+export const communityStructures = [
+  {
+    title: "Board of Trustees",
+    type: "Governance",
+    summary:
+      "Provides strategic oversight, accountability, and long-term direction for PATNA's public mission and institutional growth.",
+  },
+  {
+    title: "PATNA Secretariat",
+    type: "Operations",
+    summary:
+      "Coordinates convenings, programme delivery, member communications, and the day-to-day systems that keep the network active.",
+  },
+  {
+    title: "Academic Cohort",
+    type: "Cohort",
+    summary:
+      "Researchers and universities advancing evidence-based insight, technical analysis, and knowledge exchange across Africa.",
+  },
+  {
+    title: "Policy Cohort",
+    type: "Cohort",
+    summary:
+      "Technical advisers and policymakers shaping national, regional, and international climate and maritime governance.",
+  },
+  {
+    title: "Industry Cohort",
+    type: "Cohort",
+    summary:
+      "Private-sector and practitioner voices connecting policy ambition to operational realities in shipping, ports, and blue economy systems.",
+  },
+  {
+    title: "Civil Society Cohort",
+    type: "Cohort",
+    summary:
+      "Civil society leaders ensuring climate justice, participation, and community interests remain part of transition strategy.",
+  },
+];
+
+export const contactDetails = {
+  email: "contact@thepatna.org",
+  phone: "+2349023176598",
+  address: "Room 207-208, Block B, Unity House, Victoria, Mahe, Seychelles",
+  socials: [
+    { label: "LinkedIn", href: "https://www.linkedin.com/company/patnainitiative" },
+    { label: "X", href: "https://x.com/PATNAINITIATIVE" },
+    { label: "Instagram", href: "https://www.instagram.com/patnainitiative" },
+  ],
+};
 
 export const applicationCohortOptions = [
   { slug: "academic", label: "Academic" },

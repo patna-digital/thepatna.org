@@ -81,7 +81,7 @@ export const mediaAssets = {
     credit: "The PATNA Initiative",
     licenseNote: "Used from PATNA official ACS2 coverage.",
     alt: "Wide audience shot from a PATNA-related event or discussion.",
-    caption: "Audience and room context that grounds the platform in real participation.",
+    caption: "Audience and room context that grounds the network in real participation.",
   },
   acs2Roundtable: {
     id: "acs2-roundtable",
@@ -143,18 +143,28 @@ export const projectMediaBySlug = {
 };
 
 export const insightMediaBySlug = {
-  "african-positions-on-imo-net-zero-framework": mediaAssets.abujaStage,
-  "leap-phase-ii-interim-findings": mediaAssets.acs2Roundtable,
-  "why-sids-need-a-stronger-voice": mediaAssets.acs2Audience,
+  "kenyas-national-maritime-ghg-emissions-inventory": mediaAssets.abujaStage,
+  "dakar-decarbonization-workshop-advancing-africas-maritime-sector-to-net-zero":
+    mediaAssets.dakarWorkshop,
+  "report-of-the-second-extraordinary-session-of-the-marine-environment-protection-committee-mepc-es-2":
+    mediaAssets.acs2Audience,
 };
 
 export const eventMediaBySlug = {
-  "policy-cohort-monthly-sync": mediaAssets.acs2Session,
-  "mepc-83": mediaAssets.abujaStage,
-  "dakar-maritime-prep-workshop": mediaAssets.dakarWorkshop,
   "african-strategic-summit-on-shipping-decarbonisation": mediaAssets.abujaSummit,
   "dakar-maritime-decarbonisation-workshop": mediaAssets.dakarWorkshop,
   "african-climate-summit-ii-acs2": mediaAssets.acs2Hero,
+  "8th-aama-conference-safeguarding-our-ocean-promoting-decarbonization": mediaAssets.acs2Panel,
+  "mepc-es-2-2nd-extraordinary-session-imo-net-zero-framework": mediaAssets.acs2Audience,
+  "un-climate-change-conference-cop30": mediaAssets.acs2Roundtable,
+  "iswg-ghg-21-intersessional-working-group-on-ghg-emissions-from-ships": mediaAssets.acs2Hero,
+  "mepc-84-marine-environment-protection-committee-84th-session": mediaAssets.acs2Hero,
+  "our-ocean-conference-2026-ooc11-our-ocean-our-heritage-our-future":
+    mediaAssets.acs2Panel,
+  "un-climate-change-conference-cop31": mediaAssets.acs2Roundtable,
+  "mepc-85-marine-environment-protection-committee-85th-session": mediaAssets.acs2Hero,
+  "mepc-es-2-resumed-resumed-extraordinary-session-imo-net-zero-framework":
+    mediaAssets.acs2Audience,
 };
 
 export function getEventMedia(slug) {
@@ -171,17 +181,20 @@ export const publicPageMedia = {
         {
           ...mediaAssets.acs2Hero,
           title: "Africa Climate Summit II",
-          body: "PATNA's public website should show real convening work, not abstract placeholders.",
+          body:
+            "At ACS2 in Addis Ababa, PATNA helped position maritime decarbonisation as an African question of resilience, industrialisation, and just transition.",
         },
         {
           ...mediaAssets.abujaSummit,
-          title: "Abuja Summit",
-          body: "Flagship moments can rotate through official PATNA event coverage and summit imagery.",
+          title: "African Strategic Summit",
+          body:
+            "The Abuja summit brought policymakers, negotiators, and industry leaders together around a stronger shared African position on shipping decarbonisation.",
         },
         {
           ...mediaAssets.dakarWorkshop,
           title: "Dakar Workshop",
-          body: "Event-led imagery gives programme pages proof, texture, and institutional memory.",
+          body:
+            "In Dakar, PATNA convened more than 100 delegates from 25 African IMO member states for a deeper technical exchange on equitable transition.",
         },
       ],
     },
@@ -189,25 +202,28 @@ export const publicPageMedia = {
       page: "home",
       slot: "featured-moments",
       label: "Featured moments",
-      title: "Real people, real rooms, real momentum",
+      title: "Convening Africa's climate and maritime agenda",
       subtitle:
-        "These moments come directly from PATNA's official event and article coverage and give the homepage more evidence-led storytelling.",
+        "From Addis Ababa to Abuja and Dakar, PATNA's public record shows policy dialogue, technical exchange, and coalition-building in action.",
       interactionMode: "tabs",
       items: [
         {
           ...mediaAssets.acs2Delegates,
           title: "Delegates in session",
-          body: "Use summit-floor imagery to show the scale and seriousness of PATNA's convening work.",
+          body:
+            "PATNA's convenings bring together delegates, experts, and institutions around the policy choices shaping Africa's transition pathways.",
         },
         {
           ...mediaAssets.acs2Panel,
           title: "Technical exchange",
-          body: "Discussion-led imagery helps the website feel like a network in motion, not just a static brochure.",
+          body:
+            "The network's value is practical as well as political: research, analysis, and working sessions that help African voices intervene with confidence.",
         },
         {
           ...mediaAssets.acs2Session,
           title: "Working-room context",
-          body: "Candid event imagery creates far more credibility than decorative illustrations or synthetic backdrops.",
+          body:
+            "PATNA's public presence is strongest when it stays anchored in the real rooms and relationships where the work happens.",
         },
       ],
     },
@@ -220,30 +236,33 @@ export const publicPageMedia = {
       label: "Network in practice",
       title: "PATNA is built around people, convenings, and long-term strategic work",
       subtitle:
-        "About should combine mission language with imagery from real PATNA rooms and real PATNA people.",
+        "PATNA's public story is strongest when mission language sits beside the people, institutions, and rooms that make the work visible.",
       quote:
-        "The network becomes legible when the website shows actual participants, not just programme abstractions.",
-      body: "This photo/quote split should anchor the page in real institutional work before the cohort summaries.",
+        "To harness the collective expertise of African professionals to generate, coordinate, and apply evidence-based strategies.",
+      body:
+        "What began as a maritime decarbonisation initiative has grown into a broader network for climate action, energy transition, and institutional readiness across Africa.",
       asset: mediaAssets.acs2Roundtable,
     },
     portraits: {
       page: "about",
       slot: "portraits",
       label: "Network in practice",
-      title: "Leadership and expertise should be visible",
+      title: "Leadership, expertise, and public service",
       subtitle:
-        "Public portraits from PATNA's cohort pages can help about/community sections feel more grounded and human.",
+        "PATNA's public pages make the people behind the network visible: practitioners, researchers, negotiators, and institutional leaders.",
       interactionMode: "tabs",
       items: [
         {
           ...mediaAssets.wisdomPortrait,
           title: "Expertise with public visibility",
-          body: "Profile imagery can introduce real members and emphasise that PATNA's strength is people as much as programmes.",
+          body:
+            "Profile pages show that PATNA's strength is not only in programmes, but in the African professionals who bring technical credibility to the work.",
         },
         {
           ...mediaAssets.acs2Delegates,
           title: "Collective representation",
-          body: "Pair portrait-led storytelling with room shots so the page balances personal and institutional scale.",
+          body:
+            "PATNA's influence comes from combining individual expertise with collective presence in regional and global policy forums.",
         },
       ],
     },
@@ -253,25 +272,28 @@ export const publicPageMedia = {
       page: "insights",
       slot: "featured",
       label: "Featured from PATNA",
-      title: "Editorial storytelling needs images that carry context",
+      title: "Knowledge products grounded in lived process",
       subtitle:
-        "Use official PATNA article and event imagery to make the insights library feel like an editorial surface instead of a list of text cards.",
+        "Reports, briefs, and commentary carry more weight when they sit alongside the delegations, workshops, and working sessions that shaped them.",
       interactionMode: "tabs",
       items: [
         {
           ...mediaAssets.abujaStage,
-          title: "Policy and implementation",
-          body: "Use event-linked imagery to ground policy writing in the real processes and rooms it speaks to.",
+          title: "Evidence for implementation",
+          body:
+            "PATNA's publications are meant to inform real policy choices, negotiation positions, and implementation pathways, not sit apart from them.",
         },
         {
           ...mediaAssets.acs2Audience,
-          title: "Climate justice and participation",
-          body: "Audience and room context help insights pages feel connected to public engagement and regional deliberation.",
+          title: "Regional participation",
+          body:
+            "The network's publications reflect a wider process of regional consultation, dialogue, and public positioning across African institutions.",
         },
         {
           ...mediaAssets.acs2Roundtable,
           title: "Technical coordination",
-          body: "Reports and briefs read better when they live beside real-world process imagery rather than icon treatment alone.",
+          body:
+            "PATNA's reports and briefs emerge from technical coordination, not abstract commentary.",
         },
       ],
     },
@@ -281,9 +303,9 @@ export const publicPageMedia = {
       page: "events",
       slot: "gallery",
       label: "Event gallery",
-      title: "PATNA events should be the most visually grounded pages on the site",
+      title: "PATNA convenings and the wider policy calendar",
       subtitle:
-        "This strip uses official PATNA event pages and article coverage so the events route becomes an image-led archive rather than a text register.",
+        "The events archive combines PATNA-led summits and workshops with the international policy moments shaping African maritime and climate strategy.",
       interactionMode: "slider",
       items: [
         mediaAssets.abujaSummit,
@@ -298,25 +320,28 @@ export const publicPageMedia = {
       page: "community",
       slot: "stories",
       label: "Community in practice",
-      title: "A living network should look lived-in",
+      title: "A community grounded in people, institutions, and shared purpose",
       subtitle:
-        "Community pages should show rooms, exchanges, and public member presence so application copy does not have to carry the whole story alone.",
+        "PATNA's community is a network of experts, institutions, and working relationships strengthened through shared evidence and regular convenings.",
       interactionMode: "tabs",
       items: [
         {
           ...mediaAssets.wisdomPortrait,
           title: "Real member presence",
-          body: "Profile imagery can support member-story blocks and make the community page more personal.",
+          body:
+            "PATNA's public community highlights the people who contribute expertise, leadership, and credibility across the network.",
         },
         {
           ...mediaAssets.acs2Delegates,
           title: "Convening as community",
-          body: "Community is not just software; it is shared participation, room dynamics, and coordinated presence.",
+          body:
+            "Community at PATNA is not just digital access. It is shared participation, room dynamics, and coordinated presence across institutions.",
         },
         {
           ...mediaAssets.acs2Session,
           title: "Working groups in motion",
-          body: "Room-level images support the page's explanation of cohorts, working groups, and contribution pathways.",
+          body:
+            "Cohorts, working groups, and collaborative exchanges are what turn PATNA from a network name into a functioning professional community.",
         },
       ],
     },
@@ -326,13 +351,14 @@ export const publicPageMedia = {
       page: "work-with-us",
       slot: "feature",
       label: "Partnership context",
-      title: "Support and collaboration requests should connect to real PATNA activity",
+      title: "Partnerships begin with real work already underway",
       subtitle:
-        "One strong image-led block is enough here; it should show that PATNA's work is already happening in real rooms and partnerships.",
+        "PATNA works with public institutions, researchers, funders, and strategic partners across convenings, technical analysis, and long-term programme development.",
       interactionMode: "static",
       quote:
-        "The site should show what partnership looks like in practice: convening power, technical exchange, and visible outputs.",
-      body: "A single asymmetric photo/text section keeps this page grounded without overwhelming the conversion pathway cards below.",
+        "Collaboration is strongest when it builds on shared evidence, clear priorities, and visible public work.",
+      body:
+        "Use this page to choose the route that best matches the work you want to advance with PATNA: technical support, a strategic partnership, or a co-created initiative.",
       asset: mediaAssets.abujaStage,
     },
   },
@@ -341,13 +367,14 @@ export const publicPageMedia = {
       page: "contact",
       slot: "feature",
       label: "Meet the network",
-      title: "Even contact should feel connected to real PATNA work",
+      title: "Stay in touch with the PATNA team",
       subtitle:
-        "A light-touch media block keeps the contact page from becoming a dead-end form surface.",
+        "Clear contact routes matter because PATNA works across institutions, countries, and professional communities.",
       interactionMode: "static",
       quote:
-        "Contact is stronger when it sits beside proof of the network's public presence and convening work.",
-      body: "Keep this light and human: one image, one caption, clear contact routes.",
+        "Sometimes the right next step is a conversation that connects evidence, policy needs, and the people who can move the work forward.",
+      body:
+        "Email, phone, and social channels are the clearest way to reach PATNA and start the right conversation with the team.",
       asset: mediaAssets.acs2Panel,
     },
   },

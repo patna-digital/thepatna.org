@@ -5,13 +5,19 @@ import { SectionIntro } from "@/components/section-intro";
 import { workWithUsPaths } from "@/lib/patna-data";
 import { publicPageMedia } from "@/lib/public-media";
 
+export const metadata = {
+  title: "Work With Us",
+  description:
+    "Work with PATNA on technical support, partnerships, and collaborative initiatives across climate and maritime transition.",
+};
+
 export default function WorkWithUsPage() {
   return (
     <>
       <MarketingPageHero
         label="Work With Us"
-        subtitle="The PATNA platform now gives public engagement routes the same level of structure and polish as the core programme pages."
-        title="Three pathways into support, partnership, and collaboration"
+        subtitle="PATNA works with governments, regional bodies, researchers, funders, and strategic partners across maritime decarbonisation, climate governance, and energy transition."
+        title="Work with PATNA on evidence, convenings, and implementation strategy"
       />
 
       <PhotoQuoteSplit section={publicPageMedia.workWithUs.feature} />
@@ -20,8 +26,8 @@ export default function WorkWithUsPage() {
         <div className="section-inner">
           <SectionIntro
             label="Engagement pathways"
-            title="Structured entry points into PATNA support, partnership, and collaboration"
-            subtitle="These pages line up with the service request, partnership lead, and collaboration lead tables in the planned schema."
+            title="Choose the route that best matches the work you want to advance"
+            subtitle="Whether you need technical support, want to explore a partnership, or have an idea for joint work, PATNA starts with a focused conversation grounded in clear public priorities."
           />
 
           <div className="card-grid">
@@ -37,6 +43,10 @@ export default function WorkWithUsPage() {
               </article>
             ))}
           </div>
+          <p className="muted-note">
+            First-contact enquiries are currently handled directly by email so the PATNA team can
+            respond quickly and route each conversation appropriately.
+          </p>
         </div>
       </section>
     </>

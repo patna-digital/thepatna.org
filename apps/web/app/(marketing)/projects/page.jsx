@@ -4,21 +4,27 @@ import { SectionIntro } from "@/components/section-intro";
 import { featuredProjects } from "@/lib/patna-data";
 import { projectMediaBySlug } from "@/lib/public-media";
 
+export const metadata = {
+  title: "Projects",
+  description:
+    "Explore PATNA's flagship project work, including the LEAP series supporting African leadership in maritime decarbonisation.",
+};
+
 export default function ProjectsPage() {
   return (
     <>
       <MarketingPageHero
         label="Projects"
-        subtitle="Projects are now styled as structured programme records so the website can grow without fragmenting into one-off page designs."
-        title="Programme work, convenings, and institutional capacity-building"
+        subtitle="Building Africa's technical and diplomatic capacity to influence global climate and energy rules, from the IMO to international finance mechanisms."
+        title="The LEAP project series"
       />
 
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="Portfolio"
-            title="Projects should feel like an editorial programme archive"
-            subtitle="Each flagship initiative now carries official PATNA imagery and source provenance, making the page more readable and more credible."
+            label="Project archive"
+            title="PATNA's flagship public projects"
+            subtitle="The current project record is anchored in LEAP, a multi-phase effort to strengthen Africa's evidence base, negotiation readiness, and institutional voice in maritime decarbonisation."
           />
 
           <div className="media-article-grid media-article-grid-projects">
@@ -30,6 +36,8 @@ export default function ProjectsPage() {
                 media={projectMediaBySlug[project.slug]}
                 meta={project.outcomes}
                 summary={project.summary}
+                sourceLabel="Read project page"
+                sourceUrl={project.sourceUrl}
                 title={project.title}
               />
             ))}
