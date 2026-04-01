@@ -2,6 +2,7 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
+import { getSiteUrl } from "@/lib/env";
 import { revalidatePath } from "next/cache";
 
 const VALID_VISIBILITY_SETTINGS = ["members_only", "public", "private"];
@@ -106,7 +107,7 @@ export async function requestPasswordResetAction() {
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/verify`,
+    redirectTo: `${getSiteUrl()}/auth/callback`,
   });
 
   if (error) {
