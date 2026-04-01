@@ -2,6 +2,7 @@
 
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
+import { getAuthCallbackUrl } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
 import { createSupabaseAdminClient, listSupabaseAuthUsers } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
@@ -87,7 +88,7 @@ export async function approveAndInviteApplicationAction(formData) {
   if (!userId) {
     // Invite creates auth user; the DB trigger (handle_new_user) creates profiles(id, email)
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/verify`,
+      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
 
     if (inviteError) {
@@ -104,7 +105,7 @@ export async function approveAndInviteApplicationAction(formData) {
         deliveryMethod = "manual_reset";
 
         const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
-          redirectTo: `${getSiteUrl()}/auth/verify`,
+          redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
         });
         if (resetError) redirect("/admin/applications?notice=error");
       } else {
@@ -117,7 +118,7 @@ export async function approveAndInviteApplicationAction(formData) {
   } else {
     // User already exists — send a password reset so they can set access
     const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/verify`,
+      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
 
     if (resetError) {
@@ -233,7 +234,7 @@ export async function resendApplicationInviteAction(formData) {
 
   if (!authUser) {
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/verify`,
+      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
 
     if (error) {
@@ -244,7 +245,7 @@ export async function resendApplicationInviteAction(formData) {
     deliveryMethod = "supabase_invite";
   } else {
     const { error } = await adminClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/verify`,
+      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
 
     if (error) {
@@ -293,7 +294,7 @@ export async function sendPasswordResetLinkAction(formData) {
   }
 
   const { error } = await adminClient.auth.resetPasswordForEmail(email, {
-    redirectTo: `${getSiteUrl()}/auth/verify`,
+    redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
   });
 
   if (error) {

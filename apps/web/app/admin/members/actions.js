@@ -2,6 +2,7 @@
 
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
+import { getAuthCallbackUrl } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
 import { createSupabaseAdminClient, listSupabaseAuthUsers } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
@@ -36,7 +37,7 @@ async function sendMemberAccessEmail({ adminClient, authUsers, createdByUserId, 
 
   if (!authUser) {
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
-      redirectTo: `${getSiteUrl()}/auth/verify`,
+      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
 
     if (error) {
@@ -47,7 +48,7 @@ async function sendMemberAccessEmail({ adminClient, authUsers, createdByUserId, 
     deliveryMethod = "supabase_invite";
   } else {
     const { error } = await adminClient.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${getSiteUrl()}/auth/verify`,
+      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
 
     if (error) {

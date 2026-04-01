@@ -6,6 +6,25 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+const AUTH_ERROR_MESSAGES = {
+  otp_expired:
+    "This link has expired. Ask your administrator to resend the invite from the Members page.",
+  access_denied: "This link is invalid or has already been used. Ask your administrator to send a new one.",
+  missing_verification_params: "Invalid or missing verification parameters.",
+};
+
+function resolveAuthErrorMessage(code, description) {
+  if (AUTH_ERROR_MESSAGES[code]) {
+    return AUTH_ERROR_MESSAGES[code];
+  }
+
+  if (description) {
+    return description.replaceAll("+", " ");
+  }
+
+  return "This link is invalid or has already been used. Ask your administrator to send a new one.";
+}
+
 export default function AuthVerifyPage() {
   const router = useRouter();
   const [status, setStatus] = useState("processing");
@@ -14,22 +33,39 @@ export default function AuthVerifyPage() {
   useEffect(() => {
     async function handleCallback() {
       try {
+        const params = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.slice(1));
 
-        // Supabase sends errors as hash params when a link is expired or invalid.
-        const hashErrorCode = hashParams.get("error_code") || hashParams.get("error");
-        if (hashErrorCode) {
+        const errorCode =
+          hashParams.get("error_code") ||
+          hashParams.get("error") ||
+          params.get("error_code") ||
+          params.get("error");
+        const errorDescription =
+          hashParams.get("error_description") || params.get("error_description");
+
+        if (errorCode) {
           setStatus("error");
-          if (hashErrorCode === "otp_expired") {
-            setMessage("This link has expired. Ask your administrator to resend the invite from the Members page.");
-          } else {
-            setMessage("This link is invalid or has already been used. Ask your administrator to send a new one.");
-          }
+          setMessage(resolveAuthErrorMessage(errorCode, errorDescription));
           return;
         }
 
-        // inviteUserByEmail uses the implicit flow — tokens arrive as hash params
-        // (#access_token=...&refresh_token=...&type=invite), not as query params.
+        const code = params.get("code");
+        const tokenHash = params.get("token_hash");
+        const type = params.get("type");
+
+        if (code || (tokenHash && type)) {
+          const callbackParams = new URLSearchParams(params);
+
+          if (!callbackParams.get("next") && (code || type === "invite" || type === "recovery")) {
+            callbackParams.set("next", "/auth/reset-password");
+          }
+
+          window.location.replace(`/auth/callback?${callbackParams.toString()}`);
+          return;
+        }
+
+        // Legacy implicit-flow links arrive as hash params.
         const hashAccessToken = hashParams.get("access_token");
         const hashRefreshToken = hashParams.get("refresh_token");
         const hashType = hashParams.get("type");
@@ -55,36 +91,11 @@ export default function AuthVerifyPage() {
           return;
         }
 
-        // PKCE / OTP flows send token_hash and type as query params.
-        const params = new URLSearchParams(window.location.search);
-        const tokenHash = params.get("token_hash");
-        const type = params.get("type");
-
-        if (!tokenHash || !type) {
+        if (!hashAccessToken) {
           setStatus("error");
-          setMessage("Invalid verification link. Please request a new one.");
+          setMessage("Invalid or missing verification parameters.");
           return;
         }
-
-        const supabase = createSupabaseBrowserClient();
-
-        const { error } = await supabase.auth.verifyOtp({
-          type,
-          token_hash: tokenHash,
-        });
-
-        if (error) {
-          setStatus("error");
-          setMessage(error.message || "Verification failed. Please try again.");
-          return;
-        }
-
-        if (type === "recovery" || type === "invite") {
-          router.push("/auth/reset-password");
-          return;
-        }
-
-        router.push("/app");
         
       } catch (err) {
         console.error("Callback error:", err);
