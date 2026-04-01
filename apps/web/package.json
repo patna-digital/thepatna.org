@@ -8,6 +8,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@azure/msal-node": "^5.1.1",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "@tiptap/extension-heading": "^3.21.0",
@@ -19,6 +20,9 @@
     "@tiptap/react": "^3.21.0",
     "@tiptap/starter-kit": "^3.21.0",
     "clsx": "latest",
+    "date-fns": "^4.1.0",
+    "googleapis": "^171.4.0",
+    "ical.js": "^2.2.1",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

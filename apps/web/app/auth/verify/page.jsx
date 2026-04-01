@@ -14,16 +14,49 @@ export default function AuthVerifyPage() {
   useEffect(() => {
     async function handleCallback() {
       try {
-        // Parse the URL fragment (hash) which contains token_hash and type
-        const hash = window.location.hash.slice(1);
-        
-        if (!hash) {
+        const hashParams = new URLSearchParams(window.location.hash.slice(1));
+
+        // Supabase sends errors as hash params when a link is expired or invalid.
+        const hashErrorCode = hashParams.get("error_code") || hashParams.get("error");
+        if (hashErrorCode) {
           setStatus("error");
-          setMessage("Invalid or missing verification parameters.");
+          if (hashErrorCode === "otp_expired") {
+            setMessage("This link has expired. Ask your administrator to resend the invite from the Members page.");
+          } else {
+            setMessage("This link is invalid or has already been used. Ask your administrator to send a new one.");
+          }
           return;
         }
 
-        const params = new URLSearchParams(hash);
+        // inviteUserByEmail uses the implicit flow — tokens arrive as hash params
+        // (#access_token=...&refresh_token=...&type=invite), not as query params.
+        const hashAccessToken = hashParams.get("access_token");
+        const hashRefreshToken = hashParams.get("refresh_token");
+        const hashType = hashParams.get("type");
+
+        if (hashAccessToken) {
+          const supabase = createSupabaseBrowserClient();
+          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+            access_token: hashAccessToken,
+            refresh_token: hashRefreshToken || "",
+          });
+
+          if (sessionError || !session) {
+            setStatus("error");
+            setMessage("Verification failed. This link may have already been used. Please request a new one.");
+            return;
+          }
+
+          if (hashType === "invite" || hashType === "recovery") {
+            router.push("/auth/reset-password");
+          } else {
+            router.push("/app");
+          }
+          return;
+        }
+
+        // PKCE / OTP flows send token_hash and type as query params.
+        const params = new URLSearchParams(window.location.search);
         const tokenHash = params.get("token_hash");
         const type = params.get("type");
 
@@ -35,7 +68,6 @@ export default function AuthVerifyPage() {
 
         const supabase = createSupabaseBrowserClient();
 
-        // Verify the OTP token
         const { error } = await supabase.auth.verifyOtp({
           type,
           token_hash: tokenHash,
@@ -47,13 +79,11 @@ export default function AuthVerifyPage() {
           return;
         }
 
-        // For recovery/invite flows, redirect to reset-password page
         if (type === "recovery" || type === "invite") {
           router.push("/auth/reset-password");
           return;
         }
 
-        // For other flows, redirect to app
         router.push("/app");
         
       } catch (err) {

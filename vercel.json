@@ -4,5 +4,11 @@
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build",
   "devCommand": "pnpm dev",
-  "outputDirectory": null
+  "outputDirectory": null,
+  "crons": [
+    {
+      "path": "/api/calendar/cron",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }

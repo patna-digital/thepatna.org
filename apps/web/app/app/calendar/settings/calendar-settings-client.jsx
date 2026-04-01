@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { updateBookingSettings } from "../actions";
 
@@ -19,6 +19,153 @@ const PROVIDER_NAMES = {
   apple: "Apple Calendar",
   generic_ical: "iCal Feed",
 };
+
+const PROVIDER_COLORS = {
+  google: "#4285F4",
+  microsoft: "#0078D4",
+  zoho: "#E42527",
+  apple: "#FF9500",
+  generic_ical: "#6B7280",
+};
+
+// Connect button component for OAuth providers
+function ConnectButton({ provider, onClick, disabled, loading }) {
+  return (
+    <button
+      type="button"
+      className="connect-button"
+      onClick={onClick}
+      disabled={disabled || loading}
+      style={{ "--provider-color": PROVIDER_COLORS[provider] }}
+    >
+      <span className="connect-icon">{PROVIDER_ICONS[provider]}</span>
+      <span className="connect-text">
+        {loading ? "Connecting..." : `Connect ${PROVIDER_NAMES[provider]}`}
+      </span>
+    </button>
+  );
+}
+
+// iCal feed connection form
+function ICalConnectForm({ onConnect, disabled }) {
+  const [url, setUrl] = useState("");
+  const [name, setName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      await onConnect("generic_ical", { icalUrl: url, calendarName: name || "iCal Feed" });
+      setUrl("");
+      setName("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form className="ical-form" onSubmit={handleSubmit}>
+      <div className="ical-form-row">
+        <input
+          type="url"
+          placeholder="https://example.com/calendar.ics"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          required
+          disabled={disabled || isLoading}
+        />
+        <input
+          type="text"
+          placeholder="Calendar name (optional)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={disabled || isLoading}
+        />
+        <button type="submit" disabled={disabled || isLoading || !url}>
+          {isLoading ? "Adding..." : "Add"}
+        </button>
+      </div>
+      {error && <span className="ical-error">{error}</span>}
+    </form>
+  );
+}
+
+// Connected calendar item with sync controls
+function ConnectedCalendarItem({ connection, onSync, onDisconnect, onToggleSync }) {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    await onSync(connection.id);
+    setIsSyncing(false);
+  };
+
+  const lastSynced = connection.last_synced_at
+    ? new Date(connection.last_synced_at).toLocaleString()
+    : "Never";
+
+  const hasError = connection.last_sync_error;
+
+  return (
+    <div className={`connected-calendar-item ${hasError ? "has-error" : ""}`}>
+      <div className="calendar-item-main">
+        <div className="calendar-provider-icon" style={{ background: PROVIDER_COLORS[connection.provider] + "15" }}>
+          {PROVIDER_ICONS[connection.provider] || "📅"}
+        </div>
+        <div className="calendar-provider-info">
+          <strong>{connection.calendar_name || PROVIDER_NAMES[connection.provider]}</strong>
+          <span>{connection.provider_account_email || "iCal Feed"}</span>
+          <span className="sync-meta">
+            Last synced: {lastSynced}
+            {connection.event_count > 0 && ` • ${connection.event_count} events`}
+          </span>
+          {hasError && (
+            <span className="sync-error">Sync error: {connection.last_sync_error}</span>
+          )}
+        </div>
+        <div className="calendar-sync-status">
+          <span className={`sync-indicator ${connection.sync_enabled && !hasError ? "active" : hasError ? "error" : "paused"}`} />
+          <span>{hasError ? "Error" : connection.sync_enabled ? "Active" : "Paused"}</span>
+        </div>
+      </div>
+      
+      <div className="calendar-item-actions">
+        <button
+          type="button"
+          className="action-btn sync-btn"
+          onClick={handleSync}
+          disabled={isSyncing || !connection.sync_enabled}
+          title="Sync now"
+        >
+          {isSyncing ? "⟳" : "↻"}
+        </button>
+        <button
+          type="button"
+          className={`action-btn toggle-btn ${connection.sync_enabled ? "active" : ""}`}
+          onClick={() => onToggleSync(connection.id, !connection.sync_enabled)}
+          title={connection.sync_enabled ? "Pause sync" : "Resume sync"}
+        >
+          {connection.sync_enabled ? "⏸" : "▶"}
+        </button>
+        <button
+          type="button"
+          className="action-btn disconnect-btn"
+          onClick={() => onDisconnect(connection.id)}
+          title="Disconnect"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function BookingSettingsForm({ initialSettings, memberId }) {
   const router = useRouter();
@@ -229,7 +376,128 @@ function BookingSettingsForm({ initialSettings, memberId }) {
 }
 
 export function CalendarSettingsClient({ connections: initialConnections, settings, memberId }) {
-  const connections = initialConnections || [];
+  const [connections, setConnections] = useState(initialConnections || []);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [activeProvider, setActiveProvider] = useState(null);
+  const [message, setMessage] = useState("");
+
+  // Initiate OAuth connection
+  const handleConnect = async (provider, options = {}) => {
+    setIsConnecting(true);
+    setActiveProvider(provider);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/calendar/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider,
+          memberId,
+          ...options,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to initiate connection");
+      }
+
+      // For OAuth providers, redirect to auth URL
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+        return;
+      }
+
+      // For iCal feeds, update connections list
+      if (data.success && data.connection) {
+        setConnections((prev) => [...prev, data.connection]);
+        setMessage(`Successfully imported ${data.eventsImported} events`);
+      }
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+    } finally {
+      setIsConnecting(false);
+      setActiveProvider(null);
+    }
+  };
+
+  // Sync a connection
+  const handleSync = async (connectionId) => {
+    try {
+      const response = await fetch("/api/calendar/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ connectionId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Sync failed");
+      }
+
+      // Refresh connections to show updated sync status
+      const statusResponse = await fetch(`/api/calendar/sync?memberId=${memberId}`);
+      const statusData = await statusResponse.json();
+      
+      if (statusData.connections) {
+        setConnections(statusData.connections);
+      }
+
+      if (data.success) {
+        setMessage(`Sync completed: ${data.stats.eventsCreated} new, ${data.stats.eventsUpdated} updated`);
+      } else {
+        setMessage(`Sync completed with errors: ${data.error?.message || "Unknown error"}`);
+      }
+    } catch (error) {
+      setMessage(`Sync error: ${error.message}`);
+    }
+  };
+
+  // Toggle sync for a connection
+  const handleToggleSync = async (connectionId, enabled) => {
+    try {
+      // Update local state optimistically
+      setConnections((prev) =>
+        prev.map((c) => (c.id === connectionId ? { ...c, sync_enabled: enabled } : c))
+      );
+
+      // Call the server action
+      const { toggleCalendarSync } = await import("../actions");
+      await toggleCalendarSync(connectionId, enabled);
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+      // Revert on error
+      setConnections((prev) =>
+        prev.map((c) => (c.id === connectionId ? { ...c, sync_enabled: !enabled } : c))
+      );
+    }
+  };
+
+  // Disconnect a calendar
+  const handleDisconnect = async (connectionId) => {
+    if (!confirm("Are you sure you want to disconnect this calendar? All synced events will be removed.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/calendar/auth?connectionId=${connectionId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to disconnect");
+      }
+
+      setConnections((prev) => prev.filter((c) => c.id !== connectionId));
+      setMessage("Calendar disconnected successfully");
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+    }
+  };
 
   return (
     <div className="calendar-settings-client">
@@ -238,45 +506,70 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           <h2>External Calendar Sync</h2>
         </div>
         <div className="settings-section-body">
-          <div className="calendar-settings-coming-soon">
-            <div className="calendar-settings-coming-soon-head">
-              <span className="calendar-settings-coming-soon-badge">Coming soon</span>
-              <strong>Google, Outlook, Apple, and iCal sync are not live yet.</strong>
-            </div>
-            <p>
-              For now, members should RSVP directly from the PATNA calendar. Once personal
-              calendar sync ships, your connected calendars will appear here.
-            </p>
+          <p className="settings-section-description">
+            Connect your personal calendars to see all your events in one place. 
+            PATNA supports Google Calendar, Outlook, and iCal feeds.
+          </p>
+
+          {/* Connect buttons */}
+          <div className="connect-buttons-grid">
+            <ConnectButton
+              provider="google"
+              onClick={() => handleConnect("google")}
+              disabled={isConnecting}
+              loading={activeProvider === "google"}
+            />
+            <ConnectButton
+              provider="microsoft"
+              onClick={() => handleConnect("microsoft")}
+              disabled={isConnecting}
+              loading={activeProvider === "microsoft"}
+            />
+            <ConnectButton
+              provider="zoho"
+              onClick={() => handleConnect("zoho")}
+              disabled={isConnecting}
+              loading={activeProvider === "zoho"}
+            />
           </div>
 
+          {/* iCal feed input */}
+          <div className="ical-section">
+            <h4>Add iCal Feed</h4>
+            <ICalConnectForm
+              onConnect={handleConnect}
+              disabled={isConnecting}
+            />
+          </div>
+
+          {message && (
+            <div className={`sync-message ${message.includes("Error") ? "error" : "success"}`}>
+              {message}
+            </div>
+          )}
+
+          {/* Connected calendars list */}
           {connections.length > 0 ? (
-            <>
-              <p className="settings-section-description">
-                Existing connected calendars are shown below in read-only mode while sync is being finalised.
-              </p>
+            <div className="connected-calendars-section">
+              <h4>Connected Calendars</h4>
               <div className="connected-calendars-list">
                 {connections.map((connection) => (
-                  <div className="connected-calendar-item" key={connection.id}>
-                    <div className="calendar-provider-icon">
-                      {PROVIDER_ICONS[connection.provider] || "📅"}
-                    </div>
-                    <div className="calendar-provider-info">
-                      <strong>{connection.calendar_name || PROVIDER_NAMES[connection.provider]}</strong>
-                      <span>{connection.provider_account_email}</span>
-                    </div>
-                    <div className="calendar-sync-status">
-                      <span className={`sync-indicator ${connection.sync_enabled ? "active" : "pending"}`} />
-                      <span>{connection.sync_enabled ? "Connected" : "Paused"}</span>
-                    </div>
-                  </div>
+                  <ConnectedCalendarItem
+                    key={connection.id}
+                    connection={connection}
+                    onSync={handleSync}
+                    onDisconnect={handleDisconnect}
+                    onToggleSync={handleToggleSync}
+                  />
                 ))}
               </div>
-            </>
+            </div>
           ) : (
-            <div className="connected-calendars-list">
-              <div className="empty-state">
-                <p>No personal calendars connected yet.</p>
-              </div>
+            <div className="empty-state">
+              <p>No personal calendars connected yet.</p>
+              <p className="empty-hint">
+                Connect a calendar above to import your events
+              </p>
             </div>
           )}
         </div>
@@ -333,40 +626,134 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           margin-bottom: 1.5rem;
         }
 
-        .calendar-settings-coming-soon {
+        .connect-buttons-grid {
           display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
           gap: 0.75rem;
-          padding: 1.1rem 1.15rem;
-          border: 1px solid rgba(245, 158, 11, 0.22);
-          border-radius: var(--radius-lg);
-          background: linear-gradient(135deg, rgba(245, 158, 11, 0.09), rgba(15, 23, 42, 0.03));
-          margin-bottom: 1rem;
+          margin-bottom: 1.5rem;
         }
 
-        .calendar-settings-coming-soon-head {
+        .connect-button {
           display: flex;
           align-items: center;
-          gap: 0.7rem;
+          gap: 0.75rem;
+          padding: 0.875rem 1rem;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: var(--white);
+          color: var(--ink);
+          font-size: var(--text-sm);
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 160ms ease;
+        }
+
+        .connect-button:hover:not(:disabled) {
+          border-color: var(--provider-color, var(--border-strong));
+          background: linear-gradient(135deg, var(--provider-color, var(--surface)) 0%, transparent 100%);
+          background-opacity: 0.05;
+          transform: translateY(-1px);
+        }
+
+        .connect-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .connect-icon {
+          font-size: 1.25rem;
+        }
+
+        .ical-section {
+          padding: 1rem;
+          background: var(--surface);
+          border-radius: var(--radius-md);
+          margin-bottom: 1.5rem;
+        }
+
+        .ical-section h4 {
+          margin: 0 0 0.75rem 0;
+          font-size: var(--text-sm);
+          color: var(--ink);
+        }
+
+        .ical-form-row {
+          display: flex;
+          gap: 0.5rem;
           flex-wrap: wrap;
         }
 
-        .calendar-settings-coming-soon-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.3rem 0.65rem;
-          border-radius: 999px;
-          background: rgba(245, 158, 11, 0.16);
-          color: #92400e;
-          font-size: var(--text-xs);
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
+        .ical-form-row input {
+          flex: 1;
+          min-width: 200px;
+          padding: 0.625rem 0.875rem;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: var(--white);
+          color: var(--ink);
+          font-size: var(--text-sm);
         }
 
-        .calendar-settings-coming-soon p {
-          margin: 0;
-          color: var(--ink-soft);
+        .ical-form-row input:focus {
+          outline: none;
+          border-color: var(--blue-bright);
+        }
+
+        .ical-form-row button {
+          padding: 0.625rem 1rem;
+          border: none;
+          border-radius: var(--radius-md);
+          background: var(--ink);
+          color: var(--white);
+          font-size: var(--text-sm);
+          font-weight: 600;
+          cursor: pointer;
+          transition: opacity 160ms ease;
+        }
+
+        .ical-form-row button:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        .ical-form-row button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .ical-error {
+          display: block;
+          margin-top: 0.5rem;
+          font-size: var(--text-xs);
+          color: #dc2626;
+        }
+
+        .sync-message {
+          padding: 0.75rem 1rem;
+          border-radius: var(--radius-md);
+          font-size: var(--text-sm);
+          margin-bottom: 1rem;
+        }
+
+        .sync-message.success {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .sync-message.error {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+
+        .connected-calendars-section {
+          margin-top: 1.5rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid var(--border);
+        }
+
+        .connected-calendars-section h4 {
+          margin: 0 0 1rem 0;
+          font-size: var(--text-sm);
+          color: var(--ink);
         }
 
         .connected-calendars-list {
@@ -378,6 +765,7 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
         .connected-calendar-item {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 1rem;
           padding: 1rem;
           border: 1px solid var(--border);
@@ -385,37 +773,64 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           background: var(--surface);
         }
 
+        .connected-calendar-item.has-error {
+          border-color: #fca5a5;
+          background: #fef2f2;
+        }
+
+        .calendar-item-main {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex: 1;
+        }
+
         .calendar-provider-icon {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           display: flex;
           align-items: center;
           justify-content: center;
           border-radius: var(--radius-md);
           background: var(--white);
-          font-size: 1.25rem;
+          font-size: 1.5rem;
+          flex-shrink: 0;
         }
 
         .calendar-provider-info {
           flex: 1;
+          min-width: 0;
         }
 
         .calendar-provider-info strong {
           display: block;
-          font-size: var(--text-md);
+          font-size: var(--text-sm);
           color: var(--ink);
+          margin-bottom: 0.25rem;
         }
 
         .calendar-provider-info span {
-          font-size: var(--text-sm);
+          display: block;
+          font-size: var(--text-xs);
           color: var(--ink-soft);
+        }
+
+        .calendar-provider-info .sync-meta {
+          margin-top: 0.25rem;
+          color: var(--ink-muted);
+        }
+
+        .calendar-provider-info .sync-error {
+          margin-top: 0.25rem;
+          color: #dc2626;
         }
 
         .calendar-sync-status {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: var(--text-sm);
+          font-size: var(--text-xs);
+          flex-shrink: 0;
         }
 
         .sync-indicator {
@@ -428,8 +843,55 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           background: #10b981;
         }
 
-        .sync-indicator.pending {
+        .sync-indicator.paused {
           background: #f59e0b;
+        }
+
+        .sync-indicator.error {
+          background: #dc2626;
+        }
+
+        .calendar-item-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .action-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: var(--white);
+          color: var(--ink-muted);
+          font-size: 0.875rem;
+          cursor: pointer;
+          transition: all 160ms ease;
+        }
+
+        .action-btn:hover:not(:disabled) {
+          background: var(--surface-strong);
+          color: var(--ink);
+        }
+
+        .action-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .action-btn.toggle-btn.active {
+          background: #d1fae5;
+          border-color: #10b981;
+          color: #065f46;
+        }
+
+        .action-btn.disconnect-btn:hover {
+          background: #fee2e2;
+          border-color: #dc2626;
+          color: #991b1b;
         }
 
         .booking-settings-form {
@@ -572,6 +1034,27 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           border-top: 1px solid var(--border);
         }
 
+        .primary-button {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: var(--radius-md);
+          background: var(--ink);
+          color: var(--white);
+          font-size: var(--text-sm);
+          font-weight: 600;
+          cursor: pointer;
+          transition: opacity 160ms ease;
+        }
+
+        .primary-button:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        .primary-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
         .save-message {
           padding: 0.75rem 1rem;
           border-radius: var(--radius-md);
@@ -595,7 +1078,12 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
         }
 
         .empty-state p {
-          margin: 0 0 1rem 0;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .empty-state .empty-hint {
+          font-size: var(--text-sm);
+          color: var(--ink-muted);
         }
 
         @media (max-width: 640px) {
@@ -603,10 +1091,31 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
             grid-template-columns: 1fr;
           }
 
-          .connected-calendar-item,
-          .calendar-settings-coming-soon-head {
-            align-items: flex-start;
+          .connect-buttons-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .ical-form-row {
             flex-direction: column;
+          }
+
+          .ical-form-row input,
+          .ical-form-row button {
+            width: 100%;
+          }
+
+          .connected-calendar-item {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .calendar-item-main {
+            width: 100%;
+          }
+
+          .calendar-item-actions {
+            width: 100%;
+            justify-content: flex-end;
           }
         }
       `}</style>

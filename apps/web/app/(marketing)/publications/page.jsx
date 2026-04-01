@@ -1,34 +1,13 @@
 import { MarketingPageHero } from "@/components/marketing-page-hero";
 import { SectionIntro } from "@/components/section-intro";
 import { PublicationCard, FeaturedPublicationCard } from "@/components/publication-card";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchPublicPublications } from "@/lib/publications";
 
 export const metadata = {
   title: "Publications | PATNA",
   description:
-    "Briefs, reports, case studies, and articles from PATNA's work on African maritime decarbonisation.",
+    "Reports, briefs, articles, and event outputs from PATNA's work on African climate action, maritime decarbonisation, and energy transition.",
 };
-
-async function fetchPublicPublications() {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("content_items")
-    .select(`*, content_attachments(*), content_tag_map(domain_tags(id, name, slug))`)
-    .eq("publish_status", "published")
-    .eq("visibility", "public")
-    .order("published_at", { ascending: false });
-
-  if (error) {
-    console.error("Failed to fetch public publications:", error);
-    return [];
-  }
-
-  return (data || []).map((item) => ({
-    ...item,
-    attachments: item.content_attachments || [],
-    tags: item.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || [],
-  }));
-}
 
 export default async function PublicationsPage() {
   const publications = await fetchPublicPublications();
@@ -38,8 +17,8 @@ export default async function PublicationsPage() {
     <>
       <MarketingPageHero
         label="Publications"
-        subtitle="Briefs, reports, and commentary from PATNA's work on African maritime decarbonisation and just transition."
-        title="Publications Library"
+        subtitle="PATNA's public archive of reports, articles, and event outputs documenting African-centred evidence, technical analysis, and policy engagement."
+        title="Reports, articles, and technical outputs from PATNA"
       />
 
       {featured && (

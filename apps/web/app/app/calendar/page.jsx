@@ -58,7 +58,7 @@ export default async function CalendarPage() {
       eyebrow="Calendar"
       headerActions={headerActions}
       sidebarUser={sidebarUser}
-      subtitle="A year-at-a-glance member calendar for PATNA events, RSVPs, and booked time"
+      subtitle="Community events, RSVPs, meetings, and connected calendar items in one place"
       title="Calendar"
     >
       <div className="calendar-page-content">

@@ -51,6 +51,20 @@ export function CommunityApplicationForm() {
     );
   }
 
+  if (state.status === "success") {
+    return (
+      <div className="form-card application-submitted">
+        <div className="eyebrow">Application received</div>
+        <h3>Your application has been submitted</h3>
+        <p>
+          Thank you for your interest in joining PATNA. We will review your application, assess
+          cohort fit, and be in touch with next steps.
+        </p>
+        <p className="muted-note">There is nothing more you need to do at this stage.</p>
+      </div>
+    );
+  }
+
   return (
     <form action={formAction} className="form-card">
       <h3>Community application</h3>

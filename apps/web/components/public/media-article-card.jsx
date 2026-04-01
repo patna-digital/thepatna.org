@@ -4,6 +4,7 @@ export function MediaArticleCard({
   media,
   meta = [],
   sourceLabel = "Open source coverage",
+  sourceUrl,
   summary,
   title,
 }) {
@@ -31,7 +32,7 @@ export function MediaArticleCard({
             <span>{media.credit}</span>
             <span>{media.caption}</span>
           </div>
-          <a className="text-link" href={media.sourceUrl} rel="noreferrer" target="_blank">
+          <a className="text-link" href={sourceUrl || media.sourceUrl} rel="noreferrer" target="_blank">
             {sourceLabel}
           </a>
         </div>

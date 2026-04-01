@@ -18,6 +18,12 @@ const SCHEDULE_RANK = {
   past: 2,
 };
 
+const PATNA_EVENT_SLUGS = new Set([
+  "african-strategic-summit-on-shipping-decarbonisation",
+  "dakar-maritime-decarbonisation-workshop",
+  "african-climate-summit-ii-acs2",
+]);
+
 function createPublicSupabaseClient() {
   return createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     auth: {
@@ -232,6 +238,25 @@ export async function fetchPublicEvents({ limit = 0 } = {}) {
 
   const events = data.map(normaliseEventRow).sort(compareEvents);
   return limit > 0 ? events.slice(0, limit) : events;
+}
+
+export function isPatnaLedEvent(event) {
+  return PATNA_EVENT_SLUGS.has(event?.slug);
+}
+
+export function splitPublicEventCollections(events) {
+  return events.reduce(
+    (collections, event) => {
+      if (isPatnaLedEvent(event)) {
+        collections.patnaEvents.push(event);
+      } else {
+        collections.externalEvents.push(event);
+      }
+
+      return collections;
+    },
+    { patnaEvents: [], externalEvents: [] },
+  );
 }
 
 export async function fetchMemberEvents({ supabase, limit = 0 } = {}) {

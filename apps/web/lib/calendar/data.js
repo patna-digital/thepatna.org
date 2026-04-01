@@ -339,7 +339,62 @@ async function ensureAdminEventRsvps({ communityEvents, isAdmin, memberId, supab
 }
 
 /**
- * Get calendar events for a date range (combines community events and personal bookings)
+ * Fetch external calendar events for a member
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {string} params.startDate - Start date (YYYY-MM-DD)
+ * @param {string} params.endDate - End date (YYYY-MM-DD)
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{events: Array, error: Error}>}
+ */
+export async function fetchExternalCalendarEvents({ memberId, startDate, endDate, supabase }) {
+  const { data, error } = await supabase
+    .from('external_calendar_events')
+    .select(`
+      id,
+      external_event_id,
+      external_calendar_id,
+      title,
+      description,
+      location,
+      starts_at,
+      ends_at,
+      timezone,
+      is_all_day,
+      recurrence_rule,
+      recurring_event_id,
+      attendees,
+      organizer,
+      status,
+      visibility,
+      external_created_at,
+      external_updated_at,
+      connection:calendar_connections(provider, calendar_name)
+    `)
+    .eq('member_id', memberId)
+    .gte('starts_at', `${startDate}T00:00:00`)
+    .lte('starts_at', `${endDate}T23:59:59`)
+    .order('starts_at', { ascending: true });
+
+  if (error) {
+    return { events: [], error };
+  }
+
+  // Transform to match the event format
+  const events = (data || []).map((event) => ({
+    ...event,
+    event_source: 'external',
+    event_type_label: event.connection?.provider
+      ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
+      : 'External Event',
+    is_rsvped: true, // External events are always "accepted"
+  }));
+
+  return { events, error: null };
+}
+
+/**
+ * Get calendar events for a date range (combines community events, personal bookings, and external events)
  * @param {Object} params
  * @param {string} params.memberId - Member UUID
  * @param {string} params.startDate - Start date (YYYY-MM-DD)
@@ -371,6 +426,41 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
 
   if (bookingsError) {
     return { events: [], error: bookingsError };
+  }
+
+  // Fetch external calendar events (wrapped in try-catch in case table doesn't exist yet)
+  let externalEvents = [];
+  try {
+    const { data: extEvents, error: extError } = await supabase
+      .from('external_calendar_events')
+      .select(`
+        id,
+        title,
+        description,
+        location,
+        starts_at,
+        ends_at,
+        timezone,
+        is_all_day,
+        recurrence_rule,
+        recurring_event_id,
+        attendees,
+        organizer,
+        status,
+        visibility,
+        connection:calendar_connections!inner(provider, calendar_name)
+      `)
+      .eq('member_id', memberId)
+      .gte('starts_at', `${startDate}T00:00:00`)
+      .lte('starts_at', `${endDate}T23:59:59`)
+      .order('starts_at', { ascending: true });
+    
+    if (!extError && extEvents) {
+      externalEvents = extEvents;
+    }
+  } catch (e) {
+    // External events table might not exist yet, silently skip
+    externalEvents = [];
   }
 
   await ensureAdminEventRsvps({
@@ -410,6 +500,17 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
       title: b.title,
       is_rsvped: true,
     })),
+    ...externalEvents.map(e => {
+      const provider = e.connection?.provider;
+      return {
+        ...e,
+        event_source: 'external',
+        event_type_label: provider
+          ? `${PROVIDER_NAMES[provider] || provider} Event`
+          : 'External Event',
+        is_rsvped: true,
+      };
+    }),
   ];
 
   // Sort by start time
@@ -417,6 +518,15 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
 
   return { events, error: null };
 }
+
+// Provider names mapping
+const PROVIDER_NAMES = {
+  google: 'Google Calendar',
+  microsoft: 'Outlook Calendar',
+  zoho: 'Zoho Calendar',
+  apple: 'Apple Calendar',
+  generic_ical: 'iCal Feed',
+};
 
 /**
  * Get calendar statistics for a member
@@ -455,11 +565,29 @@ export async function fetchCalendarStats({ memberId, supabase }) {
     .eq('status', 'confirmed')
     .gte('starts_at', startOfMonth.toISOString());
 
+  // Count external events (wrapped in try-catch in case table doesn't exist yet)
+  let externalEventsCount = 0;
+  try {
+    const { count, error: extError } = await supabase
+      .from('external_calendar_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('member_id', memberId)
+      .gte('starts_at', now);
+    
+    if (!extError && count !== null) {
+      externalEventsCount = count;
+    }
+  } catch (e) {
+    // External events table might not exist yet, use 0
+    externalEventsCount = 0;
+  }
+
   return {
     stats: {
       upcomingBookings: upcomingCount || 0,
       connectedCalendars: connectedCount || 0,
       bookingsThisMonth: monthCount || 0,
+      externalEvents: externalEventsCount,
     },
     error: upcomingError || connectedError || monthError,
   };

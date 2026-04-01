@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { FeaturedStoryRail } from "@/components/public/featured-story-rail";
 import { SectionIntro } from "@/components/section-intro";
-import { cohortSummary, communityJourney, memberSpaces } from "@/lib/patna-data";
+import {
+  cohortSummary,
+  communityJourney,
+  communityStructures,
+} from "@/lib/patna-data";
 import { publicPageMedia } from "@/lib/public-media";
+
+export const metadata = {
+  title: "Community",
+  description:
+    "Discover PATNA's public community structure, cohorts, and pathways for African experts and institutions to contribute.",
+};
 
 export default function CommunityPage() {
   return (
@@ -11,12 +21,12 @@ export default function CommunityPage() {
         <div className="community-hero-inner">
           <div className="community-hero-eyebrow">PATNA Community</div>
           <h1>
-            A professional coordination space for <em>African expertise</em>
+            A community for <em>African expertise</em>, coordination, and shared evidence
           </h1>
           <p>
-            The PATNA community brings together experts, policymakers, practitioners, and civil
-            society contributors through cohort spaces, working groups, events, and structured
-            applications.
+            PATNA brings together experts, institutions, policymakers, practitioners, and civil
+            society contributors who want to advance evidence-based climate action, maritime
+            decarbonisation, and stronger African positioning in global decision-making.
           </p>
           <div className="hero-actions">
             <Link className="secondary-button" href="/community/join">
@@ -34,17 +44,17 @@ export default function CommunityPage() {
           <div className="cohorts-intro">
             <SectionIntro
               label="Four cohorts"
-              title="A community model built around how PATNA actually organises expertise"
-              subtitle="The community is organised around the real working structure of PATNA’s policy, academic, industry, and civil-society expertise."
+              title="A community organised around how PATNA brings expertise together"
+              subtitle="The public community reflects the real working structure behind PATNA's policy, academic, industry, and civil-society engagement."
             />
 
             <article className="content-card">
-              <h3>How the community works</h3>
+              <h3>What community participation supports</h3>
               <ul className="check-list">
-                <li>Expressions of interest are captured through a structured PATNA application.</li>
-                <li>Admins review applications, record notes, and manage status changes in-platform.</li>
-                <li>Approved members join spaces, discussions, events, and knowledge-sharing surfaces.</li>
-                <li>Each cohort can branch into working groups, constituencies, and thematic collaboration.</li>
+                <li>Promote evidence-based policymaking across African climate and maritime priorities.</li>
+                <li>Advance maritime decarbonisation and just transition pathways in Africa.</li>
+                <li>Strengthen Africa's voice in global maritime and climate governance.</li>
+                <li>Foster regional collaboration, knowledge exchange, and capacity-building.</li>
               </ul>
             </article>
           </div>
@@ -67,8 +77,8 @@ export default function CommunityPage() {
         <div className="section-inner">
           <SectionIntro
             label="How joining works"
-            title="From application to participation"
-            subtitle="A clear path from application review to active participation in spaces, cohorts, and working groups."
+            title="From expression of interest to active contribution"
+            subtitle="PATNA's joining process is designed to connect people to the most relevant cohort, collaboration, or contribution pathway."
           />
 
           <div className="steps-row">
@@ -86,22 +96,17 @@ export default function CommunityPage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="Community spaces"
-            title="Cohort rooms, constituencies, and working groups"
-            subtitle="PATNA’s spaces reflect how coordination happens in practice: by cohort, constituency, and focused collaboration."
+            label="Community structure"
+            title="Board, secretariat, cohorts, and collaborative pathways"
+            subtitle="The PATNA community is more than a login surface. It is the public structure through which governance, coordination, and contribution happen."
           />
 
-          <div className="spaces-grid">
-            {memberSpaces.map((space) => (
-              <article className="space-card" key={space.slug}>
-                <div className="tag">{space.type}</div>
-                <strong>{space.name}</strong>
-                <p>{space.role} access inside the PATNA community platform.</p>
-                <div className="content-meta">
-                  <span>{space.members} members</span>
-                  <span>{space.threads} threads</span>
-                  <span>{space.unread} unread</span>
-                </div>
+          <div className="card-grid">
+            {communityStructures.map((item) => (
+              <article className="content-card" key={item.title}>
+                <div className="tag">{item.type}</div>
+                <h3>{item.title}</h3>
+                <p>{item.summary}</p>
               </article>
             ))}
           </div>
@@ -111,10 +116,10 @@ export default function CommunityPage() {
       <section className="join-band">
         <div className="section-inner">
           <div className="section-label">Applications open</div>
-          <h2>Join a network designed for evidence, coordination, and impact.</h2>
+          <h2>Ready to shape Africa's maritime future?</h2>
           <p>
-            Start the PATNA application process and enter a network built for evidence,
-            coordination, and shared African positioning.
+            Join more than 100 specialists already collaborating through PATNA's cohorts,
+            convenings, and shared evidence work.
           </p>
           <div className="join-band-btns">
             <Link className="secondary-button" href="/community/join">

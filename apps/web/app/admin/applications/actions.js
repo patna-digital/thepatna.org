@@ -87,20 +87,42 @@ export async function approveAndInviteApplicationAction(formData) {
   if (!userId) {
     // Invite creates auth user; the DB trigger (handle_new_user) creates profiles(id, email)
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=/app/profile`,
+      redirectTo: `${getSiteUrl()}/auth/verify`,
     });
 
     if (inviteError) {
-      redirect("/admin/applications?notice=error");
-    }
+      // User may already exist in auth.users without a matching profile row (e.g. DB trigger failure).
+      // Fall back to a password-reset email so they can still gain access.
+      if (inviteError.message?.toLowerCase().includes("already")) {
+        const authUsers = await listSupabaseAuthUsers(adminClient);
+        const existingAuthUser = authUsers.find(
+          (u) => String(u.email || "").toLowerCase() === email,
+        );
+        if (!existingAuthUser) redirect("/admin/applications?notice=error");
 
-    userId = inviteData.user.id;
-    deliveryMethod = "supabase_invite";
+        userId = existingAuthUser.id;
+        deliveryMethod = "manual_reset";
+
+        const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
+          redirectTo: `${getSiteUrl()}/auth/verify`,
+        });
+        if (resetError) redirect("/admin/applications?notice=error");
+      } else {
+        redirect("/admin/applications?notice=error");
+      }
+    } else {
+      userId = inviteData.user.id;
+      deliveryMethod = "supabase_invite";
+    }
   } else {
     // User already exists — send a password reset so they can set access
-    await adminClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=/app/profile`,
+    const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
+      redirectTo: `${getSiteUrl()}/auth/verify`,
     });
+
+    if (resetError) {
+      redirect("/admin/applications?notice=error");
+    }
   }
 
   // Resolve domain tag IDs from expertise slugs
@@ -211,7 +233,7 @@ export async function resendApplicationInviteAction(formData) {
 
   if (!authUser) {
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=/app/profile`,
+      redirectTo: `${getSiteUrl()}/auth/verify`,
     });
 
     if (error) {
@@ -222,7 +244,7 @@ export async function resendApplicationInviteAction(formData) {
     deliveryMethod = "supabase_invite";
   } else {
     const { error } = await adminClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/callback?next=/app/profile`,
+      redirectTo: `${getSiteUrl()}/auth/verify`,
     });
 
     if (error) {
