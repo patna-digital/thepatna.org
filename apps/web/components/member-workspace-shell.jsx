@@ -11,7 +11,6 @@ function getProfileTone(member) {
   if (!member?.profileStatus || member.profileStatus === "active") {
     return "active";
   }
-
   return "muted";
 }
 
@@ -28,11 +27,58 @@ export function MemberWorkspaceShell({
 }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   useEffect(() => { setMounted(true); }, []);
 
+  // Close drawer on route change
+  useEffect(() => { setSidebarOpen(false); }, [pathname]);
+
+  const shellClass = [
+    "member-workspace-shell",
+    rightRail ? "shell-with-rail" : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className="member-workspace-shell">
-      <aside className="member-workspace-sidebar">
+    <div className={shellClass}>
+
+      {/* ── Mobile top bar ──────────────────────────────────────────────── */}
+      <div className="mob-topbar">
+        <button
+          aria-label="Open navigation menu"
+          className="mob-hamburger"
+          onClick={() => setSidebarOpen(true)}
+          type="button"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <span className="mob-topbar-brand">PATNA</span>
+      </div>
+
+      {/* ── Overlay (closes drawer on tap) ──────────────────────────────── */}
+      {sidebarOpen && (
+        <div
+          aria-hidden="true"
+          className="mob-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+      <aside className={`member-workspace-sidebar${sidebarOpen ? " mob-open" : ""}`}>
+
+        {/* Close button — mobile only */}
+        <button
+          aria-label="Close navigation menu"
+          className="mob-sidebar-close"
+          onClick={() => setSidebarOpen(false)}
+          type="button"
+        >
+          ✕
+        </button>
+
         <div className="member-workspace-brand">
           <BrandLogo
             href="/app"
@@ -84,9 +130,13 @@ export function MemberWorkspaceShell({
             const isActive = mounted && (
               item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href)
             );
-
             return (
-              <Link className={isActive ? "active" : ""} href={item.href} key={item.href}>
+              <Link
+                className={isActive ? "active" : ""}
+                href={item.href}
+                key={item.href}
+                onClick={() => setSidebarOpen(false)}
+              >
                 <span className="nav-item-label">
                   <span className="nav-item-icon">{item.icon}</span>
                   <span>{item.label}</span>
@@ -99,11 +149,11 @@ export function MemberWorkspaceShell({
 
         <div className="sidebar-cross-nav">
           <div className="sidebar-cross-nav-label">Navigate to</div>
-          <Link className="sidebar-cross-nav-link" href="/">
+          <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
             <span>Website</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
-          <Link className="sidebar-cross-nav-link" href="/admin">
+          <Link className="sidebar-cross-nav-link" href="/admin" onClick={() => setSidebarOpen(false)}>
             <span>Admin app</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
@@ -111,6 +161,7 @@ export function MemberWorkspaceShell({
         </div>
       </aside>
 
+      {/* ── Main content ────────────────────────────────────────────────── */}
       <main className="member-workspace-main">
         <div className="member-workspace-main-inner">
           <header className="member-workspace-header">

@@ -2755,6 +2755,54 @@ img {
   margin-top: 0;
 }
 
+/* ── Mobile workspace UI (hidden on desktop) ──────────────────────────────── */
+.mob-topbar {
+  display: none;
+}
+
+.mob-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 12, 32, 0.5);
+  z-index: 150;
+  cursor: pointer;
+}
+
+.mob-hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 4px;
+  flex-shrink: 0;
+}
+
+.mob-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 2px;
+}
+
+.mob-topbar-brand {
+  font-size: var(--text-md);
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.06em;
+}
+
+.mob-sidebar-close {
+  display: none;
+}
+
+/* On desktop: hide sidebar user card when the page has a right rail (avoids duplication) */
+.shell-with-rail .member-workspace-sidebar .member-sidebar-user {
+  display: none;
+}
+
 .sidebar-sign-out-btn {
   display: flex;
   align-items: center;
@@ -4600,6 +4648,7 @@ details[open] .app-row-expand-hint {
   .member-workspace-shell {
     grid-template-columns: 1fr;
     background: #f0f5fa;
+    padding-top: 56px;
   }
 
   .dashboard-sidebar {
@@ -4607,9 +4656,61 @@ details[open] .app-row-expand-hint {
     height: auto;
   }
 
+  /* Sidebar becomes a fixed off-canvas drawer on mobile */
   .member-workspace-sidebar {
-    position: static;
-    height: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+  }
+
+  .member-workspace-sidebar.mob-open {
+    transform: translateX(0);
+    box-shadow: 6px 0 32px rgba(3, 12, 32, 0.4);
+  }
+
+  /* Mobile top bar */
+  .mob-topbar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    z-index: 100;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1rem;
+    background: #03529d;
+    box-shadow: 0 2px 8px rgba(3, 82, 157, 0.3);
+  }
+
+  /* Close button inside drawer */
+  .mob-sidebar-close {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0 0.25rem 0.5rem;
+    transition: color 0.14s;
+  }
+
+  .mob-sidebar-close:hover {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  /* Always show user card inside the mobile drawer, even on dashboard */
+  .shell-with-rail .member-workspace-sidebar .member-sidebar-user {
+    display: block;
   }
 
   .summary-grid,
@@ -4684,7 +4785,6 @@ details[open] .app-row-expand-hint {
   .hero-stats,
   .member-directory-grid,
   .member-directory-summary-row,
-  .member-dashboard-summary-grid,
   .member-settings-grid,
   .member-directory-grid-rich,
   .member-profile-overview-grid,
@@ -4692,6 +4792,11 @@ details[open] .app-row-expand-hint {
   .gallery-strip-grid,
   .onboarding-section-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Keep stat tiles in 2-column row on mobile — more compact and scannable */
+  .member-dashboard-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .site-header,
@@ -4743,9 +4848,6 @@ details[open] .app-row-expand-hint {
   .directory-toolbar,
   .directory-layout-toggle,
   .dashboard-footer,
-  .member-workspace-header,
-  .member-workspace-header-actions,
-  .member-workspace-header-actions-inner,
   .member-directory-toolbar-meta,
   .member-directory-selects,
   .member-section-heading,
@@ -4804,7 +4906,8 @@ details[open] .app-row-expand-hint {
 
   .member-workspace-main-inner {
     padding: 1rem;
-    border-radius: 14px;
+    border-radius: 0;
+    min-height: calc(100vh - 56px);
   }
 
   .hero-media-frame,
