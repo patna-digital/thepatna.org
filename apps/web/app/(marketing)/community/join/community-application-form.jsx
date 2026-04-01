@@ -165,12 +165,25 @@ export function CommunityApplicationForm() {
       <div className="stack">
         <label className="checkbox-item">
           <input name="consent_data_storage" required type="checkbox" value="yes" />
-          <span>I consent to PATNA storing my information for community engagement.</span>
+          <span>
+            I consent to PATNA storing my information for community engagement in accordance
+            with the{" "}
+            <a href="/legal/privacy" rel="noopener noreferrer" target="_blank">
+              Privacy Policy
+            </a>
+            .
+          </span>
         </label>
         <label className="checkbox-item">
           <input name="consent_updates" type="checkbox" value="yes" />
           <span>I would like to receive updates, newsletters, and invitations from PATNA.</span>
         </label>
+        <p className="muted-note" style={{ marginTop: "0.25rem" }}>
+          By submitting this application you agree to our{" "}
+          <a href="/legal/terms" rel="noopener noreferrer" target="_blank">Terms of Service</a>
+          {" "}and{" "}
+          <a href="/legal/privacy" rel="noopener noreferrer" target="_blank">Privacy Policy</a>.
+        </p>
       </div>
 
       <SubmitButton />

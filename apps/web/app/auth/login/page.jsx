@@ -26,6 +26,12 @@ export default async function LoginPage({ searchParams }) {
 
         <div className="auth-form-panel">
           <LoginForm next={next} />
+          <p className="muted-note" style={{ marginTop: "1.25rem", textAlign: "center", fontSize: "0.75rem" }}>
+            By signing in you agree to our{" "}
+            <Link href="/legal/terms">Terms of Service</Link>
+            {" "}and{" "}
+            <Link href="/legal/privacy">Privacy Policy</Link>.
+          </p>
         </div>
       </div>
     </section>
