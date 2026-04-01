@@ -158,6 +158,11 @@ export function MemberWorkspaceShell({
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
           <SignOutButton />
+          <div className="sidebar-legal-links">
+            <Link href="/legal/privacy" onClick={() => setSidebarOpen(false)}>Privacy</Link>
+            <span aria-hidden="true">·</span>
+            <Link href="/legal/terms" onClick={() => setSidebarOpen(false)}>Terms</Link>
+          </div>
         </div>
       </aside>
 

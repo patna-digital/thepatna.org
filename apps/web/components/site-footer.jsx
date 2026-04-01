@@ -28,9 +28,11 @@ export function SiteFooter() {
         </div>
 
         <div className="footer-bottom">
-          <p>Built for African technical coordination, evidence, and collective positioning.</p>
+          <p>© {new Date().getFullYear()} The PATNA Initiative · Built for African technical coordination, evidence, and collective positioning.</p>
           <div className="footer-langs">
             <Link href="/contact">Contact</Link>
+            <Link href="/legal/privacy">Privacy</Link>
+            <Link href="/legal/terms">Terms</Link>
             <Link href="/legal">Legal</Link>
           </div>
         </div>
