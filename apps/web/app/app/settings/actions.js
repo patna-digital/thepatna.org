@@ -1,5 +1,6 @@
 "use server";
 
+import { getAuthCallbackUrl } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { getSiteUrl } from "@/lib/env";
@@ -107,7 +108,7 @@ export async function requestPasswordResetAction() {
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-    redirectTo: `${getSiteUrl()}/auth/callback`,
+    redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
   });
 
   if (error) {

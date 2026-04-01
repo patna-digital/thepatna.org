@@ -1,5 +1,6 @@
 "use server";
 
+import { getAuthCallbackUrl } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSiteUrl, isSupabaseConfigured } from "@/lib/env";
 
@@ -24,7 +25,7 @@ export async function forgotPasswordAction(_previousState, formData) {
   const supabase = await createSupabaseServerClient();
   
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${getSiteUrl()}/auth/verify`,
+    redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
   });
 
   if (error) {

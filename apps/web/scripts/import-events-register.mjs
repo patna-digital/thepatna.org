@@ -345,7 +345,7 @@ async function ensureSourceAdmin({ adminClient, email, siteUrl }) {
 
   if (!authUser) {
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
-      redirectTo: `${siteUrl}/auth/callback?next=/admin/events`,
+      redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`,
     });
 
     if (error) {

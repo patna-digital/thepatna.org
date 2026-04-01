@@ -5,3 +5,13 @@ export function getSafeRedirectPath(pathname) {
 
   return pathname.startsWith("/") ? pathname : "/app";
 }
+
+export function getAuthCallbackPath(nextPath = "/app") {
+  const safePath = getSafeRedirectPath(nextPath);
+  return `/auth/callback?next=${encodeURIComponent(safePath)}`;
+}
+
+export function getAuthCallbackUrl(siteUrl, nextPath = "/app") {
+  const baseUrl = String(siteUrl || "").replace(/\/+$/, "");
+  return `${baseUrl}${getAuthCallbackPath(nextPath)}`;
+}
