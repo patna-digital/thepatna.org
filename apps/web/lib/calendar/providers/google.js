@@ -29,22 +29,26 @@ export function getGoogleCalendarClient(accessToken, refreshToken = null) {
 }
 
 // Fetch user's calendar list
+function mapCalendarList(items) {
+  return items.map((cal) => ({
+    id: cal.id,
+    name: cal.summary,
+    description: cal.description || null,
+    timezone: cal.timeZone || 'UTC',
+    primary: cal.primary || false,
+    accessRole: cal.accessRole,
+    backgroundColor: cal.backgroundColor,
+    foregroundColor: cal.foregroundColor,
+    selected: cal.selected || false,
+  }));
+}
+
 export async function fetchGoogleCalendars(accessToken, refreshToken = null) {
   try {
     const calendar = getGoogleCalendarClient(accessToken, refreshToken);
     const response = await calendar.calendarList.list();
 
-    return response.data.items.map((cal) => ({
-      id: cal.id,
-      name: cal.summary,
-      description: cal.description || null,
-      timezone: cal.timeZone || 'UTC',
-      primary: cal.primary || false,
-      accessRole: cal.accessRole,
-      backgroundColor: cal.backgroundColor,
-      foregroundColor: cal.foregroundColor,
-      selected: cal.selected || false,
-    }));
+    return { calendars: mapCalendarList(response.data.items || []) };
   } catch (error) {
     if (error.code === 401 && refreshToken) {
       // Token expired, try to refresh
@@ -53,17 +57,7 @@ export async function fetchGoogleCalendars(accessToken, refreshToken = null) {
       const response = await calendar.calendarList.list();
 
       return {
-        calendars: response.data.items.map((cal) => ({
-          id: cal.id,
-          name: cal.summary,
-          description: cal.description || null,
-          timezone: cal.timeZone || 'UTC',
-          primary: cal.primary || false,
-          accessRole: cal.accessRole,
-          backgroundColor: cal.backgroundColor,
-          foregroundColor: cal.foregroundColor,
-          selected: cal.selected || false,
-        })),
+        calendars: mapCalendarList(response.data.items || []),
         newTokens,
       };
     }
