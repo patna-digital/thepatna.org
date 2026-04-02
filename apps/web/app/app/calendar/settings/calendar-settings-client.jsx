@@ -4,12 +4,70 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { updateBookingSettings } from "../actions";
 
+function GoogleCalendarIcon() {
+  return (
+    <svg viewBox="0 0 48 48" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="6" width="36" height="36" rx="4" fill="white" stroke="#E0E0E0" strokeWidth="1"/>
+      <rect x="6" y="6" width="36" height="10" rx="4" fill="white"/>
+      <rect x="6" y="12" width="36" height="4" fill="white"/>
+      <path d="M6 16h36v22a4 4 0 01-4 4H10a4 4 0 01-4-4V16z" fill="white"/>
+      <text x="24" y="35" textAnchor="middle" fontSize="16" fontWeight="700" fill="#1A73E8" fontFamily="Arial,sans-serif">31</text>
+      <rect x="15" y="4" width="4" height="8" rx="2" fill="#1A73E8"/>
+      <rect x="29" y="4" width="4" height="8" rx="2" fill="#1A73E8"/>
+      <path d="M6 20h36" stroke="#E0E0E0" strokeWidth="1"/>
+    </svg>
+  );
+}
+
+function OutlookIcon() {
+  return (
+    <svg viewBox="0 0 48 48" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="8" width="28" height="32" rx="3" fill="#0078D4"/>
+      <rect x="18" y="12" width="28" height="28" rx="3" fill="white" stroke="#E0E0E0" strokeWidth="0.5"/>
+      <rect x="18" y="12" width="28" height="7" rx="3" fill="#0078D4"/>
+      <rect x="18" y="16" width="28" height="3" fill="#0078D4"/>
+      <line x1="25" y1="25" x2="39" y2="25" stroke="#0078D4" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="25" y1="29" x2="39" y2="29" stroke="#0078D4" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="25" y1="33" x2="34" y2="33" stroke="#0078D4" strokeWidth="1.5" strokeLinecap="round"/>
+      <text x="11" y="30" textAnchor="middle" fontSize="11" fontWeight="700" fill="white" fontFamily="Arial,sans-serif">OL</text>
+    </svg>
+  );
+}
+
+function ZohoCalendarIcon() {
+  return (
+    <svg viewBox="0 0 48 48" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="8" width="40" height="36" rx="4" fill="white" stroke="#E0E0E0" strokeWidth="1"/>
+      <rect x="4" y="8" width="40" height="12" rx="4" fill="#E42527"/>
+      <rect x="4" y="16" width="40" height="4" fill="#E42527"/>
+      <rect x="13" y="4" width="4" height="9" rx="2" fill="#E42527"/>
+      <rect x="31" y="4" width="4" height="9" rx="2" fill="#E42527"/>
+      <path d="M4 20h40" stroke="#E0E0E0" strokeWidth="1"/>
+      <text x="24" y="36" textAnchor="middle" fontSize="13" fontWeight="700" fill="#E42527" fontFamily="Arial,sans-serif">Z</text>
+    </svg>
+  );
+}
+
+function ICalIcon() {
+  return (
+    <svg viewBox="0 0 48 48" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="8" width="40" height="36" rx="4" fill="white" stroke="#6B7280" strokeWidth="1.5"/>
+      <rect x="4" y="8" width="40" height="12" rx="4" fill="#6B7280"/>
+      <rect x="4" y="16" width="40" height="4" fill="#6B7280"/>
+      <rect x="13" y="4" width="4" height="9" rx="2" fill="#6B7280"/>
+      <rect x="31" y="4" width="4" height="9" rx="2" fill="#6B7280"/>
+      <path d="M4 20h40" stroke="#D1D5DB" strokeWidth="1"/>
+      <text x="24" y="36" textAnchor="middle" fontSize="12" fontWeight="700" fill="#6B7280" fontFamily="Arial,sans-serif">iCal</text>
+    </svg>
+  );
+}
+
 const PROVIDER_ICONS = {
-  google: "🔍",
-  microsoft: "📧",
-  zoho: "📊",
+  google: <GoogleCalendarIcon />,
+  microsoft: <OutlookIcon />,
+  zoho: <ZohoCalendarIcon />,
   apple: "🍎",
-  generic_ical: "📅",
+  generic_ical: <ICalIcon />,
 };
 
 const PROVIDER_NAMES = {
@@ -662,6 +720,9 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
 
         .connect-icon {
           font-size: 1.25rem;
+          display: flex;
+          align-items: center;
+          flex-shrink: 0;
         }
 
         .ical-section {
