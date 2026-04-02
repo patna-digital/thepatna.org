@@ -149,6 +149,7 @@ export async function approveAndInviteApplicationAction(formData) {
     phone_number: application.phone_number || null,
     professional_bio: application.motivation_text || null,
     invited_at: new Date().toISOString(),
+    profile_status: "active",
   };
 
   // Only set onboarding_status for brand-new users — don't downgrade an existing active member
@@ -157,6 +158,14 @@ export async function approveAndInviteApplicationAction(formData) {
   }
 
   await adminClient.from("profiles").update(profileUpdate).eq("id", userId);
+
+  // Assign member role so user appears in the member directory
+  await adminClient
+    .from("user_roles")
+    .upsert(
+      { user_id: userId, role: "member" },
+      { onConflict: "user_id,role", ignoreDuplicates: true },
+    );
 
   // Seed domain tags from expertise slugs
   if (tagIds.length) {
@@ -195,7 +204,6 @@ export async function approveAndInviteApplicationAction(formData) {
 export async function resendApplicationInviteAction(formData) {
   const { user: adminUser } = await requireAdminContext();
   const adminClient = createSupabaseAdminClient();
-  const authUsers = await listSupabaseAuthUsers(adminClient);
 
   const applicationId = String(formData.get("application_id") || "").trim();
 
@@ -219,20 +227,25 @@ export async function resendApplicationInviteAction(formData) {
     redirect("/admin/applications?notice=error");
   }
 
+  // Look up profile by email to get the user ID
   const { data: profile } = await adminClient
     .from("profiles")
     .select("id")
     .eq("email", email)
     .maybeSingle();
 
-  const authUser = authUsers.find(
-    (u) => String(u.email || "").trim().toLowerCase() === email,
-  );
+  // Try to get auth user directly by ID (avoids pagination issues with listSupabaseAuthUsers)
+  let authUserExists = false;
+  if (profile?.id) {
+    const { data: authUserData } = await adminClient.auth.admin.getUserById(profile.id);
+    authUserExists = Boolean(authUserData?.user?.id);
+  }
 
-  let userId = authUser?.id || profile?.id;
+  let userId = profile?.id;
   let deliveryMethod = "manual_reset";
 
-  if (!authUser) {
+  if (!authUserExists) {
+    // No auth user yet — create one via invite
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
       redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
@@ -244,6 +257,7 @@ export async function resendApplicationInviteAction(formData) {
     userId = data.user.id;
     deliveryMethod = "supabase_invite";
   } else {
+    // Auth user exists — always use password reset (avoids expired/duplicate invite tokens)
     const { error } = await adminClient.auth.resetPasswordForEmail(email, {
       redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
