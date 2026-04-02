@@ -4,6 +4,8 @@ import { CalendarShell } from "@/components/calendar/calendar-shell";
 import { fetchCalendarEvents } from "@/lib/calendar/data";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { getCurrentUserContext } from "@/lib/supabase/access";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { syncMemberCalendars } from "@/lib/calendar/sync";
 import Link from "next/link";
 
 export const metadata = {
@@ -28,6 +30,23 @@ export default async function CalendarPage() {
 
   const startDate = startOfYear.toISOString().split("T")[0];
   const endDate = endOfYear.toISOString().split("T")[0];
+
+  // Trigger background sync if any connection is stale (>1 hour since last sync)
+  const adminClient = createSupabaseAdminClient();
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data: staleConnections } = await adminClient
+    .from("calendar_connections")
+    .select("id")
+    .eq("member_id", user.id)
+    .eq("is_active", true)
+    .eq("sync_enabled", true)
+    .or(`last_synced_at.is.null,last_synced_at.lt.${oneHourAgo}`)
+    .limit(1);
+
+  if (staleConnections && staleConnections.length > 0) {
+    // Fire and forget — don't block page render
+    syncMemberCalendars(user.id, { forceFullSync: false }).catch(() => {});
+  }
 
   const [frameData, eventsResult] = await Promise.all([
     fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),

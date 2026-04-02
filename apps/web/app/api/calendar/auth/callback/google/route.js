@@ -10,6 +10,7 @@ import {
   fetchGoogleCalendars,
   getGoogleUserInfo,
 } from '@/lib/calendar/providers';
+import { syncCalendarConnection } from '@/lib/calendar/sync';
 
 export async function GET(request) {
   const searchParams = request.nextUrl.searchParams;
@@ -64,59 +65,83 @@ export async function GET(request) {
       tokens.refreshToken
     );
 
-    // Fetch available calendars
+    // Fetch all calendars the user has access to
     const calendarList = await fetchGoogleCalendars(
       tokens.accessToken,
       tokens.refreshToken
     );
 
-    const primaryCalendar = calendarList.calendars.find((c) => c.primary) ||
-      calendarList.calendars[0];
+    const allCalendars = calendarList.calendars || [];
+    const primaryCalendar = allCalendars.find((c) => c.primary) || allCalendars[0];
 
     const supabase = createSupabaseAdminClient();
 
-    // Check if connection already exists
-    const { data: existingConnection } = await supabase
-      .from('calendar_connections')
-      .select('id')
-      .eq('member_id', memberId)
-      .eq('provider', 'google')
-      .eq('provider_account_email', userInfo.email)
-      .maybeSingle();
+    // Upsert a connection for every calendar (primary + subscribed like Holidays)
+    // so all events including holidays/shared calendars get synced
+    const connectionRecords = allCalendars.length > 0 ? allCalendars : [
+      { id: 'primary', name: 'Google Calendar', primary: true },
+    ];
 
-    if (existingConnection) {
-      // Update existing connection
-      await supabase
+    const savedConnections = [];
+
+    for (const cal of connectionRecords) {
+      const { data: existing } = await supabase
         .from('calendar_connections')
-        .update({
-          access_token: tokens.accessToken,
-          refresh_token: tokens.refreshToken,
-          token_expires_at: tokens.expiresAt?.toISOString(),
-          calendar_id: primaryCalendar?.id || 'primary',
-          calendar_name: primaryCalendar?.name || 'Google Calendar',
-          is_active: true,
-          sync_enabled: true,
-          last_sync_error: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingConnection.id);
-    } else {
-      // Create new connection
-      await supabase.from('calendar_connections').insert({
-        member_id: memberId,
-        provider: 'google',
-        provider_account_email: userInfo.email,
+        .select('id')
+        .eq('member_id', memberId)
+        .eq('provider', 'google')
+        .eq('provider_account_email', userInfo.email)
+        .eq('calendar_id', cal.id)
+        .maybeSingle();
+
+      const connectionData = {
         access_token: tokens.accessToken,
         refresh_token: tokens.refreshToken,
         token_expires_at: tokens.expiresAt?.toISOString(),
-        calendar_id: primaryCalendar?.id || 'primary',
-        calendar_name: primaryCalendar?.name || 'Google Calendar',
+        calendar_id: cal.id,
+        calendar_name: cal.name || 'Google Calendar',
         is_active: true,
         sync_enabled: true,
-        scope: tokens.scope,
-        auth_method: 'oauth',
-      });
+        last_sync_error: null,
+        updated_at: new Date().toISOString(),
+      };
+
+      let savedId;
+      if (existing) {
+        await supabase
+          .from('calendar_connections')
+          .update(connectionData)
+          .eq('id', existing.id);
+        savedId = existing.id;
+      } else {
+        const { data: inserted } = await supabase
+          .from('calendar_connections')
+          .insert({
+            member_id: memberId,
+            provider: 'google',
+            provider_account_email: userInfo.email,
+            scope: tokens.scope,
+            auth_method: 'oauth',
+            ...connectionData,
+          })
+          .select('id')
+          .single();
+        savedId = inserted?.id;
+      }
+
+      if (savedId) {
+        savedConnections.push({ id: savedId, ...connectionData });
+      }
     }
+
+    // Trigger initial sync for all saved connections (non-blocking)
+    Promise.all(
+      savedConnections.map((conn) =>
+        syncCalendarConnection(conn, { forceFullSync: true }).catch((e) =>
+          console.error(`Initial sync failed for ${conn.calendar_id}:`, e)
+        )
+      )
+    ).catch(() => {});
 
     // Redirect back to settings with success
     return NextResponse.redirect(
