@@ -85,6 +85,61 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
   const submittedAt = application.submitted_at || application.created_at;
   const isNew = isNewApplication(submittedAt);
 
+  const [selectedStatus, setSelectedStatus] = useState(application.status);
+
+  const profile = application.member_profile;
+  const isDeclined = application.status === "declined";
+  const isApproved = application.status === "approved";
+  const willBeApproved = selectedStatus === "approved";
+
+  // Determine which invite action to show
+  function InviteAction() {
+    if (isDeclined) return null;
+
+    if (!isApproved || !profile) {
+      return (
+        <form action={approveAndInviteApplicationAction} className="app-invite-form">
+          <input name="application_id" type="hidden" value={application.id} />
+          <div className="app-invite-form-body">
+            <div className="app-invite-form-copy">
+              <strong>Approve &amp; invite</strong>
+              <span>Creates the member profile and sends a password-setup email.</span>
+            </div>
+            <button className="primary-button" type="submit">Approve &amp; invite</button>
+          </div>
+        </form>
+      );
+    }
+
+    if (profile.onboarding_status === "active") {
+      return (
+        <form action={sendPasswordResetLinkAction} className="app-invite-form">
+          <input name="application_id" type="hidden" value={application.id} />
+          <div className="app-invite-form-body">
+            <div className="app-invite-form-copy">
+              <strong>Send password reset</strong>
+              <span>Member is active. Sends a password reset link to their email.</span>
+            </div>
+            <button className="secondary-button" type="submit">Send password reset</button>
+          </div>
+        </form>
+      );
+    }
+
+    return (
+      <form action={resendApplicationInviteAction} className="app-invite-form">
+        <input name="application_id" type="hidden" value={application.id} />
+        <div className="app-invite-form-body">
+          <div className="app-invite-form-copy">
+            <strong>Resend invite link</strong>
+            <span>Account not yet set up. Sends a fresh password-setup email.</span>
+          </div>
+          <button className="secondary-button" type="submit">Resend invite</button>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <details className="app-row" key={application.id}>
       <summary className="app-row-summary">
@@ -110,10 +165,13 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
       </summary>
 
       <div className="app-row-detail">
+
+        {/* Motivation */}
         {application.motivation_text ? (
           <p className="app-row-detail-motivation">{application.motivation_text}</p>
         ) : null}
 
+        {/* Details */}
         <div className="app-row-section-header">Details</div>
         <div className="app-row-detail-grid">
           <div className="app-row-detail-field">
@@ -164,91 +222,61 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
           </>
         ) : null}
 
-        <div className="app-row-section-header">Actions</div>
-        <div className="app-row-actions">
-          {(() => {
-            const profile = application.member_profile;
-            const isDeclined = application.status === "declined";
-            const isApproved = application.status === "approved";
+        {/* ── Review panel ─────────────────────────────────────────────── */}
+        {!isDeclined && (
+          <div className="app-review-panel">
+            <div className="app-row-section-header">Review</div>
 
-            if (isDeclined) return null;
+            <form action={reviewApplicationAction} className="app-review-form">
+              <input name="application_id" type="hidden" value={application.id} />
 
-            if (!isApproved || !profile) {
-              return (
-                <form action={approveAndInviteApplicationAction} className="app-row-action-form app-row-action-form-primary">
-                  <input name="application_id" type="hidden" value={application.id} />
-                  <div className="app-row-action-form-body">
-                    <div>
-                      <strong>Approve &amp; invite</strong>
-                      <p>Creates the member profile and sends a password-setup email.</p>
-                    </div>
-                    <button className="primary-button" type="submit">Approve &amp; invite</button>
-                  </div>
-                </form>
-              );
-            }
+              <div className="app-row-review-grid">
+                <label>
+                  Status
+                  <select
+                    name="status"
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  >
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Cohort
+                  <select defaultValue={application.assigned_cohort_id || ""} name="assigned_cohort_id">
+                    <option value="">Not assigned</option>
+                    {(cohorts || []).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
-            if (profile.onboarding_status === "active") {
-              return (
-                <form action={sendPasswordResetLinkAction} className="app-row-action-form app-row-action-form-primary">
-                  <input name="application_id" type="hidden" value={application.id} />
-                  <div className="app-row-action-form-body">
-                    <div>
-                      <strong>Send password reset</strong>
-                      <p>Member has an active account. Sends a password reset link to their email.</p>
-                    </div>
-                    <button className="primary-button" type="submit">Send password reset</button>
-                  </div>
-                </form>
-              );
-            }
-
-            return (
-              <form action={resendApplicationInviteAction} className="app-row-action-form app-row-action-form-primary">
-                <input name="application_id" type="hidden" value={application.id} />
-                <div className="app-row-action-form-body">
-                  <div>
-                    <strong>Resend invite link</strong>
-                    <p>Invite was sent but account not yet set up. Sends a fresh invite link.</p>
-                  </div>
-                  <button className="primary-button" type="submit">Resend invite link</button>
-                </div>
-              </form>
-            );
-          })()}
-
-          <form action={reviewApplicationAction} className="app-row-action-form">
-            <input name="application_id" type="hidden" value={application.id} />
-            <div className="app-row-review-grid">
               <label>
-                Status
-                <select defaultValue={application.status} name="status">
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                  ))}
-                </select>
+                Reviewer note
+                <textarea
+                  defaultValue={application.review_notes || ""}
+                  name="review_notes"
+                  placeholder="Add interview notes, decision rationale, or follow-up actions."
+                />
               </label>
-              <label>
-                Cohort
-                <select defaultValue={application.assigned_cohort_id || ""} name="assigned_cohort_id">
-                  <option value="">Not assigned</option>
-                  {(cohorts || []).map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <label>
-              Reviewer note
-              <textarea
-                defaultValue={application.review_notes || ""}
-                name="review_notes"
-                placeholder="Add interview notes, decision rationale, or follow-up actions."
-              />
-            </label>
-            <button className="primary-button" type="submit">Save review</button>
-          </form>
-        </div>
+
+              <div className="app-review-save-bar">
+                <button className="secondary-button" type="submit">Save review</button>
+              </div>
+            </form>
+
+            {/* Invite action sits outside the review form to avoid nested <form> */}
+            {(isApproved || willBeApproved) && (
+              <div className="app-review-action-bar">
+                <InviteAction />
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </details>
   );
