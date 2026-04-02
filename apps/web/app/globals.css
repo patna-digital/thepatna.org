@@ -2689,8 +2689,8 @@ address.legal-address a {
 }
 
 .member-sidebar-user {
-  padding: 0.15rem 0.2rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.9rem 0.2rem 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .member-sidebar-user-kicker {
@@ -2710,9 +2710,9 @@ address.legal-address a {
 }
 
 .member-sidebar-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -2733,7 +2733,7 @@ address.legal-address a {
 }
 
 .member-sidebar-user-copy p {
-  margin: 0.2rem 0 0;
+  margin: 0.12rem 0 0;
   color: rgba(255, 255, 255, 0.74);
   font-size: var(--text-sm);
   line-height: 1.45;
@@ -2799,6 +2799,19 @@ address.legal-address a {
   display: flex;
   flex-direction: column;
   gap: 0.28rem;
+}
+
+.member-workspace-nav::before {
+  content: "Member workspace";
+  display: block;
+  margin-bottom: 0.65rem;
+  padding: 0 0.4rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: var(--text-xs);
+  line-height: 1.35;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .member-workspace-nav a {
@@ -2942,9 +2955,9 @@ address.legal-address a {
   display: none;
 }
 
-/* On desktop: hide sidebar user card when the page has a right rail (avoids duplication) */
+/* Keep the condensed sidebar profile visible on dashboard and rail layouts */
 .shell-with-rail .member-workspace-sidebar .member-sidebar-user {
-  display: none;
+  display: block;
 }
 
 .sidebar-legal-links {
@@ -2969,28 +2982,42 @@ address.legal-address a {
   color: rgba(255, 255, 255, 0.2);
 }
 
+.sidebar-utility-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.2rem;
+}
+
+.sidebar-utility-nav form {
+  width: 100%;
+  margin: 0;
+}
+
+.sidebar-utility-link,
 .sidebar-sign-out-btn {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 0.4rem 0.6rem;
+  min-height: 40px;
+  padding: 0.55rem 0.7rem;
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin-top: 0.35rem;
   background: transparent;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: var(--text-sm);
+  font-weight: 600;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   transition: background 0.14s, color 0.14s;
 }
 
+.sidebar-utility-link.active,
+.sidebar-utility-link:hover,
 .sidebar-sign-out-btn:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* ─── Application review list ──────────────────────────────────────────────── */
@@ -3341,6 +3368,7 @@ details[open] .app-row-expand-hint {
 }
 
 .member-workspace-main-column,
+.member-dashboard-home-stack,
 .member-dashboard-stack,
 .member-rail-stack,
 .member-quick-actions {
@@ -3348,6 +3376,7 @@ details[open] .app-row-expand-hint {
   flex-direction: column;
 }
 
+.member-dashboard-home-stack,
 .member-dashboard-stack,
 .member-rail-stack {
   gap: 1.15rem;
@@ -3381,7 +3410,7 @@ details[open] .app-row-expand-hint {
 .member-dashboard-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.2rem;
 }
 
 .member-dashboard-summary-grid-compact {
@@ -3714,16 +3743,35 @@ details[open] .app-row-expand-hint {
 
 .member-rail-progress {
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .member-rail-progress-copy {
-  margin-bottom: 0.55rem;
+  margin-bottom: 0;
 }
 
 .member-rail-progress-copy span {
   color: rgba(255, 255, 255, 0.72);
   font-size: var(--text-sm);
   line-height: 1.45;
+}
+
+.member-rail-profile-action.secondary-button,
+.member-rail-profile-action.secondary-button:visited {
+  width: 100%;
+  background: var(--blue-light);
+  border-color: rgba(185, 232, 250, 0.9);
+  color: var(--blue-dark);
+  box-shadow: none;
+}
+
+.member-rail-profile-action.secondary-button:hover,
+.member-rail-profile-action.secondary-button:focus-visible {
+  background: #d5f2fb;
+  color: var(--blue-dark);
+  transform: none;
 }
 
 .member-rail-card {

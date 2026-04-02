@@ -26,10 +26,14 @@ export function MemberWorkspaceShell({
   navItems = memberNav,
 }) {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
+  const settingsItem = navItems.find((item) => item.href === "/app/settings") || null;
+  const primaryNavItems = settingsItem
+    ? navItems.filter((item) => item.href !== settingsItem.href)
+    : navItems;
+  const isSettingsActive = Boolean(
+    settingsItem && pathname.startsWith(settingsItem.href),
+  );
 
   // Close drawer on route change
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
@@ -93,43 +97,9 @@ export function MemberWorkspaceShell({
           </div>
         </div>
 
-        {sidebarUser ? (
-          <div className={`member-sidebar-user tone-${getProfileTone(sidebarUser)}`}>
-            <div className="member-sidebar-user-kicker">Member workspace</div>
-            <div className="member-sidebar-user-head">
-              <div className="member-sidebar-avatar">
-                {sidebarUser.headshotSrc ? (
-                  <img alt={`${sidebarUser.name} headshot`} src={sidebarUser.headshotSrc} />
-                ) : (
-                  <span>{sidebarUser.initials}</span>
-                )}
-              </div>
-              <div className="member-sidebar-user-copy">
-                <strong>{sidebarUser.name}</strong>
-                <p>{sidebarUser.role}</p>
-              </div>
-            </div>
-            <div className="member-sidebar-user-meta">
-              <span>{sidebarUser.cohort}</span>
-            </div>
-            <div className="member-sidebar-user-organisation">
-              <span>{sidebarUser.organisation}</span>
-            </div>
-            {sidebarUser.tags?.length ? (
-              <div className="member-sidebar-user-tags">
-                {sidebarUser.tags.map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
         <nav aria-label="Member navigation" className="member-workspace-nav">
-          {navItems.map((item) => {
-            const isActive = mounted && (
-              item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href)
-            );
+          {primaryNavItems.map((item) => {
+            const isActive = item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
             return (
               <Link
                 className={isActive ? "active" : ""}
@@ -147,6 +117,24 @@ export function MemberWorkspaceShell({
           })}
         </nav>
 
+        {sidebarUser ? (
+          <div className={`member-sidebar-user tone-${getProfileTone(sidebarUser)}`}>
+            <div className="member-sidebar-user-head">
+              <div className="member-sidebar-avatar">
+                {sidebarUser.headshotSrc ? (
+                  <img alt={`${sidebarUser.name} headshot`} src={sidebarUser.headshotSrc} />
+                ) : (
+                  <span>{sidebarUser.initials}</span>
+                )}
+              </div>
+              <div className="member-sidebar-user-copy">
+                <strong>{sidebarUser.name}</strong>
+                <p>{sidebarUser.role}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="sidebar-cross-nav">
           <div className="sidebar-cross-nav-label">Navigate to</div>
           <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
@@ -157,7 +145,18 @@ export function MemberWorkspaceShell({
             <span>Admin app</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
-          <SignOutButton />
+          <div className="sidebar-utility-nav">
+            {settingsItem ? (
+              <Link
+                className={`sidebar-utility-link${isSettingsActive ? " active" : ""}`}
+                href={settingsItem.href}
+                onClick={() => setSidebarOpen(false)}
+              >
+                {settingsItem.label}
+              </Link>
+            ) : null}
+            <SignOutButton />
+          </div>
           <div className="sidebar-legal-links">
             <Link href="/legal/privacy" onClick={() => setSidebarOpen(false)}>Privacy</Link>
             <span aria-hidden="true">·</span>

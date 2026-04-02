@@ -95,7 +95,7 @@ function EventCard({ event, isExpanded, onToggle, onRsvp, isPending }) {
         <TypeTag event={event} />
         <span className="cal-event-row-title">{event.title}</span>
         <span className="cal-event-row-date">{formatEventDate(event)}</span>
-        {isCommunity && isRsvped && <span className="cal-rsvped-dot" title="RSVP'd" />}
+        {isCommunity && isRsvped && <span className="cal-rsvped-dot" title="Attending" />}
         <svg
           className={`cal-chevron ${isExpanded ? "open" : ""}`}
           fill="none"
@@ -114,7 +114,7 @@ function EventCard({ event, isExpanded, onToggle, onRsvp, isPending }) {
           <div className="cal-event-detail-header">
             <TypeTag event={event} />
             {isCommunity && isRsvped && (
-              <span className="cal-event-rsvped-badge">RSVP&apos;d</span>
+              <span className="cal-event-rsvped-badge">Attending</span>
             )}
           </div>
 
@@ -444,7 +444,7 @@ function YearView({ year, events, filter, onYearChange, onMonthSelect }) {
 
 export function CalendarShell({ initialEvents = [], initialYear, isAdmin = false }) {
   const today = new Date();
-  const [view, setView] = useState("year");
+  const [view, setView] = useState("month");
   const [selectedYear, setSelectedYear] = useState(initialYear || today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [filter, setFilter] = useState("all");

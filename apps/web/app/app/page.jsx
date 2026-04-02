@@ -116,60 +116,73 @@ async function MemberDashboardMain({ member }) {
   );
 }
 
-async function MemberDashboardRightRail({ member, sidebarUser }) {
+async function MemberDashboardProfileCard({ member, sidebarUser }) {
   const supabase = await createSupabaseServerClient();
-  const { error, upcomingEvents, recentInsights, profileSnapshot } = await fetchMemberDashboardRailData({
+  const { profileSnapshot, recentInsights } = await fetchMemberDashboardRailData({
+    supabase,
+    member,
+  });
+
+  return (
+    <article className="member-rail-profile-card member-dashboard-profile-card">
+      <div className="member-rail-profile-top">
+        <div className="member-rail-avatar">{sidebarUser?.initials}</div>
+        <div>
+          <strong>{member.displayName}</strong>
+          <p>
+            {profileSnapshot.role}
+            {profileSnapshot.country ? ` · ${profileSnapshot.country}` : ""}
+          </p>
+        </div>
+      </div>
+      {profileSnapshot.tags.length ? (
+        <div className="member-rail-tag-row">
+          {profileSnapshot.tags.map((tag) => (
+            <span className="status-chip chip-neutral" key={tag}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className="member-rail-profile-stats">
+        <div>
+          <strong>{member.spaceCount || 0}</strong>
+          <span>Spaces</span>
+        </div>
+        <div>
+          <strong>{recentInsights.length}</strong>
+          <span>Insights</span>
+        </div>
+        <div>
+          <strong>{member.secondaryCohorts.length + (member.primaryCohort ? 1 : 0)}</strong>
+          <span>Cohorts</span>
+        </div>
+      </div>
+      <div className="member-rail-progress">
+        <div className="member-rail-progress-copy">
+          <strong>Profile completion</strong>
+          <span>{profileSnapshot.completionPercent}% complete</span>
+        </div>
+        <div className="progress-bar-track" aria-hidden="true">
+          <span className="progress-bar-fill" style={{ width: `${profileSnapshot.completionPercent}%` }} />
+        </div>
+        <Link className="secondary-button member-rail-profile-action" href="/app/profile">
+          Complete profile
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+async function MemberDashboardRightRail({ member }) {
+  const supabase = await createSupabaseServerClient();
+  const { error, upcomingEvents, recentInsights } = await fetchMemberDashboardRailData({
     supabase,
     member,
   });
 
   return (
     <div className="member-rail-stack">
-      <article className="member-rail-profile-card">
-        <div className="member-rail-profile-top">
-          <div className="member-rail-avatar">{sidebarUser.initials}</div>
-          <div>
-            <strong>{member.displayName}</strong>
-            <p>
-              {profileSnapshot.role}
-              {profileSnapshot.country ? ` · ${profileSnapshot.country}` : ""}
-            </p>
-          </div>
-        </div>
-        {profileSnapshot.tags.length ? (
-          <div className="member-rail-tag-row">
-            {profileSnapshot.tags.map((tag) => (
-              <span className="status-chip chip-neutral" key={tag}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        <div className="member-rail-profile-stats">
-          <div>
-            <strong>{member.spaceCount || 0}</strong>
-            <span>Spaces</span>
-          </div>
-          <div>
-            <strong>{recentInsights.length}</strong>
-            <span>Insights</span>
-          </div>
-          <div>
-            <strong>{member.secondaryCohorts.length + (member.primaryCohort ? 1 : 0)}</strong>
-            <span>Cohorts</span>
-          </div>
-        </div>
-        <div className="member-rail-progress">
-          <div className="member-rail-progress-copy">
-            <strong>Profile completion</strong>
-            <span>{profileSnapshot.completionPercent}% complete</span>
-          </div>
-          <div className="progress-bar-track" aria-hidden="true">
-            <span className="progress-bar-fill" style={{ width: `${profileSnapshot.completionPercent}%` }} />
-          </div>
-        </div>
-      </article>
-
       <article className="member-rail-card" id="member-upcoming-events">
         <div className="member-section-heading">
           <h3>Upcoming events</h3>
@@ -274,16 +287,21 @@ export default async function MemberDashboardPage() {
       headerActions={headerActions}
       rightRail={
         <Suspense fallback={<DashboardShellFallback />}>
-          <MemberDashboardRightRail member={member} sidebarUser={sidebarUser} />
+          <MemberDashboardRightRail member={member} />
         </Suspense>
       }
       sidebarUser={sidebarUser}
       subtitle="Your current spaces, events, insights, and profile progress are gathered here in one member workspace."
       title={`Welcome back, ${firstName}`}
     >
-      <Suspense fallback={<DashboardShellFallback />}>
-        <MemberDashboardMain member={member} />
-      </Suspense>
+      <div className="member-dashboard-home-stack">
+        <Suspense fallback={<DashboardShellFallback />}>
+          <MemberDashboardProfileCard member={member} sidebarUser={sidebarUser} />
+        </Suspense>
+        <Suspense fallback={<DashboardShellFallback />}>
+          <MemberDashboardMain member={member} />
+        </Suspense>
+      </div>
     </MemberWorkspaceShell>
   );
 }

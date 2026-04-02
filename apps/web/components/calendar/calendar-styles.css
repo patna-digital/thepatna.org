@@ -1445,6 +1445,11 @@
   }
   .cal-filter-row {
     justify-content: center;
+    flex-wrap: nowrap;
+  }
+  .cal-filter-btn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.72rem;
   }
   .cal-month-header {
     flex-direction: column;
