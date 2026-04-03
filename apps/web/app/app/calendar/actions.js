@@ -1,6 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  buildBookingSettingsPayload,
+  ensureBookingSettingsForMember,
+  normalizeBookingSettingsRecord,
+} from "@/lib/calendar/booking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 
@@ -78,6 +83,73 @@ export async function toggleCalendarSync(connectionId, enabled) {
   return { success: true };
 }
 
+export async function setPrimaryCalendarConnection(memberId, connectionId) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: targetConnection, error: targetError } = await supabase
+    .from("calendar_connections")
+    .select("id, member_id, provider, is_active, sync_enabled")
+    .eq("id", connectionId)
+    .eq("member_id", memberId)
+    .maybeSingle();
+
+  if (targetError) {
+    return { success: false, error: targetError.message };
+  }
+
+  if (!targetConnection || targetConnection.provider !== "google") {
+    return { success: false, error: "Please choose a connected Google calendar." };
+  }
+
+  if (!targetConnection.is_active || !targetConnection.sync_enabled) {
+    return { success: false, error: "Only active Google calendars with sync enabled can receive bookings." };
+  }
+
+  const { error: clearError } = await supabase
+    .from("calendar_connections")
+    .update({
+      is_primary_calendar: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("member_id", memberId)
+    .eq("provider", "google");
+
+  if (clearError) {
+    return { success: false, error: clearError.message };
+  }
+
+  const { data: updatedConnection, error: updateError } = await supabase
+    .from("calendar_connections")
+    .update({
+      is_primary_calendar: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", connectionId)
+    .select("*")
+    .single();
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  const { data: bookingSettings } = await supabase
+    .from("booking_settings")
+    .select("public_booking_url_slug")
+    .eq("member_id", memberId)
+    .maybeSingle();
+
+  revalidatePath("/app/calendar/settings");
+  revalidatePath("/app/profile");
+  if (bookingSettings?.public_booking_url_slug) {
+    revalidatePath(`/book/${bookingSettings.public_booking_url_slug}`);
+  }
+
+  return {
+    success: true,
+    connection: updatedConnection,
+  };
+}
+
 export async function setEventRsvp(eventId) {
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
@@ -144,8 +216,37 @@ export async function updateAvailabilityRules(memberId, rules) {
     }
   }
 
-  revalidatePath("/app/calendar/availability");
-  return { success: true };
+  try {
+    const activeDays = [...new Set(rules.map((rule) => Number(rule.day_of_week)).filter((value) => Number.isInteger(value)))];
+    const { settings, created } = await ensureBookingSettingsForMember({
+      memberId,
+      supabase,
+      enablePublicOnCreate: true,
+      availableDays: activeDays,
+    });
+
+    revalidatePath("/app/calendar/availability");
+    revalidatePath("/app/calendar/settings");
+    revalidatePath("/app/profile");
+    revalidatePath("/app/members");
+    if (settings?.public_booking_url_slug) {
+      revalidatePath(`/book/${settings.public_booking_url_slug}`);
+    }
+
+    return {
+      success: true,
+      bookingSettingsCreated: created,
+      publicBookingEnabled: Boolean(settings?.public_booking_enabled),
+      publicBookingUrl: settings?.public_booking_url || "",
+      settings,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+
 }
 
 /**
@@ -200,22 +301,51 @@ export async function removeAvailabilityException(exceptionId) {
 export async function updateBookingSettings(memberId, settings) {
   const supabase = createSupabaseAdminClient();
 
-  const { data, error } = await supabase
+  const { data: existingSettings, error: existingSettingsError } = await supabase
     .from("booking_settings")
-    .upsert({
-      member_id: memberId,
-      ...settings,
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
+    .select("*")
+    .eq("member_id", memberId)
+    .maybeSingle();
 
-  if (error) {
-    return { success: false, error: error.message };
+  if (existingSettingsError && existingSettingsError.code !== "PGRST116") {
+    return { success: false, error: existingSettingsError.message };
   }
 
-  revalidatePath("/app/calendar/settings");
-  return { success: true, settings: data };
+  try {
+    const { payload, previousSlug } = await buildBookingSettingsPayload({
+      memberId,
+      settings,
+      supabase,
+      existingSettings,
+    });
+
+    const { data, error } = await supabase
+      .from("booking_settings")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/app/calendar/settings");
+    revalidatePath("/app/profile");
+    revalidatePath("/app/members");
+    if (previousSlug) {
+      revalidatePath(`/book/${previousSlug}`);
+    }
+    if (data?.public_booking_url_slug) {
+      revalidatePath(`/book/${data.public_booking_url_slug}`);
+    }
+
+    return {
+      success: true,
+      settings: normalizeBookingSettingsRecord(data || {}),
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
 
 /**

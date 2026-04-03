@@ -3,12 +3,20 @@
  * Functions for fetching and managing calendar data from Supabase
  */
 
+import {
+  ensureBookingSettingsForMember,
+  fetchPublicBookingPageData,
+  normalizeBookingSettingsRecord,
+} from "@/lib/calendar/booking";
+import { findConferenceLink } from "@/lib/calendar/conference";
+
 const CALENDAR_CONNECTION_SELECT = `
   id,
   provider,
   provider_account_email,
   calendar_id,
   calendar_name,
+  is_primary_calendar,
   is_active,
   sync_enabled,
   last_synced_at,
@@ -72,6 +80,29 @@ const PROVIDER_NAMES = {
 const EXTERNAL_EVENTS_WARNING =
   'Some connected calendar items could not be loaded right now. PATNA events and bookings are still shown.';
 
+function getMeetingMetadata({
+  conferenceUrl = null,
+  conferenceProvider = null,
+  description = null,
+  location = null,
+  locationDetails = null,
+  locationType = null,
+}) {
+  const matchedConference = conferenceUrl
+    ? {
+        url: conferenceUrl,
+        provider: conferenceProvider || findConferenceLink(conferenceUrl)?.provider || null,
+      }
+    : findConferenceLink(locationDetails, location, description);
+  const meetingUrl = matchedConference?.url || null;
+
+  return {
+    meeting_url: meetingUrl,
+    meeting_provider: conferenceProvider || matchedConference?.provider || null,
+    location_type: meetingUrl ? "video" : locationType || null,
+  };
+}
+
 function getExternalSourceLabel(connection) {
   return connection?.calendar_name || PROVIDER_NAMES[connection?.provider] || 'Connected Calendar';
 }
@@ -129,7 +160,8 @@ export async function fetchCalendarConnections({ memberId, supabase }) {
     .select(CALENDAR_CONNECTION_SELECT)
     .eq('member_id', memberId)
     .eq('is_active', true)
-    .order('created_at', { ascending: false });
+    .order('is_primary_calendar', { ascending: false })
+    .order('created_at', { ascending: true });
 
   if (error) {
     return {
@@ -308,7 +340,9 @@ export async function fetchBookingSettings({ memberId, supabase }) {
     .maybeSingle();
 
   return {
-    settings: data,
+    settings: data
+      ? normalizeBookingSettingsRecord(data)
+      : null,
     error,
   };
 }
@@ -321,20 +355,7 @@ export async function fetchBookingSettings({ memberId, supabase }) {
  * @returns {Promise<{settings: Object|null, error: Error}>}
  */
 export async function fetchBookingSettingsBySlug({ slug, supabase }) {
-  const { data, error } = await supabase
-    .from('booking_settings')
-    .select(`
-      ${BOOKING_SETTINGS_SELECT},
-      member:profiles(id, first_name, surname, title, professional_bio)
-    `)
-    .eq('public_booking_url_slug', slug)
-    .eq('public_booking_enabled', true)
-    .maybeSingle();
-
-  return {
-    settings: data,
-    error,
-  };
+  return fetchPublicBookingPageData({ slug, supabase });
 }
 
 /**
@@ -365,30 +386,23 @@ export async function fetchBookingById({ bookingId, supabase }) {
  * @returns {Promise<{settings: Object|null, error: Error}>}
  */
 export async function createDefaultBookingSettings({ memberId, supabase }) {
-  // Generate URL slug from profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('first_name, surname')
-    .eq('id', memberId)
-    .single();
+  try {
+    const { settings } = await ensureBookingSettingsForMember({
+      memberId,
+      supabase,
+      enablePublicOnCreate: false,
+    });
 
-  const slug = profile 
-    ? `${profile.first_name || ''}-${profile.surname || ''}-${memberId.slice(0, 8)}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
-    : `member-${memberId.slice(0, 8)}`;
-
-  const { data, error } = await supabase
-    .from('booking_settings')
-    .insert({
-      member_id: memberId,
-      public_booking_url_slug: slug,
-    })
-    .select()
-    .single();
-
-  return {
-    settings: data,
-    error,
-  };
+    return {
+      settings,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      settings: null,
+      error,
+    };
+  }
 }
 
 async function ensureAdminEventRsvps({ communityEvents, isAdmin, memberId, supabase }) {
@@ -427,6 +441,9 @@ export async function fetchExternalCalendarEvents({ memberId, startDate, endDate
       title,
       description,
       location,
+      conference_url,
+      conference_provider,
+      conference_data,
       starts_at,
       ends_at,
       timezone,
@@ -451,16 +468,26 @@ export async function fetchExternalCalendarEvents({ memberId, startDate, endDate
   }
 
   // Transform to match the event format
-  const events = (data || []).map((event) => ({
-    ...event,
-    event_source: 'external',
-    event_type_label: event.connection?.provider
-      ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
-      : 'External Event',
-    source_label: getExternalSourceLabel(event.connection),
-    source_detail: getExternalSourceDetail(event.connection),
-    is_rsvped: true, // External events are always "accepted"
-  }));
+  const events = (data || []).map((event) => {
+    const meetingMetadata = getMeetingMetadata({
+      conferenceUrl: event.conference_url,
+      conferenceProvider: event.conference_provider,
+      description: event.description,
+      location: event.location,
+    });
+
+    return {
+      ...event,
+      ...meetingMetadata,
+      event_source: 'external',
+      event_type_label: event.connection?.provider
+        ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
+        : 'External Event',
+      source_label: getExternalSourceLabel(event.connection),
+      source_detail: getExternalSourceDetail(event.connection),
+      is_rsvped: true,
+    };
+  });
 
   return { events, error: null };
 }
@@ -511,6 +538,9 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
         title,
         description,
         location,
+        conference_url,
+        conference_provider,
+        conference_data,
         starts_at,
         ends_at,
         timezone,
@@ -563,6 +593,12 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
   }
 
   // Transform and combine events
+  const bookingExternalIds = new Set(
+    (hostBookings || [])
+      .map((booking) => booking.host_calendar_event_id)
+      .filter(Boolean),
+  );
+
   const events = [
     ...(communityEvents || []).map(e => ({
       ...e,
@@ -574,6 +610,10 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
     })),
     ...(hostBookings || []).map(b => ({
       ...b,
+      ...getMeetingMetadata({
+        locationDetails: b.location_details,
+        locationType: b.location_type,
+      }),
       event_source: 'personal',
       event_type_label: 'Meeting',
       source_label: 'PATNA Booking',
@@ -581,10 +621,19 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
       title: b.title,
       is_rsvped: true,
     })),
-    ...externalEvents.map(e => {
+    ...externalEvents
+      .filter((event) => !bookingExternalIds.has(event.external_event_id))
+      .map(e => {
+      const meetingMetadata = getMeetingMetadata({
+        conferenceUrl: e.conference_url,
+        conferenceProvider: e.conference_provider,
+        description: e.description,
+        location: e.location,
+      });
       const provider = e.connection?.provider;
       return {
         ...e,
+        ...meetingMetadata,
         event_source: 'external',
         event_type_label: provider
           ? `${PROVIDER_NAMES[provider] || provider} Event`
@@ -593,7 +642,7 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
         source_detail: getExternalSourceDetail(e.connection),
         is_rsvped: true,
       };
-    }),
+      }),
   ];
 
   // Sort by start time

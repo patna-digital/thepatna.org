@@ -1,4 +1,5 @@
 import { listSupabaseAuthUsers } from "@/lib/supabase/admin";
+import { buildPublicBookingUrl } from "@/lib/calendar/booking";
 import { resolveHeadshotAsset } from "@/lib/member-headshots";
 import { resolveResumeAsset } from "@/lib/member-resumes";
 import { buildProfileProgress } from "@/lib/profile-onboarding";
@@ -100,6 +101,7 @@ function inferRoleFromBio(professionalBio) {
 
 export function buildMemberProfileView({
   authUser,
+  bookingSettings,
   cohortProfile,
   cohortRows,
   inviteRows,
@@ -174,6 +176,11 @@ export function buildMemberProfileView({
     wasContacted: Boolean(latestInvite),
     isActive: profile?.onboarding_status === "active",
     isProfileVisible: profile?.profile_status !== "inactive",
+    publicBookingEnabled: Boolean(bookingSettings?.public_booking_enabled),
+    publicBookingUrl: bookingSettings?.public_booking_enabled
+      ? buildPublicBookingUrl(bookingSettings.public_booking_url_slug)
+      : "",
+    publicBookingUrlSlug: bookingSettings?.public_booking_url_slug || "",
   };
 }
 
@@ -192,6 +199,7 @@ export async function fetchMemberProfileView({
     inviteRowsResult,
     cohortProfileResult,
     spaceMembershipsResult,
+    bookingSettingsResult,
   ] = await Promise.all([
     includeAuthUser ? listSupabaseAuthUsers(adminClient) : Promise.resolve([]),
     supabase
@@ -214,6 +222,11 @@ export async function fetchMemberProfileView({
       : Promise.resolve({ data: [], error: null }),
     supabase.from("cohort_member_profiles").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("space_memberships").select("space_id, user_id").eq("user_id", userId),
+    supabase
+      .from("booking_settings")
+      .select("member_id, public_booking_enabled, public_booking_url_slug")
+      .eq("member_id", userId)
+      .maybeSingle(),
   ]);
 
   // Only treat profile query errors as fatal - other queries can fail gracefully
@@ -252,6 +265,7 @@ export async function fetchMemberProfileView({
     error: null,
     member: buildMemberProfileView({
       authUser,
+      bookingSettings: bookingSettingsResult.data,
       cohortProfile: cohortProfileResult.data,
       cohortRows: cohortRowsResult.data,
       inviteRows: inviteRowsResult.data,
@@ -363,7 +377,7 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
     };
   }
 
-  const [profilesResult, cohortRowsResult, tagRowsResult, cohortProfilesResult, spaceMembershipsResult] = await Promise.all([
+  const [profilesResult, cohortRowsResult, tagRowsResult, cohortProfilesResult, spaceMembershipsResult, bookingSettingsResult] = await Promise.all([
     adminClient
       .from("profiles")
       .select(
@@ -389,6 +403,10 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
       .from("space_memberships")
       .select("user_id, space_id")
       .in("user_id", memberIds),
+    adminClient
+      .from("booking_settings")
+      .select("member_id, public_booking_enabled, public_booking_url_slug")
+      .in("member_id", memberIds),
   ]);
 
   const error =
@@ -396,7 +414,8 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
     cohortRowsResult.error ||
     tagRowsResult.error ||
     cohortProfilesResult.error ||
-    spaceMembershipsResult.error;
+    spaceMembershipsResult.error ||
+    bookingSettingsResult.error;
 
   if (error) {
     return {
@@ -422,6 +441,9 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
   const cohortProfileByUserId = new Map(
     (cohortProfilesResult.data || []).map((row) => [row.user_id, row]),
   );
+  const bookingSettingsByUserId = new Map(
+    (bookingSettingsResult.data || []).map((row) => [row.member_id, row]),
+  );
   const spaceCountsByUserId = new Map();
 
   for (const row of spaceMembershipsResult.data || []) {
@@ -439,6 +461,7 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
     members: (profilesResult.data || []).map((profile) =>
       buildMemberProfileView({
         authUser: null,
+        bookingSettings: bookingSettingsByUserId.get(profile.id) || null,
         cohortProfile: cohortProfileByUserId.get(profile.id) || null,
         cohortRows: allCohortsByUserId.get(profile.id) || [],
         inviteRows: [],

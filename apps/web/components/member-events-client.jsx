@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 function getEventDateInfo(event) {
   if (event.starts_at) {
@@ -98,9 +99,9 @@ function getEventTone(event) {
   return "policy";
 }
 
-function formatScheduleLabel(status) {
-  if (status === "tbc") return "TBC";
-  return status === "upcoming" ? "Upcoming" : "Past";
+function formatScheduleLabel(status, t) {
+  if (status === "tbc") return t("appEvents.tbc");
+  return status === "upcoming" ? t("appEvents.scheduleUpcoming") : t("appEvents.schedulePast");
 }
 
 function getScheduleClass(status) {
@@ -110,6 +111,7 @@ function getScheduleClass(status) {
 }
 
 export function MemberEventsClient({ events }) {
+  const t = useTranslations();
   const [searchTerm, setSearchTerm] = useState("");
   const [scheduleFilter, setScheduleFilter] = useState(
     events.some((e) => e.schedule_status === "upcoming" || e.schedule_status === "tbc") ? "upcoming" : "past",
@@ -175,7 +177,7 @@ export function MemberEventsClient({ events }) {
             </svg>
           </div>
           <strong>{summary.upcomingAndTbc}</strong>
-          <span>Upcoming Events</span>
+          <span>{t("appEvents.upcomingEvents")}</span>
         </div>
         <div className="member-events-stat-card tone-academic">
           <div className="member-events-stat-icon">
@@ -184,7 +186,7 @@ export function MemberEventsClient({ events }) {
             </svg>
           </div>
           <strong>{summary.patnaLed}</strong>
-          <span>PATNA-Organised</span>
+          <span>{t("appEvents.patnaOrganised")}</span>
         </div>
         <div className="member-events-stat-card tone-policy">
           <div className="member-events-stat-icon">
@@ -195,7 +197,7 @@ export function MemberEventsClient({ events }) {
             </svg>
           </div>
           <strong>{summary.past}</strong>
-          <span>Past Events</span>
+          <span>{t("appEvents.pastEvents")}</span>
         </div>
         <div className="member-events-stat-card tone-industry">
           <div className="member-events-stat-icon">
@@ -204,7 +206,7 @@ export function MemberEventsClient({ events }) {
             </svg>
           </div>
           <strong>{summary.tbc}</strong>
-          <span>TBC Dates</span>
+          <span>{t("appEvents.tbcDates")}</span>
         </div>
       </div>
 
@@ -215,14 +217,14 @@ export function MemberEventsClient({ events }) {
             onClick={() => setScheduleFilter("upcoming")}
             type="button"
           >
-            Upcoming ({summary.upcomingAndTbc})
+            {t("appEvents.tabUpcoming", { count: summary.upcomingAndTbc })}
           </button>
           <button
             className={scheduleFilter === "past" ? "member-events-tab-active" : "member-events-tab"}
             onClick={() => setScheduleFilter("past")}
             type="button"
           >
-            Past ({summary.past})
+            {t("appEvents.tabPast", { count: summary.past })}
           </button>
         </div>
 
@@ -232,7 +234,7 @@ export function MemberEventsClient({ events }) {
             onClick={() => setTypeFilter("all")}
             type="button"
           >
-            All
+            {t("appEvents.filterAll")}
           </button>
           {typeFilters.map((type) => (
             <button
@@ -266,7 +268,7 @@ export function MemberEventsClient({ events }) {
                     <div className="member-event-archive-chips">
                       <span className={`status-chip member-event-type-chip-${tone}`}>{typeLabel}</span>
                       <span className={`status-chip ${getScheduleClass(event.schedule_status)}`}>
-                        {formatScheduleLabel(event.schedule_status)}
+                        {formatScheduleLabel(event.schedule_status, t)}
                       </span>
                     </div>
                     <div className="member-event-archive-actions">
@@ -275,7 +277,7 @@ export function MemberEventsClient({ events }) {
                         onClick={() => setSelectedEventId(event.id)}
                         type="button"
                       >
-                        Details
+                        {t("appEvents.detailsBtn")}
                       </button>
                       {event.schedule_status === "upcoming" && event.official_link ? (
                         <a
@@ -284,7 +286,7 @@ export function MemberEventsClient({ events }) {
                           rel="noreferrer"
                           target="_blank"
                         >
-                          RSVP
+                          {t("appEvents.rsvpBtn")}
                         </a>
                       ) : null}
                     </div>
@@ -318,8 +320,8 @@ export function MemberEventsClient({ events }) {
           })
         ) : (
           <article className="dashboard-card member-module-card">
-            <h3>No events match the current filters</h3>
-            <p className="member-section-copy">Try adjusting the schedule or type filters, or clear the search.</p>
+            <h3>{t("appEvents.noMatchTitle")}</h3>
+            <p className="member-section-copy">{t("appEvents.noMatchText")}</p>
           </article>
         )}
       </div>
@@ -341,7 +343,7 @@ export function MemberEventsClient({ events }) {
                 <div className="member-event-archive-chips">
                   <span className="status-chip member-event-dialog-type-chip">{getEventTypeLabel(selectedEvent)}</span>
                   <span className={`status-chip member-event-dialog-type-chip ${getScheduleClass(selectedEvent.schedule_status)}`}>
-                    {formatScheduleLabel(selectedEvent.schedule_status)}
+                    {formatScheduleLabel(selectedEvent.schedule_status, t)}
                   </span>
                 </div>
                 <h3>{selectedEvent.title}</h3>
@@ -361,7 +363,7 @@ export function MemberEventsClient({ events }) {
                 </div>
               </div>
               <button
-                aria-label="Close event details"
+                aria-label={t("appEvents.dialogClose")}
                 className="member-event-close"
                 onClick={() => setSelectedEventId("")}
                 type="button"
@@ -383,21 +385,21 @@ export function MemberEventsClient({ events }) {
 
               {(selectedEvent.body || selectedEvent.summary) ? (
                 <div className="member-event-detail-section">
-                  <dt>About this event</dt>
+                  <dt>{t("appEvents.dialogAbout")}</dt>
                   <dd>{selectedEvent.body || selectedEvent.summary}</dd>
                 </div>
               ) : null}
 
               {selectedEvent.organising_institutions?.length ? (
                 <div className="member-event-detail-section">
-                  <dt>Organising institutions</dt>
+                  <dt>{t("appEvents.dialogInstitutions")}</dt>
                   <dd>{selectedEvent.organising_institutions.join(" · ")}</dd>
                 </div>
               ) : null}
 
               {selectedEvent.patna_involvement ? (
                 <div className="member-event-detail-section">
-                  <dt>PATNA involvement</dt>
+                  <dt>{t("appEvents.dialogPatnaInvolvement")}</dt>
                   <dd>{selectedEvent.patna_involvement}</dd>
                 </div>
               ) : null}
@@ -411,7 +413,7 @@ export function MemberEventsClient({ events }) {
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Open official page
+                  {t("appEvents.dialogOfficialPage")}
                 </a>
               ) : null}
               <button
@@ -419,7 +421,7 @@ export function MemberEventsClient({ events }) {
                 onClick={() => setSelectedEventId("")}
                 type="button"
               >
-                Close
+                {t("appEvents.dialogCloseBtn")}
               </button>
             </div>
           </div>

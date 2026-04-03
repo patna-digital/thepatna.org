@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
 import { PhotoQuoteSplit } from "@/components/public/photo-quote-split";
 import { contactDetails } from "@/lib/patna-data";
@@ -9,13 +10,14 @@ export const metadata = {
     "Contact PATNA for enquiries, partnerships, and programme conversations across Africa's climate and maritime transition agenda.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const t = await getTranslations();
   return (
     <>
       <MarketingPageHero
-        label="Contact"
-        subtitle="For enquiries, partnerships, and programme conversations, the PATNA team can be reached through email, phone, and public social channels."
-        title="Reach the PATNA team"
+        label={t("contact.label")}
+        subtitle={t("contact.subtitle")}
+        title={t("contact.title")}
       />
 
       <PhotoQuoteSplit section={publicPageMedia.contact.feature} />
@@ -24,38 +26,37 @@ export default function ContactPage() {
         <div className="section-inner">
           <div className="page-grid">
             <article className="content-card">
-              <h3>Contact details</h3>
+              <h3>{t("contact.detailsTitle")}</h3>
               <p>
-                PATNA's public contact routes are straightforward and designed to connect you to
-                the right conversation quickly.
+                {t("contact.detailsIntro")}
               </p>
               <div className="stack">
                 <div>
-                  <strong>Email</strong>
+                  <strong>{t("contact.labelEmail")}</strong>
                   <p>{contactDetails.email}</p>
                 </div>
                 <div>
-                  <strong>Phone</strong>
+                  <strong>{t("contact.labelPhone")}</strong>
                   <p>{contactDetails.phone}</p>
                 </div>
                 <div>
-                  <strong>Address</strong>
+                  <strong>{t("contact.labelAddress")}</strong>
                   <p>{contactDetails.address}</p>
                 </div>
               </div>
             </article>
 
             <article className="content-card">
-              <h3>Best ways to connect</h3>
+              <h3>{t("contact.bestWaysTitle")}</h3>
               <p>
-                The fastest route is direct contact by email or phone.
+                {t("contact.bestWaysIntro")}
               </p>
               <div className="stack">
                 <a className="primary-button" href={`mailto:${contactDetails.email}`}>
-                  Email PATNA
+                  {t("contact.btnEmail")}
                 </a>
                 <a className="secondary-button" href={`tel:${contactDetails.phone}`}>
-                  Call PATNA
+                  {t("contact.btnCall")}
                 </a>
                 {contactDetails.socials.map((social) => (
                   <a

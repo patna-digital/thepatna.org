@@ -349,6 +349,29 @@ export default async function MemberProfilePage({ searchParams }) {
         </article>
       ) : null}
 
+      {member.publicBookingUrl ? (
+        <article className="dashboard-card member-profile-section-card">
+          <h3>Public booking page</h3>
+          <p className="muted-note">
+            Share this scheduling page directly from your PATNA profile.
+          </p>
+          <div className="field-summary-card" style={{ marginTop: "1rem" }}>
+            <strong>Live booking link</strong>
+            <p style={{ marginTop: "0.5rem", overflowWrap: "anywhere" }}>
+              <code>{member.publicBookingUrl}</code>
+            </p>
+            <div className="profile-header-actions" style={{ marginTop: "1rem" }}>
+              <Link className="secondary-button" href={member.publicBookingUrl} target="_blank">
+                Open page
+              </Link>
+              <Link className="primary-button" href="/app/calendar/settings">
+                Manage booking page
+              </Link>
+            </div>
+          </div>
+        </article>
+      ) : null}
+
       <div className="card-grid member-profile-overview-grid">
         <article className="dashboard-card member-profile-hero-card">
           <div className="profile-headshot-panel">

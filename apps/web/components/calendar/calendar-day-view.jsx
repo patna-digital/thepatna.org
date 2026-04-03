@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { formatDate } from "@/lib/calendar/core";
+import { formatDate, formatEventTimeLabel, groupEventsByDate, toLocalDateKey } from "@/lib/calendar/core";
 
 /**
  * Calendar Day View Component
@@ -14,14 +14,19 @@ export function CalendarDayView({
   onNavigate,
 }) {
   const dayEvents = useMemo(() => {
-    const dateKey = currentDate.toISOString().split("T")[0];
-    return events
-      .filter((event) => {
-        const eventDate = new Date(event.starts_at).toISOString().split("T")[0];
-        return eventDate === dateKey;
-      })
-      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    const dateKey = toLocalDateKey(currentDate);
+    return (groupEventsByDate(events)[dateKey] || []).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
   }, [events, currentDate]);
+
+  const allDayEvents = useMemo(
+    () => dayEvents.filter((event) => event.is_all_day),
+    [dayEvents],
+  );
+
+  const timedEvents = useMemo(
+    () => dayEvents.filter((event) => !event.is_all_day),
+    [dayEvents],
+  );
 
   const timeSlots = useMemo(() => {
     const slots = [];
@@ -84,6 +89,34 @@ export function CalendarDayView({
       </div>
 
       <div className="calendar-day-content-wrapper">
+        {allDayEvents.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+              marginBottom: "1rem",
+            }}
+          >
+            {allDayEvents.map((event, index) => (
+              <button
+                key={index}
+                onClick={() => onEventClick?.(event)}
+                style={{
+                  border: "1px solid rgba(148, 163, 184, 0.35)",
+                  borderRadius: "999px",
+                  background: "rgba(148, 163, 184, 0.12)",
+                  padding: "0.35rem 0.75rem",
+                  cursor: "pointer",
+                }}
+                type="button"
+              >
+                {event.title}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="calendar-time-grid">
           {timeSlots.map((time) => (
             <div key={time} className="calendar-time-row">
@@ -92,7 +125,7 @@ export function CalendarDayView({
             </div>
           ))}
 
-          {dayEvents.map((event, index) => {
+          {timedEvents.map((event, index) => {
             const startHour = new Date(event.starts_at).getHours();
             const startMinute = new Date(event.starts_at).getMinutes();
             const endHour = new Date(event.ends_at).getHours();
@@ -114,8 +147,7 @@ export function CalendarDayView({
                 onClick={() => onEventClick?.(event)}
               >
                 <div className="event-time-badge">
-                  {formatDate(event.starts_at, "time")} -{" "}
-                  {formatDate(event.ends_at, "time")}
+                  {formatEventTimeLabel(event)}
                 </div>
                 <div className="event-title">{event.title}</div>
                 {event.summary && (

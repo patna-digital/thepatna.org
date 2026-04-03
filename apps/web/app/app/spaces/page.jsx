@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData, buildMemberSpaceGroups } from "@/lib/member-workspace";
 import { fetchMemberSpaces } from "@/lib/spaces";
 
 export default async function SpacesPage() {
+  const t = await getTranslations();
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -25,7 +27,7 @@ export default async function SpacesPage() {
   const normalised = (spaces || []).map((space) => ({
     slug:    space.slug,
     name:    space.name,
-    type:    formatSpaceType(space.space_type),
+    type:    formatSpaceType(space.space_type, t),
     kind:    space.space_type,
     members: space.member_count ?? 0,
     threads: space.threads ?? 0,
@@ -42,39 +44,39 @@ export default async function SpacesPage() {
 
   return (
     <MemberWorkspaceShell
-      eyebrow="Community"
+      eyebrow={t("spaces.eyebrow")}
       sidebarUser={sidebarUser}
-      subtitle="Cohort, constituency, and working-group spaces organised around how PATNA coordinates expertise."
-      title="My spaces"
+      subtitle={t("spaces.subtitle")}
+      title={t("spaces.title")}
     >
       <div className="member-dashboard-stack">
         {error && (
-          <p className="form-error">Could not load spaces. Please refresh and try again.</p>
+          <p className="form-error">{t("spaces.error")}</p>
         )}
 
         <div className="member-dashboard-summary-grid member-dashboard-summary-grid-compact">
           <article className="member-stat-card tone-blue">
             <strong>{normalised.length}</strong>
-            <h3>Total visible spaces</h3>
-            <p>Visible across your current PATNA workspace</p>
+            <h3>{t("spaces.statTotal")}</h3>
+            <p>{t("spaces.statTotalNote")}</p>
           </article>
           <article className="member-stat-card tone-blue">
             <strong>{totalUnread}</strong>
-            <h3>New updates</h3>
-            <p>Unread activity across your current spaces</p>
+            <h3>{t("spaces.statUpdates")}</h3>
+            <p>{t("spaces.statUpdatesNote")}</p>
           </article>
           <article className="member-stat-card tone-blue">
             <strong>{leadCount}</strong>
-            <h3>Lead roles</h3>
-            <p>Spaces where you currently coordinate</p>
+            <h3>{t("spaces.statLeadRoles")}</h3>
+            <p>{t("spaces.statLeadRolesNote")}</p>
           </article>
         </div>
 
         {groups.length === 0 && !error && (
           <article className="dashboard-card">
             <div className="app-row-empty">
-              <strong>No spaces yet</strong>
-              <p>You haven't been added to any spaces. Contact your cohort coordinator to get access.</p>
+              <strong>{t("spaces.emptyTitle")}</strong>
+              <p>{t("spaces.emptyText")}</p>
             </div>
           </article>
         )}
@@ -123,12 +125,12 @@ export default async function SpacesPage() {
   );
 }
 
-function formatSpaceType(type) {
+function formatSpaceType(type, t) {
   const map = {
-    cohort:        "Cohort Space",
-    constituency:  "Constituency",
-    working_group: "Working Group",
-    geography:     "Geography",
+    cohort:        t("spaces.typeCohort"),
+    constituency:  t("spaces.typeConstituency"),
+    working_group: t("spaces.typeWorkingGroup"),
+    geography:     t("spaces.typeGeography"),
   };
   return map[type] || type;
 }

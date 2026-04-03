@@ -1,73 +1,191 @@
 import { notFound } from "next/navigation";
+import { BrandLogo } from "@/components/brand-logo";
+import { fetchPublicBookingPageData } from "@/lib/calendar/booking";
+import { getSiteUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { fetchBookingSettingsBySlug, fetchAvailableSlotsForDate } from "@/lib/calendar/data";
 import { BookingPageClient } from "./booking-page-client";
 
-export const metadata = {
-  title: "Book a Meeting | PATNA",
-};
+export const dynamic = "force-dynamic";
 
-async function getMemberData(slug) {
+function getBookingPageData(slug) {
   const supabase = createSupabaseAdminClient();
-  
-  const { settings, error } = await fetchBookingSettingsBySlug({ slug, supabase });
-  
-  if (error || !settings) {
-    return null;
+  return fetchPublicBookingPageData({ slug, supabase });
+}
+
+function buildMetadataDescription(settings) {
+  const roleLine = [settings.member?.role_title, settings.member?.organisation_name]
+    .filter(Boolean)
+    .join(" at ");
+
+  return (
+    settings.member?.profileSummary ||
+    `Book ${settings.default_meeting_duration}-minute time with ${settings.member?.displayName || "a PATNA member"}${roleLine ? `, ${roleLine}` : ""}.`
+  );
+}
+
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const { settings } = await getBookingPageData(slug);
+
+  if (!settings || !settings.public_booking_enabled) {
+    return {
+      title: "Booking unavailable | PATNA",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
   }
 
-  return settings;
+  const canonicalUrl = `${getSiteUrl()}/book/${slug}`;
+  const title = `Book time with ${settings.member?.displayName || "PATNA"} | PATNA`;
+  const description = buildMetadataDescription(settings);
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: "PATNA",
+      type: "profile",
+      images: settings.member?.headshotSrc
+        ? [
+            {
+              url: settings.member.headshotSrc,
+              alt: `${settings.member.displayName} headshot`,
+            },
+          ]
+        : [],
+    },
+    twitter: {
+      card: settings.member?.headshotSrc ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: settings.member?.headshotSrc ? [settings.member.headshotSrc] : [],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export default async function PublicBookingPage({ params }) {
-  const { slug } = params;
-  const settings = await getMemberData(slug);
+  const { slug } = await params;
+  const { settings } = await getBookingPageData(slug);
 
   if (!settings || !settings.public_booking_enabled) {
     notFound();
   }
 
   const member = settings.member;
-  const memberName = member 
-    ? `${member.first_name || ''} ${member.surname || ''}`.trim() 
-    : 'Member';
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: member?.displayName,
+    description: member?.profileSummary,
+    image: member?.headshotSrc || undefined,
+    jobTitle: member?.role_title || undefined,
+    worksFor: member?.organisation_name
+      ? {
+          "@type": "Organization",
+          name: member.organisation_name,
+        }
+      : undefined,
+    url: settings.public_booking_url,
+    potentialAction: {
+      "@type": "ReserveAction",
+      target: settings.public_booking_url,
+      result: {
+        "@type": "Reservation",
+        name: `Meeting with ${member?.displayName || "PATNA member"}`,
+      },
+    },
+  };
 
   return (
-    <div className="booking-page">
-      <div className="booking-page-container">
-        {/* Header */}
-        <header className="booking-header">
-          <div className="booking-brand">
-            <span className="booking-logo">◷</span>
-            <span className="booking-brand-name">PATNA Calendar</span>
+    <div className="public-booking-page">
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+        type="application/ld+json"
+      />
+
+      <div className="public-booking-shell">
+        <header className="public-booking-header">
+          <div className="public-booking-brand">
+            <BrandLogo
+              href={getSiteUrl()}
+              label="The PATNA Initiative"
+              showCopy={false}
+              size="md"
+              variant="mark"
+            />
+            <div className="public-booking-brand-copy">
+              <span className="public-booking-tag">Public booking page</span>
+              <strong>PATNA scheduling</strong>
+            </div>
           </div>
+          <a className="secondary-button public-booking-home" href={getSiteUrl()}>
+            PATNA platform
+          </a>
         </header>
 
-        {/* Main Content */}
-        <main className="booking-main">
-          <div className="booking-profile">
-            <div className="booking-avatar">
-              {memberName.charAt(0).toUpperCase()}
+        <main className="public-booking-main">
+          <section className="public-booking-profile-card">
+            <div className="public-booking-profile-header">
+              <div className="public-booking-avatar">
+                {member?.headshotSrc ? (
+                  <img alt={`${member.displayName} headshot`} src={member.headshotSrc} />
+                ) : (
+                  <span>{member?.initials || "P"}</span>
+                )}
+              </div>
+              <div className="public-booking-profile-copy">
+                <span className="public-booking-kicker">Book directly</span>
+                <h1>{member?.displayName || "PATNA Member"}</h1>
+                <p>{[member?.role_title, member?.organisation_name].filter(Boolean).join(" · ") || "PATNA community member"}</p>
+              </div>
             </div>
-            <h1 className="booking-name">{memberName}</h1>
-            {member?.title && (
-              <p className="booking-title">{member.title}</p>
-            )}
-            {member?.professional_bio && (
-              <p className="booking-bio">{member.professional_bio}</p>
-            )}
-          </div>
 
-          <BookingPageClient 
-            settings={settings}
-            memberId={settings.member_id}
-            memberName={memberName}
-          />
+            <div className="public-booking-meta-row">
+              <span>{settings.default_meeting_duration} min default</span>
+              <span>{settings.timezone}</span>
+              {member?.country_of_residence ? <span>{member.country_of_residence}</span> : null}
+            </div>
+
+            {member?.professional_bio ? (
+              <p className="public-booking-bio">{member.professional_bio}</p>
+            ) : null}
+
+            <div className="public-booking-note">
+              <strong>Scheduling quality</strong>
+              <p>
+                Available dates and times are calculated from this member’s PATNA availability,
+                notice window, meeting buffers, existing bookings, and connected calendar conflicts.
+              </p>
+            </div>
+          </section>
+
+          <section className="public-booking-flow-card">
+            <BookingPageClient
+              memberId={settings.member_id}
+              memberName={member?.displayName || "PATNA Member"}
+              settings={settings}
+            />
+          </section>
         </main>
 
-        {/* Footer */}
-        <footer className="booking-footer">
-          <p>Powered by <strong>PATNA</strong> Community Platform</p>
+        <footer className="public-booking-footer">
+          <p>
+            Scheduling powered by <strong>PATNA</strong>.
+          </p>
         </footer>
       </div>
     </div>

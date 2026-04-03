@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { signInAction } from "./actions";
 
 const initialState = {
@@ -10,22 +11,23 @@ const initialState = {
   message: "",
 };
 
-const HASH_ERROR_MESSAGES = {
-  otp_expired: "Your invite link has expired. Ask your administrator to resend the login email from the Members page.",
-  access_denied: "Access was denied. Your invite link may be invalid or already used.",
+const HASH_ERROR_KEYS = {
+  otp_expired: "loginForm.otpExpired",
+  access_denied: "loginForm.accessDenied",
 };
 
-function SubmitButton() {
+function SubmitButton({ t }) {
   const { pending } = useFormStatus();
 
   return (
     <button className="primary-button" type="submit" disabled={pending}>
-      {pending ? "Signing in..." : "Sign in"}
+      {pending ? t("loginForm.btnSigningIn") : t("loginForm.btnSignIn")}
     </button>
   );
 }
 
 export function LoginForm({ next }) {
+  const t = useTranslations();
   const [state, formAction] = useActionState(signInAction, initialState);
   const [hashError, setHashError] = useState("");
 
@@ -37,40 +39,37 @@ export function LoginForm({ next }) {
     const errorDescription = params.get("error_description");
     if (errorCode) {
       setHashError(
-        HASH_ERROR_MESSAGES[errorCode] ||
-          errorDescription?.replaceAll("+", " ") ||
-          "Your login link was invalid. Please sign in or request a new invite.",
+        HASH_ERROR_KEYS[errorCode]
+          ? t(HASH_ERROR_KEYS[errorCode])
+          : errorDescription?.replaceAll("+", " ") || t("loginForm.invalidLink"),
       );
     }
-  }, []);
+  }, [t]);
 
   const errorMessage = state.status === "error" ? state.message : hashError;
 
   return (
     <form action={formAction} className="form-card">
-      <h3>Sign in</h3>
+      <h3>{t("loginForm.title")}</h3>
       <input name="next" type="hidden" value={next} />
       <label>
-        Email
-        <input name="email" placeholder="member@thepatna.org" type="email" />
+        {t("loginForm.labelEmail")}
+        <input name="email" placeholder={t("loginForm.placeholderEmail")} type="email" />
       </label>
       <label>
-        Password
-        <input name="password" placeholder="Your password" type="password" />
+        {t("loginForm.labelPassword")}
+        <input name="password" placeholder={t("loginForm.placeholderPassword")} type="password" />
       </label>
       <div className="forgot-password-link">
-        <Link href="/auth/forgot-password">Forgot password?</Link>
+        <Link href="/auth/forgot-password">{t("loginForm.forgotPassword")}</Link>
       </div>
-      <SubmitButton />
+      <SubmitButton t={t} />
       {errorMessage ? (
         <p className="form-error">{errorMessage}</p>
       ) : state.status === "success" && state.message ? (
         <p className="form-success">{state.message}</p>
       ) : (
-        <p className="muted-note">
-          Use an invited PATNA account. Cohort migration members will receive a set-password email
-          and be routed into profile completion on first access.
-        </p>
+        <p className="muted-note">{t("loginForm.migrationNote")}</p>
       )}
     </form>
   );

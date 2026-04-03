@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
 import { SectionIntro } from "@/components/section-intro";
 import { PublicationCard, FeaturedPublicationCard } from "@/components/publication-card";
@@ -10,23 +11,24 @@ export const metadata = {
 };
 
 export default async function PublicationsPage() {
+  const t = await getTranslations();
   const publications = await fetchPublicPublications();
   const [featured, ...rest] = publications;
 
   return (
     <>
       <MarketingPageHero
-        label="Publications"
-        subtitle="PATNA's public archive of reports, articles, and event outputs documenting African-centred evidence, technical analysis, and policy engagement."
-        title="Reports, articles, and technical outputs from PATNA"
+        label={t("publications.label")}
+        subtitle={t("publications.subtitle")}
+        title={t("publications.title")}
       />
 
       {featured && (
         <section className="section">
           <div className="section-inner">
             <SectionIntro
-              label="Latest"
-              title="Most recent publication"
+              label={t("publications.latestLabel")}
+              title={t("publications.latestTitle")}
             />
             <FeaturedPublicationCard
               href={`/publications/${featured.slug}`}
@@ -40,9 +42,9 @@ export default async function PublicationsPage() {
         <section className="section">
           <div className="section-inner">
             <SectionIntro
-              label="Archive"
-              title="All publications"
-              subtitle="The full library of PATNA knowledge products, ordered by publication date."
+              label={t("publications.archiveLabel")}
+              title={t("publications.archiveTitle")}
+              subtitle={t("publications.archiveSubtitle")}
             />
             <div className="publications-grid">
               {rest.map((pub) => (
@@ -60,7 +62,7 @@ export default async function PublicationsPage() {
       {publications.length === 0 && (
         <section className="section">
           <div className="section-inner">
-            <p className="muted-note">No publications available yet. Check back soon.</p>
+            <p className="muted-note">{t("publications.empty")}</p>
           </div>
         </section>
       )}

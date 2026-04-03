@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
 import { FeaturedStoryRail } from "@/components/public/featured-story-rail";
 import { PublicationCard } from "@/components/publication-card";
@@ -12,14 +13,15 @@ export const metadata = {
 };
 
 export default async function InsightsPage() {
+  const t = await getTranslations();
   const publications = await fetchPublicPublications({ limit: 9 });
 
   return (
     <>
       <MarketingPageHero
-        label="Insights"
-        subtitle="Reports, commentary, and technical outputs from PATNA's public archive."
-        title="Insights and evidence from PATNA's work"
+        label={t("insights.label")}
+        subtitle={t("insights.subtitle")}
+        title={t("insights.title")}
       />
 
       <FeaturedStoryRail section={publicPageMedia.insights.featured} />
@@ -27,9 +29,9 @@ export default async function InsightsPage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="Latest from PATNA"
-            title="Reports, articles, and event outputs"
-            subtitle="Browse recent PATNA publications, commentary, and technical outputs from the live archive."
+            label={t("insights.latestLabel")}
+            title={t("insights.latestTitle")}
+            subtitle={t("insights.latestSubtitle")}
           />
 
           {publications.length ? (
@@ -40,8 +42,8 @@ export default async function InsightsPage() {
             </div>
           ) : (
             <article className="content-card">
-              <h3>No insights published yet</h3>
-              <p>Public reports and articles will appear here as soon as published records are available.</p>
+              <h3>{t("insights.emptyTitle")}</h3>
+              <p>{t("insights.emptyText")}</p>
             </article>
           )}
         </div>

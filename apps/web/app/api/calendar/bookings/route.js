@@ -1,126 +1,259 @@
 import { NextResponse } from "next/server";
+import {
+  fetchBookingAvailabilityContext,
+  getAvailableSlotsForDate,
+} from "@/lib/calendar/booking";
+import {
+  buildGoogleBookingDescription,
+  BookingConfigurationError,
+  persistBookingWithGoogleWriteback,
+  selectGoogleWritebackConnection,
+} from "@/lib/calendar/booking-writeback";
+import { createGoogleEvent, deleteGoogleEvent } from "@/lib/calendar/providers";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+async function logWritebackResult({
+  connectionId,
+  errorMessage = null,
+  eventsCreated = 0,
+  status,
+}) {
+  if (!connectionId) {
+    return;
+  }
+
+  const supabase = createSupabaseAdminClient();
+
+  await supabase.from("calendar_sync_logs").insert({
+    connection_id: connectionId,
+    sync_type: "booking_writeback",
+    status,
+    events_processed: 1,
+    events_created: eventsCreated,
+    events_updated: 0,
+    events_deleted: 0,
+    error_message: errorMessage,
+    started_at: new Date().toISOString(),
+    completed_at: new Date().toISOString(),
+  });
+}
 
 export async function POST(request) {
   try {
     const body = await request.json();
     const {
       slot_id,
+      member_id,
+      slot_date,
+      start_time,
+      end_time,
+      title,
       booker_name,
       booker_email,
       booker_organisation,
       booker_notes,
-      title,
-      starts_at,
-      ends_at,
     } = body;
 
-    if (!booker_name || !booker_email || !starts_at || !ends_at) {
+    if (!member_id || !slot_date || !start_time || !end_time || !booker_name || !booker_email) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const supabase = createSupabaseAdminClient();
+    const context = await fetchBookingAvailabilityContext({
+      memberId: member_id,
+      startDate: slot_date,
+      endDate: slot_date,
+      supabase,
+    });
 
-    // Get the slot to find the member_id
-    const { data: slot, error: slotError } = await supabase
-      .from("booking_slots")
-      .select("member_id, slot_date, start_time, end_time")
-      .eq("id", slot_id)
-      .single();
+    if (!context.settings.public_booking_enabled) {
+      return NextResponse.json(
+        { error: "Public booking is not enabled for this member." },
+        { status: 403 },
+      );
+    }
 
-    let memberId;
-    let slotDate;
-    let startTime;
-    let endTime;
-
-    if (slotError || !slot) {
-      // If slot doesn't exist, extract info from the temp slot_id
-      // Format: temp-{date}-{time}
-      const parts = slot_id.split("-");
-      if (parts[0] === "temp") {
-        slotDate = parts[1];
-        const time = parseInt(parts[2]);
-        memberId = body.member_id; // Need to pass member_id for temp slots
-        startTime = minutesToTime(time);
-        endTime = minutesToTime(time + 30); // Default 30 min
+    const availableSlot = getAvailableSlotsForDate({
+      dateKey: slot_date,
+      context,
+    }).find((slot) => {
+      if (slot_id && slot.id === slot_id) {
+        return true;
       }
-    } else {
-      memberId = slot.member_id;
-      slotDate = slot.slot_date;
-      startTime = slot.start_time;
-      endTime = slot.end_time;
-    }
 
-    if (!memberId) {
+      return slot.start_time === start_time && slot.end_time === end_time;
+    });
+
+    if (!availableSlot) {
       return NextResponse.json(
-        { error: "Unable to determine host" },
-        { status: 400 }
+        { error: "That time is no longer available. Please choose another slot." },
+        { status: 409 },
       );
     }
 
-    // Create the booking
-    const { data: booking, error: bookingError } = await supabase
-      .from("bookings")
-      .insert({
-        host_id: memberId,
-        booker_name,
-        booker_email,
-        booker_organisation: booker_organisation || null,
-        booker_notes: booker_notes || null,
-        title: title || `Meeting with ${booker_name}`,
-        status: "confirmed",
-        starts_at,
-        ends_at,
-        timezone: "UTC",
-      })
-      .select()
-      .single();
+    const { data: googleConnections } = await supabase
+      .from("calendar_connections")
+      .select("id, provider, calendar_id, calendar_name, access_token, refresh_token, token_expires_at, is_primary_calendar, is_active, sync_enabled")
+      .eq("member_id", member_id)
+      .eq("provider", "google")
+      .eq("is_active", true)
+      .order("created_at", { ascending: true });
 
-    if (bookingError) {
-      return NextResponse.json(
-        { error: bookingError.message },
-        { status: 500 }
+    const writebackConnection = selectGoogleWritebackConnection(googleConnections || []);
+    let providerAccessToken = writebackConnection?.access_token || null;
+    let providerRefreshToken = writebackConnection?.refresh_token || null;
+
+    if (!writebackConnection) {
+      throw new BookingConfigurationError(
+        "Bookings are temporarily unavailable while the host finishes Google Calendar setup.",
       );
     }
 
-    // Create or update the booking slot
-    if (!slotError && slot) {
-      // Update existing slot
-      await supabase
-        .from("booking_slots")
-        .update({
-          is_available: false,
-          booking_id: booking.id,
-        })
-        .eq("id", slot_id);
-    } else {
-      // Create new slot entry
-      await supabase.from("booking_slots").insert({
-        member_id: memberId,
-        slot_date: slotDate,
-        start_time: startTime,
-        end_time: endTime,
-        timezone: "UTC",
-        is_available: false,
-        is_blocked: false,
-        booking_id: booking.id,
-      });
-    }
+    const bookingInsertPayload = {
+      host_id: member_id,
+      booker_name,
+      booker_email,
+      booker_organisation: booker_organisation || null,
+      booker_notes: booker_notes || null,
+      title: title || `Meeting with ${booker_name}`,
+      status: "confirmed",
+      starts_at: availableSlot.starts_at,
+      ends_at: availableSlot.ends_at,
+      timezone: context.settings.timezone,
+    };
 
-    return NextResponse.json({ booking }, { status: 201 });
-  } catch (error) {
+    const slotInsertPayload = {
+      member_id: member_id,
+      slot_date,
+      start_time: availableSlot.start_time,
+      end_time: availableSlot.end_time,
+      timezone: context.settings.timezone,
+      is_available: false,
+      is_blocked: false,
+    };
+
+    const googleEventPayload = {
+      title: bookingInsertPayload.title,
+      description: buildGoogleBookingDescription({
+        bookerName: booker_name,
+        bookerEmail: booker_email,
+        bookerOrganisation: booker_organisation,
+        notes: booker_notes,
+      }),
+      startsAt: availableSlot.starts_at,
+      endsAt: availableSlot.ends_at,
+      timezone: context.settings.timezone,
+      attendees: [
+        {
+          email: booker_email,
+          displayName: booker_name,
+        },
+      ],
+      createConference: true,
+    };
+
+    const { booking, writeback } = await persistBookingWithGoogleWriteback({
+      writebackConnection,
+      bookingInsertPayload,
+      slotInsertPayload,
+      googleEventPayload,
+      logWritebackResult,
+      bookingInsert: async (payload) => {
+        const { data, error } = await supabase
+          .from("bookings")
+          .insert(payload)
+          .select("*")
+          .single();
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return data;
+      },
+      bookingUpdate: async (bookingId, payload) => {
+        const { data, error } = await supabase
+          .from("bookings")
+          .update(payload)
+          .eq("id", bookingId)
+          .select("*")
+          .single();
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return data;
+      },
+      bookingDelete: async (bookingId) => {
+        const { error } = await supabase
+          .from("bookings")
+          .delete()
+          .eq("id", bookingId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+      },
+      slotInsert: async (payload) => {
+        const { error } = await supabase
+          .from("booking_slots")
+          .insert(payload);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+      },
+      createProviderEvent: async () => {
+        const createdEvent = await createGoogleEvent(
+          providerAccessToken,
+          writebackConnection.calendar_id || "primary",
+          googleEventPayload,
+          providerRefreshToken,
+        );
+
+        if (createdEvent.newTokens) {
+          providerAccessToken = createdEvent.newTokens.accessToken;
+          providerRefreshToken = createdEvent.newTokens.refreshToken;
+          await supabase
+            .from("calendar_connections")
+            .update({
+              access_token: createdEvent.newTokens.accessToken,
+              refresh_token: createdEvent.newTokens.refreshToken,
+              token_expires_at: createdEvent.newTokens.expiresAt?.toISOString() || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", writebackConnection.id);
+        }
+
+        return createdEvent;
+      },
+      deleteProviderEvent: async (eventId) => {
+        await deleteGoogleEvent(
+          providerAccessToken,
+          writebackConnection.calendar_id || "primary",
+          eventId,
+          providerRefreshToken,
+        );
+      },
+    });
+
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      {
+        booking,
+        writeback,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("Calendar bookings API error:", error);
+
+    return NextResponse.json(
+      { error: error.message || "Internal server error" },
+      { status: error.status || 500 },
     );
   }
-}
-
-function minutesToTime(minutes) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
 }

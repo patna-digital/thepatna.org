@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
+import { LanguageSelector } from "@/components/language-selector";
 import { footerLinkGroups } from "@/lib/patna-data";
 
 export function SiteFooter() {
@@ -30,6 +31,7 @@ export function SiteFooter() {
         <div className="footer-bottom">
           <p>© {new Date().getFullYear()} The PATNA Initiative · Built for African technical coordination, evidence, and collective positioning.</p>
           <div className="footer-langs">
+            <LanguageSelector variant="compact" />
             <Link href="/contact">Contact</Link>
             <Link href="/legal/privacy">Privacy</Link>
             <Link href="/legal/terms">Terms</Link>

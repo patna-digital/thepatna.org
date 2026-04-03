@@ -127,9 +127,11 @@ export async function GET(request) {
         last_synced_at,
         last_sync_error,
         sync_enabled,
-        is_active
+        is_active,
+        is_primary_calendar
       `)
       .eq('member_id', memberId)
+      .order('is_primary_calendar', { ascending: false })
       .order('created_at', { ascending: false });
 
     if (error) {

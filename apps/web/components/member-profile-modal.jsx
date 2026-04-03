@@ -264,6 +264,17 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
               Edit profile
             </Link>
           ) : null}
+          {!isSelf && member.publicBookingEnabled && member.publicBookingUrl ? (
+            <Link
+              className="secondary-button"
+              href={member.publicBookingUrl}
+              onClick={onClose}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Book meeting
+            </Link>
+          ) : null}
           {isAdmin ? (
             <Link className="secondary-button" href={`/admin/members/${member.id}`}>
               Full admin view

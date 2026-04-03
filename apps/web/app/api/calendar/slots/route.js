@@ -1,100 +1,110 @@
 import { NextResponse } from "next/server";
+import {
+  fetchBookingAvailabilityContext,
+  getAvailableDateKeysForMonth,
+  getAvailableSlotsForDate,
+  getMonthDateKeys,
+} from "@/lib/calendar/booking";
+import { selectGoogleWritebackConnection } from "@/lib/calendar/booking-writeback";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+function isValidDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function isValidMonthKey(value) {
+  return /^\d{4}-\d{2}$/.test(String(value || ""));
+}
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const memberId = searchParams.get("memberId");
   const date = searchParams.get("date");
+  const month = searchParams.get("month");
 
-  if (!memberId || !date) {
+  if (!memberId) {
     return NextResponse.json(
-      { error: "Missing required parameters" },
-      { status: 400 }
+      { error: "memberId is required" },
+      { status: 400 },
     );
   }
 
-  const supabase = createSupabaseAdminClient();
-
-  // Fetch available slots for the date
-  const { data: slots, error } = await supabase
-    .from("booking_slots")
-    .select("*")
-    .eq("member_id", memberId)
-    .eq("slot_date", date)
-    .eq("is_available", true)
-    .eq("is_blocked", false)
-    .is("booking_id", null)
-    .order("start_time", { ascending: true });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!date && !month) {
+    return NextResponse.json(
+      { error: "Either date or month is required" },
+      { status: 400 },
+    );
   }
 
-  // If no slots exist yet, generate them from availability rules
-  if (!slots || slots.length === 0) {
-    // Fetch availability rules for this day of week
-    const dayOfWeek = new Date(date).getDay();
-    
-    const { data: rules } = await supabase
-      .from("availability_rules")
-      .select("*")
+  if (date && !isValidDateKey(date)) {
+    return NextResponse.json(
+      { error: "date must use YYYY-MM-DD" },
+      { status: 400 },
+    );
+  }
+
+  if (month && !isValidMonthKey(month)) {
+    return NextResponse.json(
+      { error: "month must use YYYY-MM" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data: googleConnections } = await supabase
+      .from("calendar_connections")
+      .select("id, provider, access_token, refresh_token, is_primary_calendar, is_active, sync_enabled")
       .eq("member_id", memberId)
-      .eq("rule_type", "recurring")
-      .eq("day_of_week", dayOfWeek)
-      .eq("is_blocked", false);
+      .eq("provider", "google")
+      .eq("is_active", true);
+    const writebackReady = Boolean(selectGoogleWritebackConnection(googleConnections || []));
 
-    // Fetch booking settings for duration
-    const { data: settings } = await supabase
-      .from("booking_settings")
-      .select("default_meeting_duration, buffer_minutes_between_meetings, timezone")
-      .eq("member_id", memberId)
-      .single();
+    if (date) {
+      const context = await fetchBookingAvailabilityContext({
+        memberId,
+        startDate: date,
+        endDate: date,
+        supabase,
+      });
 
-    const duration = settings?.default_meeting_duration || 30;
-    const buffer = settings?.buffer_minutes_between_meetings || 0;
-    const timezone = settings?.timezone || "UTC";
-
-    // Generate slots from rules
-    const generatedSlots = [];
-    
-    if (rules) {
-      for (const rule of rules) {
-        const startMinutes = timeToMinutes(rule.start_time);
-        const endMinutes = timeToMinutes(rule.end_time);
-        const slotLength = duration + buffer;
-
-        for (
-          let time = startMinutes;
-          time + duration <= endMinutes;
-          time += slotLength
-        ) {
-          generatedSlots.push({
-            id: `temp-${date}-${time}`,
-            member_id: memberId,
-            slot_date: date,
-            start_time: minutesToTime(time),
-            end_time: minutesToTime(time + duration),
-            timezone,
-            is_available: true,
-            is_blocked: false,
-          });
-        }
+      if (!context.settings.public_booking_enabled || !writebackReady) {
+        return NextResponse.json([]);
       }
+
+      return NextResponse.json(
+        getAvailableSlotsForDate({ dateKey: date, context }),
+      );
     }
 
-    return NextResponse.json(generatedSlots);
+    const monthKeys = getMonthDateKeys(month);
+    const startDate = monthKeys[0];
+    const endDate = monthKeys.at(-1);
+
+    if (!startDate || !endDate) {
+      return NextResponse.json({ availableDates: [] });
+    }
+
+    const context = await fetchBookingAvailabilityContext({
+      memberId,
+      startDate,
+      endDate,
+      supabase,
+    });
+
+    if (!context.settings.public_booking_enabled || !writebackReady) {
+      return NextResponse.json({ availableDates: [] });
+    }
+
+    return NextResponse.json({
+      availableDates: getAvailableDateKeysForMonth({ monthKey: month, context }),
+    });
+  } catch (error) {
+    console.error("Calendar slots API error:", error);
+
+    return NextResponse.json(
+      { error: error.message || "Failed to load booking slots" },
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json(slots);
-}
-
-function timeToMinutes(time) {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-function minutesToTime(minutes) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
 }

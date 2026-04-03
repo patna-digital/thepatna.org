@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { FeaturedStoryRail } from "@/components/public/featured-story-rail";
 import { SectionIntro } from "@/components/section-intro";
 import {
@@ -14,26 +15,25 @@ export const metadata = {
     "Discover PATNA's public community structure, cohorts, and pathways for African experts and institutions to contribute.",
 };
 
-export default function CommunityPage() {
+export default async function CommunityPage() {
+  const t = await getTranslations();
   return (
     <>
       <section className="community-hero">
         <div className="community-hero-inner">
-          <div className="community-hero-eyebrow">PATNA Community</div>
+          <div className="community-hero-eyebrow">{t("community.eyebrow")}</div>
           <h1>
-            A community for <em>African expertise</em>, coordination, and shared evidence
+            {t("community.h1")}
           </h1>
           <p>
-            PATNA brings together experts, institutions, policymakers, practitioners, and civil
-            society contributors who want to advance evidence-based climate action, maritime
-            decarbonisation, and stronger African positioning in global decision-making.
+            {t("community.intro")}
           </p>
           <div className="hero-actions">
             <Link className="secondary-button" href="/community/join">
-              Apply to Join
+              {t("community.btnApply")}
             </Link>
             <Link className="pill-link" href="/auth/login">
-              Member Login
+              {t("community.btnLogin")}
             </Link>
           </div>
         </div>
@@ -43,18 +43,18 @@ export default function CommunityPage() {
         <div className="section-inner">
           <div className="cohorts-intro">
             <SectionIntro
-              label="Four cohorts"
-              title="A community organised around how PATNA brings expertise together"
-              subtitle="The public community reflects the real working structure behind PATNA's policy, academic, industry, and civil-society engagement."
+              label={t("community.cohortsLabel")}
+              title={t("community.cohortsTitle")}
+              subtitle={t("community.cohortsSubtitle")}
             />
 
             <article className="content-card">
-              <h3>What community participation supports</h3>
+              <h3>{t("community.supportTitle")}</h3>
               <ul className="check-list">
-                <li>Promote evidence-based policymaking across African climate and maritime priorities.</li>
-                <li>Advance maritime decarbonisation and just transition pathways in Africa.</li>
-                <li>Strengthen Africa's voice in global maritime and climate governance.</li>
-                <li>Foster regional collaboration, knowledge exchange, and capacity-building.</li>
+                <li>{t("community.supportItem1")}</li>
+                <li>{t("community.supportItem2")}</li>
+                <li>{t("community.supportItem3")}</li>
+                <li>{t("community.supportItem4")}</li>
               </ul>
             </article>
           </div>
@@ -76,9 +76,9 @@ export default function CommunityPage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="How joining works"
-            title="From expression of interest to active contribution"
-            subtitle="PATNA's joining process is designed to connect people to the most relevant cohort, collaboration, or contribution pathway."
+            label={t("community.journeyLabel")}
+            title={t("community.journeyTitle")}
+            subtitle={t("community.journeySubtitle")}
           />
 
           <div className="steps-row">
@@ -96,9 +96,9 @@ export default function CommunityPage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="Community structure"
-            title="Board, secretariat, cohorts, and collaborative pathways"
-            subtitle="The PATNA community is more than a login surface. It is the public structure through which governance, coordination, and contribution happen."
+            label={t("community.structureLabel")}
+            title={t("community.structureTitle")}
+            subtitle={t("community.structureSubtitle")}
           />
 
           <div className="card-grid">
@@ -115,18 +115,17 @@ export default function CommunityPage() {
 
       <section className="join-band">
         <div className="section-inner">
-          <div className="section-label">Applications open</div>
-          <h2>Ready to shape Africa's maritime future?</h2>
+          <div className="section-label">{t("community.joinLabel")}</div>
+          <h2>{t("community.joinTitle")}</h2>
           <p>
-            Join more than 100 specialists already collaborating through PATNA's cohorts,
-            convenings, and shared evidence work.
+            {t("community.joinPara")}
           </p>
           <div className="join-band-btns">
             <Link className="secondary-button" href="/community/join">
-              Start application
+              {t("community.btnStartApplication")}
             </Link>
             <Link className="pill-link" href="/auth/login">
-              Existing member login
+              {t("community.btnMemberLogin")}
             </Link>
           </div>
         </div>
