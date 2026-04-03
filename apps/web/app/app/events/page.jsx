@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { MemberEventsClient } from "@/components/member-events-client";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { fetchMemberEvents } from "@/lib/events";
@@ -7,6 +8,7 @@ import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 
 export default async function MemberEventsPage() {
+  const t = await getTranslations();
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -26,21 +28,21 @@ export default async function MemberEventsPage() {
 
   return (
     <MemberWorkspaceShell
-      eyebrow="Calendar"
+      eyebrow={t("appEvents.eyebrow")}
       headerActions={(
         <Link className="primary-button" href="/contact">
-          + Submit an Event
+          {t("appEvents.btnSubmit")}
         </Link>
       )}
       sidebarUser={sidebarUser}
-      subtitle="Workshops, summits, and coordination meetings — upcoming and past"
-      title="Events"
+      subtitle={t("appEvents.subtitle")}
+      title={t("appEvents.title")}
     >
       {memberEventsResult.error ? (
         <article className="dashboard-card member-module-card">
-          <h3>Live sync warning</h3>
+          <h3>{t("appEvents.warningTitle")}</h3>
           <p className="member-section-copy">
-            The live events register could not be refreshed, so you are seeing the current fallback archive instead.
+            {t("appEvents.warningText")}
           </p>
         </article>
       ) : null}

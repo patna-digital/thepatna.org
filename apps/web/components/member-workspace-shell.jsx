@@ -3,9 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BrandLogo } from "@/components/brand-logo";
+import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
+
+const MEMBER_NAV_KEY = {
+  "/app": "dashboard",
+  "/app/calendar": "calendar",
+  "/app/spaces": "spaces",
+  "/app/publications": "publications",
+  "/app/members": "members",
+  "/app/events": "events",
+  "/app/profile": "profile",
+  "/app/settings": "settings",
+  "/app/applications": "applications",
+  "/app/insights": "insights",
+};
 
 function getProfileTone(member) {
   if (!member?.profileStatus || member.profileStatus === "active") {
@@ -26,6 +41,7 @@ export function MemberWorkspaceShell({
   navItems = memberNav,
 }) {
   const pathname = usePathname();
+  const t = useTranslations();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const settingsItem = navItems.find((item) => item.href === "/app/settings") || null;
   const primaryNavItems = settingsItem
@@ -109,7 +125,7 @@ export function MemberWorkspaceShell({
               >
                 <span className="nav-item-label">
                   <span className="nav-item-icon">{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span>{MEMBER_NAV_KEY[item.href] ? t(`member.${MEMBER_NAV_KEY[item.href]}`) : item.label}</span>
                 </span>
                 {item.badge ? <span className="badge">{item.badge}</span> : null}
               </Link>
@@ -136,13 +152,13 @@ export function MemberWorkspaceShell({
         ) : null}
 
         <div className="sidebar-cross-nav">
-          <div className="sidebar-cross-nav-label">Navigate to</div>
+          <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
           <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
-            <span>Website</span>
+            <span>{t("nav_cross.website")}</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
           <Link className="sidebar-cross-nav-link" href="/admin" onClick={() => setSidebarOpen(false)}>
-            <span>Admin app</span>
+            <span>{t("nav_cross.adminApp")}</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
           <div className="sidebar-utility-nav">
@@ -152,15 +168,16 @@ export function MemberWorkspaceShell({
                 href={settingsItem.href}
                 onClick={() => setSidebarOpen(false)}
               >
-                {settingsItem.label}
+                {t("member.settings")}
               </Link>
             ) : null}
+            <LanguageSelector variant="compact" />
             <SignOutButton />
           </div>
           <div className="sidebar-legal-links">
-            <Link href="/legal/privacy" onClick={() => setSidebarOpen(false)}>Privacy</Link>
+            <Link href="/legal/privacy" onClick={() => setSidebarOpen(false)}>{t("footer.privacy")}</Link>
             <span aria-hidden="true">·</span>
-            <Link href="/legal/terms" onClick={() => setSidebarOpen(false)}>Terms</Link>
+            <Link href="/legal/terms" onClick={() => setSidebarOpen(false)}>{t("footer.terms")}</Link>
           </div>
         </div>
       </aside>

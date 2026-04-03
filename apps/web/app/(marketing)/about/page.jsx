@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { FeaturedStoryRail } from "@/components/public/featured-story-rail";
 import { PhotoQuoteSplit } from "@/components/public/photo-quote-split";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
@@ -11,14 +12,15 @@ export const metadata = {
     "Learn about PATNA's mission, vision, and Africa-centred approach to climate action, maritime decarbonisation, and energy transition.",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const t = await getTranslations();
   return (
     <>
       <MarketingPageHero
-        actions={[{ href: "/projects", label: "View projects", variant: "primary" }]}
-        label="About PATNA"
-        subtitle="PATNA is a non-profit organisation dedicated to supporting African-centred climate action and energy transition pathways grounded in evidence, collaboration, and institutional understanding."
-        title="Africa-centred evidence, diplomacy, and institutional coordination"
+        actions={[{ href: "/projects", label: t("about.btnViewProjects"), variant: "primary" }]}
+        label={t("about.label")}
+        subtitle={t("about.subtitle")}
+        title={t("about.title")}
       />
 
       <PhotoQuoteSplit section={publicPageMedia.about.mission} />
@@ -28,36 +30,27 @@ export default function AboutPage() {
           <div className="page-grid">
             <article className="content-card">
               <SectionIntro
-                label="Who PATNA is"
-                title="A pan-African network built for long-term public influence"
-                subtitle="PATNA emerged from the recognition that African perspectives were too often under-represented in global maritime and climate processes, despite the continent bearing major economic and social consequences."
+                label={t("about.whoLabel")}
+                title={t("about.whoTitle")}
+                subtitle={t("about.whoSubtitle")}
               />
               <p>
-                What began as a small group of African experts engaging the International Maritime
-                Organization (IMO) has grown into a network that bridges disciplines, languages,
-                and regions so African realities can inform global climate and energy outcomes.
+                {t("about.whoPara1")}
               </p>
               <p>
-                PATNA works across climate governance, maritime decarbonisation, energy transition,
-                and institutional readiness, combining evidence, convening power, and collective
-                strategy to help African actors move from participation to leadership.
+                {t("about.whoPara2")}
               </p>
             </article>
 
             <article className="content-card feature-list">
-              <h3>Vision and mission</h3>
+              <h3>{t("about.visionMission")}</h3>
               <p>
-                <strong>Vision:</strong> To be the leading coalition of African technical experts
-                advancing innovative, inclusive, and Africa-centred solutions for climate action
-                and energy transition across interconnected systems.
+                <strong>{t("about.visionLabel")}</strong> {t("about.visionText")}
               </p>
               <p>
-                <strong>Mission:</strong> To harness the collective expertise of African
-                professionals to generate, coordinate, and apply evidence-based strategies that
-                support climate resilience, energy transition, and sustainable development across
-                the continent.
+                <strong>{t("about.missionLabel")}</strong> {t("about.missionText")}
               </p>
-              <h3>Core values</h3>
+              <h3>{t("about.coreValues")}</h3>
               <ul>
                 <li>Inclusivity across African voices, regions, and constituencies</li>
                 <li>Innovation grounded in practical institutional needs</li>
@@ -76,9 +69,9 @@ export default function AboutPage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="How the network is organised"
-            title="Four core constituencies shape PATNA's public community"
-            subtitle="PATNA's work is strengthened by a mix of researchers, policymakers, industry practitioners, and civil society leaders."
+            label={t("about.orgLabel")}
+            title={t("about.orgTitle")}
+            subtitle={t("about.orgSubtitle")}
           />
           <div className="card-grid">
             {cohortSummary.map((cohort) => (

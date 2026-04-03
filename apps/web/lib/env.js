@@ -28,6 +28,10 @@ export function getSupabaseProjectId() {
   return readEnv("SUPABASE_PROJECT_ID");
 }
 
+export function getGoogleTranslateApiKey() {
+  return readEnv("GOOGLE_TRANSLATE_API_KEY");
+}
+
 export function isSupabaseConfigured() {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
 }

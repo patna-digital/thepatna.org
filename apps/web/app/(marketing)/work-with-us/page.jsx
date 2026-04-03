@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
 import { PhotoQuoteSplit } from "@/components/public/photo-quote-split";
 import { SectionIntro } from "@/components/section-intro";
@@ -11,13 +12,14 @@ export const metadata = {
     "Work with PATNA on technical support, partnerships, and collaborative initiatives across climate and maritime transition.",
 };
 
-export default function WorkWithUsPage() {
+export default async function WorkWithUsPage() {
+  const t = await getTranslations();
   return (
     <>
       <MarketingPageHero
-        label="Work With Us"
-        subtitle="PATNA works with governments, regional bodies, researchers, funders, and strategic partners across maritime decarbonisation, climate governance, and energy transition."
-        title="Work with PATNA on evidence, convenings, and implementation strategy"
+        label={t("workWithUs.label")}
+        subtitle={t("workWithUs.subtitle")}
+        title={t("workWithUs.title")}
       />
 
       <PhotoQuoteSplit section={publicPageMedia.workWithUs.feature} />
@@ -25,9 +27,9 @@ export default function WorkWithUsPage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="Engagement pathways"
-            title="Choose the route that best matches the work you want to advance"
-            subtitle="Whether you need technical support, want to explore a partnership, or have an idea for joint work, PATNA starts with a focused conversation grounded in clear public priorities."
+            label={t("workWithUs.pathwaysLabel")}
+            title={t("workWithUs.pathwaysTitle")}
+            subtitle={t("workWithUs.pathwaysSubtitle")}
           />
 
           <div className="card-grid">
@@ -37,15 +39,14 @@ export default function WorkWithUsPage() {
                 <p>{path.summary}</p>
                 <div className="content-meta">
                   <Link className="primary-button" href={path.href}>
-                    Open pathway
+                    {t("workWithUs.btnOpenPathway")}
                   </Link>
                 </div>
               </article>
             ))}
           </div>
           <p className="muted-note">
-            First-contact enquiries are currently handled directly by email so the PATNA team can
-            respond quickly and route each conversation appropriately.
+            {t("workWithUs.note")}
           </p>
         </div>
       </section>

@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
-function getEventDateInfo(event) {
+function getEventDateInfo(event, locale) {
   if (event.starts_at) {
     const start = new Date(event.starts_at);
 
     if (!Number.isNaN(start.getTime())) {
-      const month = new Intl.DateTimeFormat("en-GB", { month: "short" }).format(start).toUpperCase();
+      const month = new Intl.DateTimeFormat(locale, { month: "short" }).format(start).toUpperCase();
       let day = String(start.getUTCDate());
 
       if (event.ends_at) {
@@ -27,7 +28,7 @@ function getEventDateInfo(event) {
     }
   }
 
-  const monthOnlyMatch = String(event.display_date || "").match(/^([A-Za-z]+) (\d{4})(?: \(TBC\))?$/i);
+  const monthOnlyMatch = String(event.sourceDisplayDate || event.display_date || "").match(/^([A-Za-z]+) (\d{4})(?: \(TBC\))?$/i);
 
   if (monthOnlyMatch) {
     return {
@@ -42,27 +43,40 @@ function getEventDateInfo(event) {
 function getEventSearchText(event) {
   return [
     event.title,
+    event.sourceTitle,
     event.summary,
+    event.sourceSummary,
     event.body,
+    event.sourceBody,
     event.location,
+    event.sourceLocation,
+    event.eventTypeDisplay,
     event.event_type,
+    event.displayDateDisplay,
     event.display_date,
     event.visibility,
     event.patna_involvement,
+    event.sourcePatnaInvolvement,
     ...(event.organising_institutions || []),
+    ...(event.sourceOrganisingInstitutions || []),
     ...(event.themes || []),
+    ...(event.sourceThemes || []),
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 }
 
-function getEventTypeLabel(event) {
+function getEventTypeValue(event) {
   return event.event_type || "Event";
 }
 
+function getEventTypeLabel(event) {
+  return event.eventTypeDisplay || event.event_type || "Event";
+}
+
 function isPatnaLedEvent(event) {
-  const involvement = (event.patna_involvement || "").toLowerCase();
+  const involvement = (event.sourcePatnaInvolvement || event.patna_involvement || "").toLowerCase();
   return involvement.includes("lead organiser") || involvement.includes("co-organiser");
 }
 
@@ -81,7 +95,7 @@ function getEventTone(event) {
     return "academic";
   }
 
-  const type = getEventTypeLabel(event).toLowerCase();
+  const type = getEventTypeValue(event).toLowerCase();
 
   if (type.includes("imo") || type.includes("mepc") || type.includes("iswg")) {
     return "policy";
@@ -98,9 +112,9 @@ function getEventTone(event) {
   return "policy";
 }
 
-function formatScheduleLabel(status) {
-  if (status === "tbc") return "TBC";
-  return status === "upcoming" ? "Upcoming" : "Past";
+function formatScheduleLabel(status, t) {
+  if (status === "tbc") return t("appEvents.tbc");
+  return status === "upcoming" ? t("appEvents.scheduleUpcoming") : t("appEvents.schedulePast");
 }
 
 function getScheduleClass(status) {
@@ -110,6 +124,8 @@ function getScheduleClass(status) {
 }
 
 export function MemberEventsClient({ events }) {
+  const t = useTranslations();
+  const locale = useLocale();
   const [searchTerm, setSearchTerm] = useState("");
   const [scheduleFilter, setScheduleFilter] = useState(
     events.some((e) => e.schedule_status === "upcoming" || e.schedule_status === "tbc") ? "upcoming" : "past",
@@ -118,8 +134,11 @@ export function MemberEventsClient({ events }) {
   const [selectedEventId, setSelectedEventId] = useState("");
 
   const typeFilters = useMemo(() => {
-    const values = [...new Set(events.map((e) => getEventTypeLabel(e)))];
-    return values.sort((a, b) => a.localeCompare(b));
+    return [...new Map(
+      events.map((event) => [getEventTypeValue(event), getEventTypeLabel(event)]),
+    ).entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((left, right) => left.label.localeCompare(right.label));
   }, [events]);
 
   const summary = useMemo(
@@ -147,7 +166,7 @@ export function MemberEventsClient({ events }) {
         return false;
       }
 
-      if (typeFilter !== "all" && getEventTypeLabel(event) !== typeFilter) {
+      if (typeFilter !== "all" && getEventTypeValue(event) !== typeFilter) {
         return false;
       }
 
@@ -175,7 +194,7 @@ export function MemberEventsClient({ events }) {
             </svg>
           </div>
           <strong>{summary.upcomingAndTbc}</strong>
-          <span>Upcoming Events</span>
+          <span>{t("appEvents.upcomingEvents")}</span>
         </div>
         <div className="member-events-stat-card tone-academic">
           <div className="member-events-stat-icon">
@@ -184,7 +203,7 @@ export function MemberEventsClient({ events }) {
             </svg>
           </div>
           <strong>{summary.patnaLed}</strong>
-          <span>PATNA-Organised</span>
+          <span>{t("appEvents.patnaOrganised")}</span>
         </div>
         <div className="member-events-stat-card tone-policy">
           <div className="member-events-stat-icon">
@@ -195,7 +214,7 @@ export function MemberEventsClient({ events }) {
             </svg>
           </div>
           <strong>{summary.past}</strong>
-          <span>Past Events</span>
+          <span>{t("appEvents.pastEvents")}</span>
         </div>
         <div className="member-events-stat-card tone-industry">
           <div className="member-events-stat-icon">
@@ -204,7 +223,7 @@ export function MemberEventsClient({ events }) {
             </svg>
           </div>
           <strong>{summary.tbc}</strong>
-          <span>TBC Dates</span>
+          <span>{t("appEvents.tbcDates")}</span>
         </div>
       </div>
 
@@ -215,14 +234,14 @@ export function MemberEventsClient({ events }) {
             onClick={() => setScheduleFilter("upcoming")}
             type="button"
           >
-            Upcoming ({summary.upcomingAndTbc})
+            {t("appEvents.tabUpcoming", { count: summary.upcomingAndTbc })}
           </button>
           <button
             className={scheduleFilter === "past" ? "member-events-tab-active" : "member-events-tab"}
             onClick={() => setScheduleFilter("past")}
             type="button"
           >
-            Past ({summary.past})
+            {t("appEvents.tabPast", { count: summary.past })}
           </button>
         </div>
 
@@ -232,16 +251,16 @@ export function MemberEventsClient({ events }) {
             onClick={() => setTypeFilter("all")}
             type="button"
           >
-            All
+            {t("appEvents.filterAll")}
           </button>
           {typeFilters.map((type) => (
             <button
-              className={typeFilter === type ? "member-events-type-chip member-events-type-chip-active" : "member-events-type-chip"}
-              key={type}
-              onClick={() => setTypeFilter(type)}
+              className={typeFilter === type.value ? "member-events-type-chip member-events-type-chip-active" : "member-events-type-chip"}
+              key={type.value}
+              onClick={() => setTypeFilter(type.value)}
               type="button"
             >
-              {type}
+              {type.label}
             </button>
           ))}
         </div>
@@ -250,7 +269,7 @@ export function MemberEventsClient({ events }) {
       <div className="member-events-list">
         {filteredEvents.length ? (
           filteredEvents.map((event) => {
-            const dateInfo = getEventDateInfo(event);
+            const dateInfo = getEventDateInfo(event, locale);
             const tone = getEventTone(event);
             const typeLabel = getEventTypeLabel(event);
 
@@ -266,7 +285,7 @@ export function MemberEventsClient({ events }) {
                     <div className="member-event-archive-chips">
                       <span className={`status-chip member-event-type-chip-${tone}`}>{typeLabel}</span>
                       <span className={`status-chip ${getScheduleClass(event.schedule_status)}`}>
-                        {formatScheduleLabel(event.schedule_status)}
+                        {formatScheduleLabel(event.schedule_status, t)}
                       </span>
                     </div>
                     <div className="member-event-archive-actions">
@@ -275,7 +294,7 @@ export function MemberEventsClient({ events }) {
                         onClick={() => setSelectedEventId(event.id)}
                         type="button"
                       >
-                        Details
+                        {t("appEvents.detailsBtn")}
                       </button>
                       {event.schedule_status === "upcoming" && event.official_link ? (
                         <a
@@ -284,7 +303,7 @@ export function MemberEventsClient({ events }) {
                           rel="noreferrer"
                           target="_blank"
                         >
-                          RSVP
+                          {t("appEvents.rsvpBtn")}
                         </a>
                       ) : null}
                     </div>
@@ -293,7 +312,9 @@ export function MemberEventsClient({ events }) {
                   <div className="member-event-archive-copy">
                     <strong>{event.title}</strong>
                     <div className="member-event-archive-meta">
-                      {event.display_date ? <span>{event.display_date}</span> : null}
+                      {(event.displayDateDisplay || event.display_date) ? (
+                        <span>{event.displayDateDisplay || event.display_date}</span>
+                      ) : null}
                       {event.location ? <span>{event.location}</span> : null}
                       {isPatnaLedEvent(event) ? <span>{event.patna_involvement}</span> : null}
                     </div>
@@ -318,8 +339,8 @@ export function MemberEventsClient({ events }) {
           })
         ) : (
           <article className="dashboard-card member-module-card">
-            <h3>No events match the current filters</h3>
-            <p className="member-section-copy">Try adjusting the schedule or type filters, or clear the search.</p>
+            <h3>{t("appEvents.noMatchTitle")}</h3>
+            <p className="member-section-copy">{t("appEvents.noMatchText")}</p>
           </article>
         )}
       </div>
@@ -341,15 +362,15 @@ export function MemberEventsClient({ events }) {
                 <div className="member-event-archive-chips">
                   <span className="status-chip member-event-dialog-type-chip">{getEventTypeLabel(selectedEvent)}</span>
                   <span className={`status-chip member-event-dialog-type-chip ${getScheduleClass(selectedEvent.schedule_status)}`}>
-                    {formatScheduleLabel(selectedEvent.schedule_status)}
+                    {formatScheduleLabel(selectedEvent.schedule_status, t)}
                   </span>
                 </div>
                 <h3>{selectedEvent.title}</h3>
                 <div className="member-event-dialog-meta">
-                  {selectedEvent.display_date ? (
+                  {(selectedEvent.displayDateDisplay || selectedEvent.display_date) ? (
                     <span>
                       <svg fill="none" height="13" viewBox="0 0 16 16" width="13" xmlns="http://www.w3.org/2000/svg"><rect height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" width="12" x="2" y="3.5"/><path d="M2 7h12" stroke="currentColor" strokeWidth="1.3"/><path d="M5.5 2v3M10.5 2v3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.3"/></svg>
-                      {selectedEvent.display_date}
+                      {selectedEvent.displayDateDisplay || selectedEvent.display_date}
                     </span>
                   ) : null}
                   {selectedEvent.location ? (
@@ -361,7 +382,7 @@ export function MemberEventsClient({ events }) {
                 </div>
               </div>
               <button
-                aria-label="Close event details"
+                aria-label={t("appEvents.dialogClose")}
                 className="member-event-close"
                 onClick={() => setSelectedEventId("")}
                 type="button"
@@ -383,21 +404,21 @@ export function MemberEventsClient({ events }) {
 
               {(selectedEvent.body || selectedEvent.summary) ? (
                 <div className="member-event-detail-section">
-                  <dt>About this event</dt>
+                  <dt>{t("appEvents.dialogAbout")}</dt>
                   <dd>{selectedEvent.body || selectedEvent.summary}</dd>
                 </div>
               ) : null}
 
               {selectedEvent.organising_institutions?.length ? (
                 <div className="member-event-detail-section">
-                  <dt>Organising institutions</dt>
+                  <dt>{t("appEvents.dialogInstitutions")}</dt>
                   <dd>{selectedEvent.organising_institutions.join(" · ")}</dd>
                 </div>
               ) : null}
 
               {selectedEvent.patna_involvement ? (
                 <div className="member-event-detail-section">
-                  <dt>PATNA involvement</dt>
+                  <dt>{t("appEvents.dialogPatnaInvolvement")}</dt>
                   <dd>{selectedEvent.patna_involvement}</dd>
                 </div>
               ) : null}
@@ -411,7 +432,7 @@ export function MemberEventsClient({ events }) {
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Open official page
+                  {t("appEvents.dialogOfficialPage")}
                 </a>
               ) : null}
               <button
@@ -419,7 +440,7 @@ export function MemberEventsClient({ events }) {
                 onClick={() => setSelectedEventId("")}
                 type="button"
               >
-                Close
+                {t("appEvents.dialogCloseBtn")}
               </button>
             </div>
           </div>

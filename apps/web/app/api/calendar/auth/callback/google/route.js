@@ -76,21 +76,25 @@ export async function GET(request) {
     // Upsert a connection for every calendar (primary + subscribed like Holidays)
     // so all events including holidays/shared calendars get synced
     const connectionRecords = allCalendars.length > 0 ? allCalendars : [
-      { id: 'primary', name: 'Google Calendar', primary: true },
+      { id: 'primary', name: 'Google Calendar', primary: true, accessRole: 'owner' },
     ];
+    const defaultPrimaryCalendarId =
+      connectionRecords.find((calendar) => calendar.primary)?.id ||
+      connectionRecords[0]?.id ||
+      'primary';
 
     const savedConnections = [];
     const saveErrors = [];
+    const { data: existingGoogleConnections = [] } = await supabase
+      .from('calendar_connections')
+      .select('id, calendar_id, is_primary_calendar')
+      .eq('member_id', memberId)
+      .eq('provider', 'google');
+    const hasExistingPrimary = existingGoogleConnections.some((connection) => connection.is_primary_calendar);
 
     for (const cal of connectionRecords) {
-      const { data: existing, error: existingError } = await supabase
-        .from('calendar_connections')
-        .select('id')
-        .eq('member_id', memberId)
-        .eq('provider', 'google')
-        .eq('provider_account_email', userInfo.email)
-        .eq('calendar_id', cal.id)
-        .maybeSingle();
+      const existing = existingGoogleConnections.find((connection) => connection.calendar_id === cal.id) || null;
+      const existingError = null;
 
       if (existingError) {
         saveErrors.push(existingError);
@@ -103,6 +107,11 @@ export async function GET(request) {
         token_expires_at: tokens.expiresAt?.toISOString(),
         calendar_id: cal.id,
         calendar_name: cal.name || 'Google Calendar',
+        access_role: cal.accessRole || (cal.primary ? 'owner' : null),
+        is_primary_calendar: Boolean(
+          existing?.is_primary_calendar ||
+            (!hasExistingPrimary && cal.id === defaultPrimaryCalendarId),
+        ),
         is_active: true,
         sync_enabled: true,
         last_sync_error: null,

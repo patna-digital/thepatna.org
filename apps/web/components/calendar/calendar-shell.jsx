@@ -1,21 +1,27 @@
 "use client";
 
 import { useMemo, useState, useEffect, useTransition } from "react";
-import { formatDate, getCalendarDays, getNextMonth, getPreviousMonth } from "@/lib/calendar/core";
+import {
+  createLocalDateFromKey,
+  eventOccursInMonth,
+  eventOccursInYear,
+  formatEventTimeLabel,
+  getCalendarDays,
+  getDateKeysForEvent,
+  getDisplayRangeForEvent,
+  getNextMonth,
+  getPreviousMonth,
+  groupEventsByDate,
+  toLocalDateKey,
+} from "@/lib/calendar/core";
+import { getConferenceCtaLabel } from "@/lib/calendar/conference";
 import { setEventRsvp } from "../../app/app/calendar/actions";
 import "./calendar-styles.css";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
-function dateKey(value) {
-  return new Date(value).toISOString().split("T")[0];
-}
-
 function eventsForMonth(events, year, month) {
-  return events.filter((e) => {
-    const d = new Date(e.starts_at);
-    return d.getFullYear() === year && d.getMonth() === month;
-  });
+  return events.filter((event) => eventOccursInMonth(event, year, month));
 }
 
 function formatTime(value) {
@@ -25,12 +31,36 @@ function formatTime(value) {
 
 function formatEventDate(event) {
   if (!event.starts_at) return event.display_date || "Date TBC";
-  const start = new Date(event.starts_at);
-  const day = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(start);
-  const time = formatTime(event.starts_at);
-  const endTime = event.ends_at ? formatTime(event.ends_at) : null;
-  if (!time) return day;
-  return endTime ? `${day} · ${time} – ${endTime}` : `${day} · ${time}`;
+
+  const { start, end } = getDisplayRangeForEvent(event);
+  if (!start || !end) return event.display_date || "Date TBC";
+
+  const dayFormatter = new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  const timeLabel = formatEventTimeLabel(event);
+
+  if (event.is_all_day) {
+    const startLabel = dayFormatter.format(start);
+    const endLabel = dayFormatter.format(end);
+    return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+  }
+
+  const startDate = new Date(event.starts_at);
+  const endDate = event.ends_at ? new Date(event.ends_at) : null;
+  const startLabel = dayFormatter.format(startDate);
+
+  if (!timeLabel) {
+    return startLabel;
+  }
+
+  if (endDate && toLocalDateKey(startDate) !== toLocalDateKey(endDate)) {
+    return `${startLabel} ${formatTime(event.starts_at)} – ${dayFormatter.format(endDate)} ${formatTime(event.ends_at)}`;
+  }
+
+  return `${startLabel} · ${timeLabel}`;
 }
 
 // Event type tag config
@@ -220,6 +250,16 @@ function EventCard({ event, isExpanded, onToggle, onRsvp, isPending }) {
                 Event page
               </a>
             )}
+            {event.meeting_url && (
+              <a
+                className="secondary-button"
+                href={event.meeting_url}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {getConferenceCtaLabel(event.meeting_provider)}
+              </a>
+            )}
           </div>
         </div>
       )}
@@ -270,23 +310,7 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
     return monthEvents;
   }, [monthEvents, filter]);
 
-  // Expand multi-day events so they appear on every day they span
-  const eventsByDate = useMemo(() => {
-    const acc = {};
-    filteredEvents.forEach((e) => {
-      const start = new Date(e.starts_at);
-      const end = new Date(e.ends_at || e.starts_at);
-      const cur = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
-      const last = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
-      while (cur <= last) {
-        const k = cur.toISOString().split("T")[0];
-        if (!acc[k]) acc[k] = [];
-        if (!acc[k].find((ev) => ev.id === e.id)) acc[k].push(e);
-        cur.setUTCDate(cur.getUTCDate() + 1);
-      }
-    });
-    return acc;
-  }, [filteredEvents]);
+  const eventsByDate = useMemo(() => groupEventsByDate(filteredEvents), [filteredEvents]);
 
   const listEvents = selectedDay ? (eventsByDate[selectedDay] || []) : filteredEvents;
 
@@ -327,7 +351,7 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
           {selectedDay ? (
             <>
               {listEvents.length} {listEvents.length === 1 ? "item" : "items"} on{" "}
-              {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(selectedDay + "T00:00:00"))}
+              {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(createLocalDateFromKey(selectedDay))}
               {" · "}
               <button className="cal-clear-day-btn" onClick={() => setSelectedDay(null)} type="button">
                 show all
@@ -348,7 +372,7 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
         </div>
         <div className="cal-days-grid">
           {days.map(({ date, isCurrentMonth, isToday }) => {
-            const k = dateKey(date);
+            const k = toLocalDateKey(date);
             const dayEvents = eventsByDate[k] || [];
             const isSelected = selectedDay === k;
             return (
@@ -399,7 +423,7 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 function YearView({ year, events, filter, onYearChange, onMonthSelect }) {
   const yearEvents = useMemo(
-    () => events.filter((e) => new Date(e.starts_at).getFullYear() === year),
+    () => events.filter((event) => eventOccursInYear(event, year)),
     [events, year],
   );
 
@@ -427,7 +451,16 @@ function YearView({ year, events, filter, onYearChange, onMonthSelect }) {
           const isCurrentMonth = year === currentYear && m === currentMonth;
 
           // collect day keys with events for mini dots
-          const dotDays = [...new Set(monthEvts.map((e) => new Date(e.starts_at).getDate()))].slice(0, 7);
+          const dotDays = [
+            ...new Set(
+              monthEvts.flatMap((event) =>
+                getDateKeysForEvent(event)
+                  .map((dateKey) => createLocalDateFromKey(dateKey))
+                  .filter((date) => date && date.getFullYear() === year && date.getMonth() === m)
+                  .map((date) => date.getDate())
+              )
+            ),
+          ].slice(0, 7);
 
           return (
             <button
@@ -477,7 +510,7 @@ export function CalendarShell({ initialEvents = [], initialWarning = "", initial
   const [, startTransition] = useTransition();
 
   const summary = useMemo(() => {
-    const yr = events.filter((e) => new Date(e.starts_at).getFullYear() === selectedYear);
+    const yr = events.filter((event) => eventOccursInYear(event, selectedYear));
     return {
       total: yr.length,
       community: yr.filter((e) => e.event_source === "community").length,

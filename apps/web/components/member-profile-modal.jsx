@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 function getCohortTone(slug) {
   if (slug === "academic") return "academic";
@@ -20,6 +21,8 @@ function getInitials(name) {
 }
 
 export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = false }) {
+  const t = useTranslations("profileModal");
+
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -35,14 +38,19 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
   const tone = getCohortTone(member.primaryCohort?.slug);
   const allCohorts = [member.primaryCohort, ...(member.secondaryCohorts || [])].filter(Boolean);
   const displayName = member.displayNameLabel || member.displayName || "PATNA Member";
-  const role = member.roleTitleLabel || member.role_title || "";
-  const org = member.organisationLabel || member.organisation_name || "";
-  const country = member.country_of_residence || "";
-  const hasLanguages = (member.languages || []).length > 0;
+  const role = member.roleTitleDisplay || member.roleTitleLabel || member.role_title || "";
+  const org = member.organisationDisplay || member.organisationLabel || member.organisation_name || "";
+  const country = member.countryDisplay || member.country_of_residence || "";
+  const languages = member.languagesDisplay?.length ? member.languagesDisplay : member.languages || [];
+  const hasLanguages = languages.length > 0;
   const hasFocusOrWork = Boolean(
+    member.cohortProfileDisplay?.domainKnowledge ||
     member.cohortProfile?.domain_knowledge ||
+    member.cohortProfileDisplay?.focusArea ||
     member.cohortProfile?.focus_area ||
+    member.cohortProfileDisplay?.notableWork ||
     member.cohortProfile?.notable_work ||
+    member.cohortProfileDisplay?.opportunityInterest ||
     member.cohortProfile?.opportunity_interest,
   );
   const visibleProjects = (member.relevantProjects || []).filter((p) => p.title);
@@ -60,7 +68,7 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
         role="dialog"
       >
         <button
-          aria-label="Close profile"
+          aria-label={t("close")}
           className="profile-modal-close"
           onClick={onClose}
           type="button"
@@ -114,13 +122,13 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
                     className={`status-chip member-directory-cohort-chip tone-${getCohortTone(cohort.slug)}`}
                     key={cohort.slug}
                   >
-                    {cohort.name}
+                    {cohort.nameDisplay || cohort.name}
                   </span>
                 ))}
                 {isAvailable ? (
                   <span className="profile-modal-availability-badge">
                     <span aria-hidden="true" className="profile-modal-avail-dot" />
-                    Available
+                    {t("available")}
                   </span>
                 ) : null}
               </div>
@@ -132,20 +140,20 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
         <div className="profile-modal-body">
 
           {/* About */}
-          {member.professional_bio ? (
+          {(member.professionalBioDisplay || member.professional_bio) ? (
             <div className="profile-modal-section">
-              <p className="profile-modal-section-label">About</p>
-              <p className="profile-modal-bio">{member.professional_bio}</p>
+              <p className="profile-modal-section-label">{t("about")}</p>
+              <p className="profile-modal-bio">{member.professionalBioDisplay || member.professional_bio}</p>
             </div>
           ) : null}
 
           {/* Expertise */}
           {member.domainTags?.length > 0 ? (
             <div className="profile-modal-section">
-              <p className="profile-modal-section-label">Areas of expertise</p>
+              <p className="profile-modal-section-label">{t("areasOfExpertise")}</p>
               <div className="profile-modal-tags-full">
                 {member.domainTags.map((tag) => (
-                  <span className="status-chip chip-neutral" key={tag.slug}>{tag.name}</span>
+                  <span className="status-chip chip-neutral" key={tag.slug}>{tag.nameDisplay || tag.name}</span>
                 ))}
               </div>
             </div>
@@ -154,9 +162,9 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
           {/* Languages */}
           {hasLanguages ? (
             <div className="profile-modal-section">
-              <p className="profile-modal-section-label">Languages</p>
+              <p className="profile-modal-section-label">{t("languages")}</p>
               <div className="profile-modal-tags-full">
-                {(member.languages || []).map((lang) => (
+                {languages.map((lang) => (
                   <span className="status-chip chip-neutral" key={lang}>{lang}</span>
                 ))}
               </div>
@@ -166,30 +174,38 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
           {/* Work & focus */}
           {hasFocusOrWork ? (
             <div className="profile-modal-section">
-              <p className="profile-modal-section-label">Work &amp; focus</p>
+              <p className="profile-modal-section-label">{t("workAndFocus")}</p>
               <div className="profile-modal-work-grid">
-                {member.cohortProfile?.domain_knowledge ? (
+                {(member.cohortProfileDisplay?.domainKnowledge || member.cohortProfile?.domain_knowledge) ? (
                   <div className="profile-modal-work-item">
-                    <span className="profile-modal-work-label">Domain knowledge</span>
-                    <p className="profile-modal-work-text">{member.cohortProfile.domain_knowledge}</p>
+                    <span className="profile-modal-work-label">{t("domainKnowledge")}</span>
+                    <p className="profile-modal-work-text">
+                      {member.cohortProfileDisplay?.domainKnowledge || member.cohortProfile?.domain_knowledge}
+                    </p>
                   </div>
                 ) : null}
-                {member.cohortProfile?.focus_area ? (
+                {(member.cohortProfileDisplay?.focusArea || member.cohortProfile?.focus_area) ? (
                   <div className="profile-modal-work-item">
-                    <span className="profile-modal-work-label">Focus area</span>
-                    <p className="profile-modal-work-text">{member.cohortProfile.focus_area}</p>
+                    <span className="profile-modal-work-label">{t("focusArea")}</span>
+                    <p className="profile-modal-work-text">
+                      {member.cohortProfileDisplay?.focusArea || member.cohortProfile?.focus_area}
+                    </p>
                   </div>
                 ) : null}
-                {member.cohortProfile?.notable_work ? (
+                {(member.cohortProfileDisplay?.notableWork || member.cohortProfile?.notable_work) ? (
                   <div className="profile-modal-work-item">
-                    <span className="profile-modal-work-label">Notable work</span>
-                    <p className="profile-modal-work-text">{member.cohortProfile.notable_work}</p>
+                    <span className="profile-modal-work-label">{t("notableWork")}</span>
+                    <p className="profile-modal-work-text">
+                      {member.cohortProfileDisplay?.notableWork || member.cohortProfile?.notable_work}
+                    </p>
                   </div>
                 ) : null}
-                {member.cohortProfile?.opportunity_interest ? (
+                {(member.cohortProfileDisplay?.opportunityInterest || member.cohortProfile?.opportunity_interest) ? (
                   <div className="profile-modal-work-item">
-                    <span className="profile-modal-work-label">Open to collaboration &amp; mentorship</span>
-                    <p className="profile-modal-work-text">{member.cohortProfile.opportunity_interest}</p>
+                    <span className="profile-modal-work-label">{t("collaborationInterest")}</span>
+                    <p className="profile-modal-work-text">
+                      {member.cohortProfileDisplay?.opportunityInterest || member.cohortProfile?.opportunity_interest}
+                    </p>
                   </div>
                 ) : null}
               </div>
@@ -199,7 +215,7 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
           {/* Relevant projects */}
           {visibleProjects.length > 0 ? (
             <div className="profile-modal-section">
-              <p className="profile-modal-section-label">Relevant projects</p>
+              <p className="profile-modal-section-label">{t("relevantProjects")}</p>
               <ul className="profile-modal-projects-list">
                 {visibleProjects.map((project, i) => (
                   <li key={`${project.title}-${i}`}>
@@ -217,7 +233,7 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
           {/* Admin-only section */}
           {isAdmin ? (
             <div className="profile-modal-admin-section">
-              <p className="profile-modal-section-label profile-modal-admin-label">Admin — not visible to members</p>
+              <p className="profile-modal-section-label profile-modal-admin-label">{t("adminHidden")}</p>
               <div className="profile-modal-meta-grid">
                 <div className="profile-modal-meta-item">
                   <span className="profile-modal-meta-label">Email</span>
@@ -261,16 +277,27 @@ export function MemberProfileModal({ member, onClose, isAdmin = false, isSelf = 
         <div className="profile-modal-footer">
           {isSelf ? (
             <Link className="secondary-button" href="/app/profile" onClick={onClose}>
-              Edit profile
+              {t("editProfile")}
+            </Link>
+          ) : null}
+          {!isSelf && member.publicBookingEnabled && member.publicBookingUrl ? (
+            <Link
+              className="secondary-button"
+              href={member.publicBookingUrl}
+              onClick={onClose}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {t("bookMeeting")}
             </Link>
           ) : null}
           {isAdmin ? (
             <Link className="secondary-button" href={`/admin/members/${member.id}`}>
-              Full admin view
+              {t("fullAdminView")}
             </Link>
           ) : null}
           <button className="primary-button" onClick={onClose} type="button">
-            Close
+            {t("close")}
           </button>
         </div>
       </div>

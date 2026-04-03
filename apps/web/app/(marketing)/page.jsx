@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { HeroMediaCarousel } from "@/components/public/hero-media-carousel";
 import { FeaturedStoryRail } from "@/components/public/featured-story-rail";
 import { MediaArticleCard } from "@/components/public/media-article-card";
@@ -25,6 +26,7 @@ export const metadata = {
 };
 
 export default async function HomePage() {
+  const t = await getTranslations();
   const [allEvents, latestPublications] = await Promise.all([
     fetchPublicEvents(),
     fetchPublicPublications({ limit: 3 }),
@@ -37,23 +39,20 @@ export default async function HomePage() {
       <section className="hero">
         <div className="hero-inner">
           <div className="hero-copy">
-            <div className="eyebrow">Data-driven climate action and energy transition for Africa</div>
+            <div className="eyebrow">{t("home.eyebrow")}</div>
             <h1>
-              Africa-centred evidence and <em>coordination</em> for climate transition
+              {t("home.h1")}
             </h1>
             <p>
-              The Professional African Technical Network Advisory (PATNA) Initiative brings
-              together experts, policymakers, industry leaders, and civil society to advance a
-              just, inclusive, and evidence-based energy transition for Africa across maritime,
-              energy, and climate systems.
+              {t("home.intro")}
             </p>
 
             <div className="hero-actions">
               <Link className="secondary-button" href="/about">
-                Learn More
+                {t("home.btnLearnMore")}
               </Link>
               <Link className="pill-link" href="/community/join">
-                Join Our Community
+                {t("home.btnJoinCommunity")}
               </Link>
             </div>
 
@@ -75,29 +74,22 @@ export default async function HomePage() {
         <div className="section-inner">
           <div className="mission-grid">
             <div>
-              <div className="section-label">Our story</div>
-              <h2 className="section-title">Africa must shape its own climate future</h2>
+              <div className="section-label">{t("home.storyLabel")}</div>
+              <h2 className="section-title">{t("home.storyTitle")}</h2>
               <p className="mission-body">
-                The Professional African Technical Network Advisory (PATNA) Initiative is a
-                non-profit organisation dedicated to advancing climate-resilient development and
-                energy transition pathways that work for Africa.
+                {t("home.missionPara1")}
               </p>
               <p className="mission-body">
-                PATNA was born from a simple but urgent conviction: Africa must shape its future
-                in global climate and energy decision-making. What began as a focused effort to
-                strengthen Africa's voice in maritime decarbonisation has grown into a broader
-                mandate supporting climate governance, energy transition, and institutional
-                readiness across sectors.
+                {t("home.missionPara2")}
               </p>
               <Link className="text-link" href="/about">
-                Read our full story
+                {t("home.readFullStory")}
               </Link>
             </div>
 
             <div>
               <div className="mission-pull">
-                To harness the collective expertise of African professionals to generate,
-                coordinate, and apply <em>evidence-based strategies</em>.
+                {t("home.pullQuote")}
               </div>
               <div className="values-list">
                 {coreValues.map((value) => (
@@ -116,9 +108,9 @@ export default async function HomePage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="Our work"
-            title="The LEAP project series"
-            subtitle="PATNA's flagship public project record is anchored in LEAP, a long-term effort to strengthen African technical capacity, evidence, and influence in maritime decarbonisation."
+            label={t("home.workLabel")}
+            title={t("home.workTitle")}
+            subtitle={t("home.workSubtitle")}
           />
 
           <div className="media-article-grid media-article-grid-projects">
@@ -130,7 +122,7 @@ export default async function HomePage() {
                 media={projectMediaBySlug[project.slug]}
                 meta={project.outcomes}
                 summary={project.summary}
-                sourceLabel="Read project page"
+                sourceLabel={t("home.readProjectPage")}
                 sourceUrl={project.sourceUrl}
                 title={project.title}
               />
@@ -142,9 +134,9 @@ export default async function HomePage() {
       <section className="section insights-band">
         <div className="section-inner">
           <SectionIntro
-            label="Latest highlights"
-            title="Reports, articles, and event outputs from across PATNA's work"
-            subtitle="This section draws directly from the current publications archive, bringing PATNA's latest reports, articles, and event outputs together in one place."
+            label={t("home.highlightsLabel")}
+            title={t("home.highlightsTitle")}
+            subtitle={t("home.highlightsSubtitle")}
           />
 
           {latestPublications.length ? (
@@ -156,7 +148,7 @@ export default async function HomePage() {
           ) : (
             <article className="content-card">
               <h3>Publications archive</h3>
-              <p>The publications library will appear here as soon as public records are available.</p>
+              <p>{t("home.publicationsEmpty")}</p>
             </article>
           )}
         </div>
@@ -165,20 +157,20 @@ export default async function HomePage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="Convenings and affiliations"
-            title="Documented PATNA convenings and visible institutional partnerships"
-            subtitle="The current public record is grounded in summits, workshops, and affiliations that show how PATNA operates across Africa and internationally."
+            label={t("home.conveningsLabel")}
+            title={t("home.conveningsTitle")}
+            subtitle={t("home.conveningsSubtitle")}
           />
 
           <div className="media-article-grid">
             {featuredEvents.map((event) => (
               <MediaArticleCard
                 key={event.slug}
-                label={event.event_type || "Event"}
+                label={event.eventTypeDisplay || event.event_type || "Event"}
                 media={getEventMedia(event.slug)}
-                meta={[event.display_date, event.location].filter(Boolean)}
+                meta={[event.displayDateDisplay || event.display_date, event.location].filter(Boolean)}
                 summary={event.summary}
-                sourceLabel="Open PATNA coverage"
+                sourceLabel={t("home.coverageLabel")}
                 title={event.title}
               />
             ))}
@@ -201,18 +193,17 @@ export default async function HomePage() {
 
       <section className="join-band">
         <div className="section-inner">
-          <div className="section-label">Join the network</div>
-          <h2>Ready to shape Africa's maritime future?</h2>
+          <div className="section-label">{t("home.joinLabel")}</div>
+          <h2>{t("home.joinTitle")}</h2>
           <p>
-            Join more than 100 specialists already collaborating through PATNA's cohorts,
-            convenings, and shared evidence work.
+            {t("home.joinPara")}
           </p>
           <div className="join-band-btns">
             <Link className="secondary-button" href="/community">
-              Explore community
+              {t("home.btnExploreCommunity")}
             </Link>
             <Link className="pill-link" href="/community/join">
-              Start application
+              {t("home.btnStartApplication")}
             </Link>
           </div>
         </div>

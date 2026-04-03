@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { MemberProfileModal } from "./member-profile-modal";
 
 function getInitials(name) {
@@ -16,31 +17,40 @@ function getInitials(name) {
 function getSearchText(member) {
   return [
     member.displayNameLabel || member.displayName,
+    member.roleTitleDisplay,
     member.roleTitleLabel || member.role_title,
+    member.organisationDisplay,
     member.organisationLabel || member.organisation_name,
+    member.countryDisplay,
     member.country_of_residence,
+    member.professionalBioDisplay,
     member.professional_bio,
+    member.primaryCohort?.nameDisplay,
     member.primaryCohort?.name,
-    ...(member.domainTags || []).map((tag) => tag.name),
+    ...(member.domainTags || []).flatMap((tag) => [tag.nameDisplay, tag.name]),
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 }
 
-function getBioExcerpt(member) {
+function getBioExcerpt(member, t) {
   const source =
+    member.professionalBioDisplay ||
     member.professional_bio ||
     [
+      member.roleTitleDisplay,
       member.roleTitleLabel || member.role_title,
+      member.organisationDisplay,
       member.organisationLabel || member.organisation_name,
+      member.countryDisplay,
       member.country_of_residence,
     ]
       .filter(Boolean)
       .join(" · ");
 
   if (!source) {
-    return "Profile summary still being completed.";
+    return t("profileIncomplete");
   }
 
   return source.length > 148 ? `${source.slice(0, 145)}...` : source;
@@ -67,11 +77,12 @@ function getCohortTone(cohortSlug) {
   return "policy";
 }
 
-function getSpaceCountLabel(count) {
-  return `${count} space${count === 1 ? "" : "s"}`;
+function getSpaceCountLabel(count, t) {
+  return count === 1 ? t("spacesSingular", { count }) : t("spacesPlural", { count });
 }
 
 export function MemberDirectoryClient({ directory }) {
+  const t = useTranslations("members");
   const [searchTerm, setSearchTerm] = useState("");
   const [cohortFilter, setCohortFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("all");
@@ -117,10 +128,10 @@ export function MemberDirectoryClient({ directory }) {
             <span aria-hidden="true" className="member-directory-search-icon">
               ⌕
             </span>
-            <span className="sr-only">Search members</span>
+            <span className="sr-only">{t("searchLabel")}</span>
             <input
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search name, org, or expertise..."
+              placeholder={t("searchPlaceholder")}
               type="search"
               value={searchTerm}
             />
@@ -129,7 +140,7 @@ export function MemberDirectoryClient({ directory }) {
           <div className="member-directory-toolbar-controls">
             <div className="member-directory-selects">
               <select onChange={(event) => setCohortFilter(event.target.value)} value={cohortFilter}>
-                <option value="all">All Cohorts</option>
+                <option value="all">{t("filterAllCohorts")}</option>
                 {directory.filters.cohorts.map((cohort) => (
                   <option key={cohort.slug} value={cohort.slug}>
                     {cohort.name}
@@ -138,7 +149,7 @@ export function MemberDirectoryClient({ directory }) {
               </select>
 
               <select onChange={(event) => setTagFilter(event.target.value)} value={tagFilter}>
-                <option value="all">All Tags</option>
+                <option value="all">{t("filterAllTags")}</option>
                 {directory.filters.tags.map((tag) => (
                   <option key={tag.slug} value={tag.slug}>
                     {tag.name}
@@ -147,17 +158,17 @@ export function MemberDirectoryClient({ directory }) {
               </select>
 
               <select onChange={(event) => setCountryFilter(event.target.value)} value={countryFilter}>
-                <option value="all">All Countries</option>
+                <option value="all">{t("filterAllCountries")}</option>
                 {directory.filters.countries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
+                  <option key={country.value} value={country.value}>
+                    {country.label}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="member-directory-toolbar-meta">
-              <strong>{filteredMembers.length} results</strong>
+              <strong>{t("results", { count: filteredMembers.length })}</strong>
             </div>
           </div>
         </div>
@@ -168,9 +179,9 @@ export function MemberDirectoryClient({ directory }) {
         {filteredMembers.map((member) => {
           const isSelf = member.id === directory.currentUserId;
           const tone = getCohortTone(member.primaryCohort?.slug);
-          const roleLabel = toRoleCase(member.roleTitleLabel || "");
-          const organisationLabel = member.organisationLabel || "";
-          const countryLabel = member.country_of_residence || "";
+          const roleLabel = toRoleCase(member.roleTitleDisplay || member.roleTitleLabel || "");
+          const organisationLabel = member.organisationDisplay || member.organisationLabel || "";
+          const countryLabel = member.countryDisplay || member.country_of_residence || "";
 
           const allCohorts = [
             member.primaryCohort,
@@ -195,7 +206,7 @@ export function MemberDirectoryClient({ directory }) {
               aria-label={`View profile: ${member.displayNameLabel || member.displayName}`}
             >
               {isSelf ? (
-                <span className="member-directory-you-chip">YOU</span>
+                <span className="member-directory-you-chip">{t("youChip")}</span>
               ) : null}
 
               <div className="member-directory-identity-row">
@@ -216,7 +227,7 @@ export function MemberDirectoryClient({ directory }) {
                     {member.displayNameLabel || member.displayName}
                   </strong>
                   <p className={`member-directory-role-line${roleLabel ? "" : " is-placeholder"}`}>
-                    {roleLabel || "Role pending"}
+                    {roleLabel || t("rolePending")}
                   </p>
                   <div className="member-directory-meta-lines">
                     {organisationLabel ? (
@@ -242,12 +253,12 @@ export function MemberDirectoryClient({ directory }) {
                       className={`status-chip member-directory-cohort-chip tone-${getCohortTone(cohort.slug)}`}
                       key={cohort.slug}
                     >
-                      {cohort.name}
+                      {cohort.nameDisplay || cohort.name}
                     </span>
                   ))}
                   {visibleTags.map((tag) => (
                     <span className="status-chip chip-neutral" key={tag.slug}>
-                      {tag.name}
+                      {tag.nameDisplay || tag.name}
                     </span>
                   ))}
                   {remainingCount > 0 ? (
@@ -256,10 +267,10 @@ export function MemberDirectoryClient({ directory }) {
                 </div>
               ) : null}
 
-              <p className="member-directory-excerpt">{getBioExcerpt(member)}</p>
+              <p className="member-directory-excerpt">{getBioExcerpt(member, t)}</p>
 
               <div className="member-directory-card-footer">
-                <span className="member-directory-footer-note">{getSpaceCountLabel(member.spaceCount || 0)}</span>
+                <span className="member-directory-footer-note">{getSpaceCountLabel(member.spaceCount || 0, t)}</span>
                 <div
                   className="member-directory-card-action-stack"
                   onClick={(e) => e.stopPropagation()}
@@ -267,7 +278,7 @@ export function MemberDirectoryClient({ directory }) {
                 >
                   {isSelf ? (
                     <Link className="member-directory-card-button" href="/app/profile">
-                      Edit Profile
+                      {t("btnEditProfile")}
                     </Link>
                   ) : null}
                   <button
@@ -278,7 +289,7 @@ export function MemberDirectoryClient({ directory }) {
                     }}
                     type="button"
                   >
-                    View profile
+                    {t("btnViewProfile")}
                   </button>
                 </div>
               </div>

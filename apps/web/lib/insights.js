@@ -1,27 +1,86 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  INSIGHT_CONTENT_TYPES,
+  INSIGHT_STATUSES,
+  INSIGHT_VISIBILITY,
+  formatContentType,
+  formatPublishStatus,
+  generateInsightSlug,
+} from "@/lib/content-types";
+import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
-// Valid content types for insights
-export const INSIGHT_CONTENT_TYPES = [
-  { value: "report", label: "Report" },
-  { value: "brief", label: "Brief" },
-  { value: "case_study", label: "Case Study" },
-  { value: "article", label: "Article" },
-  { value: "workshop_proceedings", label: "Workshop Proceedings" },
-];
+export {
+  INSIGHT_CONTENT_TYPES,
+  INSIGHT_STATUSES,
+  INSIGHT_VISIBILITY,
+  formatContentType,
+  formatPublishStatus,
+  generateInsightSlug,
+} from "@/lib/content-types";
 
-// Valid publish statuses
-export const INSIGHT_STATUSES = [
-  { value: "draft", label: "Draft", color: "warning" },
-  { value: "published", label: "Published", color: "success" },
-  { value: "archived", label: "Archived", color: "muted" },
-];
+async function translateInsightsForDisplay(insights, locale) {
+  if (!insights.length) {
+    return insights;
+  }
 
-// Valid visibility levels
-export const INSIGHT_VISIBILITY = [
-  { value: "public", label: "Public" },
-  { value: "members", label: "Members only" },
-  { value: "restricted", label: "Restricted" },
-];
+  const items = [];
+  const pushItem = (cacheKey, fieldName, text) => {
+    if (typeof text !== "string" || !text.trim()) {
+      return;
+    }
+
+    items.push({
+      cacheKey,
+      contentType: "insight",
+      fieldName,
+      text,
+    });
+  };
+
+  for (const insight of insights) {
+    pushItem(`insight:${insight.id}:title`, "title", insight.title || "");
+    pushItem(`insight:${insight.id}:summary`, "summary", insight.summary || "");
+    pushItem(`insight:${insight.id}:body`, "body", insight.body || "");
+    pushItem(`insight:${insight.id}:meta_description`, "meta_description", insight.meta_description || "");
+    pushItem(`insight:${insight.id}:cover_image_alt`, "cover_image_alt", insight.cover_image_alt || "");
+    pushItem(
+      `content_type:${insight.content_type}:label`,
+      "content_type_label",
+      formatContentType(insight.content_type),
+    );
+
+    for (const tag of insight.tags || []) {
+      if (tag?.slug && tag?.name) {
+        pushItem(`domain_tag:${tag.slug}:name`, "tag_name", tag.name);
+      }
+    }
+  }
+
+  const translated = await translateContentItems(locale, items);
+  const translatedByKey = new Map(translated.map((item) => [item.cacheKey, item.displayText]));
+
+  return insights.map((insight) => ({
+    ...insight,
+    sourceTitle: insight.title,
+    sourceSummary: insight.summary,
+    sourceBody: insight.body,
+    title: translatedByKey.get(`insight:${insight.id}:title`) || insight.title,
+    summary: translatedByKey.get(`insight:${insight.id}:summary`) || insight.summary,
+    body: translatedByKey.get(`insight:${insight.id}:body`) || insight.body,
+    meta_description:
+      translatedByKey.get(`insight:${insight.id}:meta_description`) || insight.meta_description,
+    cover_image_alt:
+      translatedByKey.get(`insight:${insight.id}:cover_image_alt`) || insight.cover_image_alt,
+    contentTypeLabel:
+      translatedByKey.get(`content_type:${insight.content_type}:label`) ||
+      formatContentType(insight.content_type),
+    tags: (insight.tags || []).map((tag) => ({
+      ...tag,
+      originalName: tag.name,
+      name: translatedByKey.get(`domain_tag:${tag.slug}:name`) || tag.name,
+    })),
+  }));
+}
 
 /**
  * Fetch insights for admin interface (all statuses)
@@ -83,7 +142,10 @@ export async function fetchAdminInsights({ supabase, filters = {} }) {
     })
   );
 
-  return { insights: insightsWithRelations, error: null };
+  return {
+    insights: await translateInsightsForDisplay(insightsWithRelations, await getRequestLocale()),
+    error: null,
+  };
 }
 
 /**
@@ -133,7 +195,10 @@ export async function fetchMemberInsights({ supabase, filters = {} }) {
     attachments: item.content_attachments || [],
   }));
 
-  return { insights, error: null };
+  return {
+    insights: await translateInsightsForDisplay(insights, await getRequestLocale()),
+    error: null,
+  };
 }
 
 /**
@@ -169,7 +234,9 @@ export async function fetchInsightBySlug({ supabase, slug, includeUnpublished = 
     attachments: data.content_attachments || [],
   };
 
-  return { insight, error: null };
+  const [translatedInsight] = await translateInsightsForDisplay([insight], await getRequestLocale());
+
+  return { insight: translatedInsight, error: null };
 }
 
 /**
@@ -453,40 +520,4 @@ export function filterInsights(insights, filters) {
 
     return true;
   });
-}
-
-/**
- * Generate URL-friendly slug
- */
-export function generateInsightSlug(title) {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-/**
- * Format content type for display
- */
-export function formatContentType(type) {
-  const typeMap = {
-    report: "Report",
-    brief: "Brief",
-    case_study: "Case Study",
-    article: "Article",
-    workshop_proceedings: "Workshop Proceedings",
-  };
-  return typeMap[type] || type;
-}
-
-/**
- * Format publish status for display
- */
-export function formatPublishStatus(status) {
-  const statusMap = {
-    draft: "Draft",
-    published: "Published",
-    archived: "Archived",
-  };
-  return statusMap[status] || status;
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchMemberDashboardMainData, fetchMemberDashboardRailData, fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
@@ -32,6 +33,7 @@ function DashboardShellFallback() {
 }
 
 async function MemberDashboardMain({ member }) {
+  const t = await getTranslations();
   const adminClient = createSupabaseAdminClient();
   const { error, stats, mySpaces, recentDiscussions } = await fetchMemberDashboardMainData({
     adminClient,
@@ -41,7 +43,7 @@ async function MemberDashboardMain({ member }) {
   if (error) {
     return (
       <article className="dashboard-card member-module-card">
-        <h3>Dashboard unavailable</h3>
+        <h3>{t("dashboard.errorTitle")}</h3>
         <p className="member-section-copy">{error.message}</p>
       </article>
     );
@@ -61,9 +63,9 @@ async function MemberDashboardMain({ member }) {
 
       <article className="dashboard-card member-module-card">
         <div className="member-section-heading">
-          <h3>My spaces</h3>
+          <h3>{t("dashboard.mySpaces")}</h3>
           <Link className="text-link" href="/app/spaces">
-            View all
+            {t("dashboard.viewAll")}
           </Link>
         </div>
         <div className="member-space-grid">
@@ -78,10 +80,10 @@ async function MemberDashboardMain({ member }) {
               </div>
               <p className="member-space-card-summary">{space.summary}</p>
               <div className="member-space-card-meta">
-                <span>{space.members} members</span>
-                <span>{space.threads} threads</span>
+                <span>{space.members} {t("dashboard.membersLabel")}</span>
+                <span>{space.threads} {t("dashboard.threadsLabel")}</span>
                 <span className={space.unread ? "member-meta-emphasis" : undefined}>
-                  {space.unread} new
+                  {space.unread} {t("dashboard.newLabel")}
                 </span>
               </div>
             </div>
@@ -91,8 +93,8 @@ async function MemberDashboardMain({ member }) {
 
       <article className="dashboard-card member-module-card">
         <div className="member-section-heading">
-          <h3>Recent discussions</h3>
-          <span className="member-section-note">Recent coordination activity</span>
+          <h3>{t("dashboard.recentDiscussions")}</h3>
+          <span className="member-section-note">{t("dashboard.recentDiscussionsNote")}</span>
         </div>
         <div className="member-feed-list">
           {recentDiscussions.map((item) => (
@@ -104,7 +106,7 @@ async function MemberDashboardMain({ member }) {
                   <span className="status-chip chip-neutral">{item.space}</span>
                   <span>{item.author}</span>
                   <span>{item.timeAgo || item.time}</span>
-                  <span>{item.replies} replies</span>
+                  <span>{item.replies} {t("dashboard.repliesLabel")}</span>
                 </div>
               </div>
             </div>
@@ -117,6 +119,7 @@ async function MemberDashboardMain({ member }) {
 }
 
 async function MemberDashboardProfileCard({ member, sidebarUser }) {
+  const t = await getTranslations();
   const supabase = await createSupabaseServerClient();
   const { profileSnapshot, recentInsights } = await fetchMemberDashboardRailData({
     supabase,
@@ -160,14 +163,14 @@ async function MemberDashboardProfileCard({ member, sidebarUser }) {
       </div>
       <div className="member-rail-progress">
         <div className="member-rail-progress-copy">
-          <strong>Profile completion</strong>
-          <span>{profileSnapshot.completionPercent}% complete</span>
+          <strong>{t("dashboard.profileCompletion")}</strong>
+          <span>{profileSnapshot.completionPercent}{t("dashboard.profileCompletePct")}</span>
         </div>
         <div className="progress-bar-track" aria-hidden="true">
           <span className="progress-bar-fill" style={{ width: `${profileSnapshot.completionPercent}%` }} />
         </div>
         <Link className="secondary-button member-rail-profile-action" href="/app/profile">
-          Complete profile
+          {t("dashboard.profileCompleteAction")}
         </Link>
       </div>
     </article>
@@ -175,6 +178,7 @@ async function MemberDashboardProfileCard({ member, sidebarUser }) {
 }
 
 async function MemberDashboardRightRail({ member }) {
+  const t = await getTranslations();
   const supabase = await createSupabaseServerClient();
   const { error, upcomingEvents, recentInsights } = await fetchMemberDashboardRailData({
     supabase,
@@ -185,13 +189,13 @@ async function MemberDashboardRightRail({ member }) {
     <div className="member-rail-stack">
       <article className="member-rail-card" id="member-upcoming-events">
         <div className="member-section-heading">
-          <h3>Upcoming events</h3>
+          <h3>{t("dashboard.upcomingEvents")}</h3>
           <Link className="text-link" href="/app/events">
-            Full archive
+            {t("dashboard.fullArchive")}
           </Link>
         </div>
         {error ? (
-          <p className="member-section-copy">Live events could not be refreshed just now.</p>
+          <p className="member-section-copy">{t("dashboard.eventsError")}</p>
         ) : (
           <div className="member-event-list">
             {upcomingEvents.map((event) => (
@@ -203,7 +207,7 @@ async function MemberDashboardRightRail({ member }) {
                 <div className="member-event-copy">
                   <strong>{event.title}</strong>
                   <p>
-                    {(event.event_type || event.type || "Event")} · {event.location || "Location pending"}
+                    {(event.event_type || event.type || "Event")} · {event.location || t("dashboard.locationPending")}
                   </p>
                 </div>
               </div>
@@ -214,7 +218,7 @@ async function MemberDashboardRightRail({ member }) {
 
       <article className="member-rail-card">
         <div className="member-section-heading">
-          <h3>Recent insights</h3>
+          <h3>{t("dashboard.recentInsights")}</h3>
         </div>
         <div className="member-rail-link-list">
           {recentInsights.slice(0, 3).map((item) => (
@@ -227,23 +231,23 @@ async function MemberDashboardRightRail({ member }) {
           ))}
         </div>
         <Link className="text-link" href="/app/insights">
-          Browse library
+          {t("dashboard.browseLibrary")}
         </Link>
       </article>
 
       <article className="member-rail-card">
         <div className="member-section-heading">
-          <h3>Quick actions</h3>
+          <h3>{t("dashboard.quickActions")}</h3>
         </div>
         <div className="member-quick-actions">
           <Link className="secondary-button" href="/app/events">
-            Open events
+            {t("dashboard.quickActionEvents")}
           </Link>
           <Link className="secondary-button" href="/app/profile">
-            Update my profile
+            {t("dashboard.quickActionProfile")}
           </Link>
           <Link className="secondary-button" href="/app/members">
-            Open member directory
+            {t("dashboard.quickActionDirectory")}
           </Link>
         </div>
       </article>
@@ -252,6 +256,7 @@ async function MemberDashboardRightRail({ member }) {
 }
 
 export default async function MemberDashboardPage() {
+  const t = await getTranslations();
   const { supabase, user } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -264,26 +269,25 @@ export default async function MemberDashboardPage() {
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
   // Allow access even with incomplete/missing profile data
-  const headerActions = (
-    <>
-      <Link className="secondary-button" href="/app/events">
-        View events
-      </Link>
-      <Link className="primary-button" href="/app/spaces">
-        View spaces
-      </Link>
-    </>
-  );
-
-  // Handle incomplete profile gracefully
   const member = frameData.member || {};
   const sidebarUser = frameData.sidebarUser || null;
   const firstName = member.first_name || member.displayName || "Member";
 
+  const headerActions = (
+    <>
+      <Link className="secondary-button" href="/app/events">
+        {t("dashboard.btnViewEvents")}
+      </Link>
+      <Link className="primary-button" href="/app/spaces">
+        {t("dashboard.btnViewSpaces")}
+      </Link>
+    </>
+  );
+
   return (
     <MemberWorkspaceShell
       dateLabel={formatToday()}
-      eyebrow="Community workspace"
+      eyebrow={t("dashboard.eyebrow")}
       headerActions={headerActions}
       rightRail={
         <Suspense fallback={<DashboardShellFallback />}>
@@ -291,8 +295,8 @@ export default async function MemberDashboardPage() {
         </Suspense>
       }
       sidebarUser={sidebarUser}
-      subtitle="Your current spaces, events, insights, and profile progress are gathered here in one member workspace."
-      title={`Welcome back, ${firstName}`}
+      subtitle={t("dashboard.subtitle")}
+      title={t("dashboard.title", { firstName: member?.firstName || member?.first_name || member?.displayName?.split(" ")[0] || "..." })}
     >
       <div className="member-dashboard-home-stack">
         <Suspense fallback={<DashboardShellFallback />}>

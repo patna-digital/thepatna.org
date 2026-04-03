@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { formatSpaceType, formatSpaceVisibility } from "@/lib/space-types";
 import { deleteSpaceAction } from "../[spaceId]/actions";
-import { formatSpaceType, formatSpaceVisibility } from "@/lib/spaces";
 
 const VISIBILITY_CHIP = {
   public_members: "chip-success",

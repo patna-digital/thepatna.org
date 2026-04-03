@@ -16,7 +16,11 @@ function getCalendarSettingsNotice(searchParams) {
   const error = typeof searchParams?.error === "string" ? searchParams.error : "";
   const provider = typeof searchParams?.provider === "string" ? searchParams.provider : "calendar";
   const sync = typeof searchParams?.sync === "string" ? searchParams.sync : "";
-  const providerLabel = provider === "google" ? "Google Calendar" : "calendar";
+  const providerLabel = {
+    google: "Google Calendar",
+    microsoft: "Outlook Calendar",
+    zoho: "Zoho Calendar",
+  }[provider] || "calendar";
 
   if (error === "oauth_denied") {
     return {

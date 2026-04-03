@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
+import { INSIGHT_CONTENT_TYPES } from "@/lib/content-types";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
-import { fetchMemberInsights, INSIGHT_CONTENT_TYPES } from "@/lib/insights";
+import { fetchMemberInsights } from "@/lib/insights";
 import { MemberInsightsList } from "./components/member-insights-list";
 
 export default async function MemberInsightsPage({ searchParams }) {

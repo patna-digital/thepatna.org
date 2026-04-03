@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { INSIGHT_CONTENT_TYPES, INSIGHT_STATUSES } from "@/lib/content-types";
 import { adminNav } from "@/lib/patna-data";
 import { requireAdminContext } from "@/lib/supabase/access";
 import {
   fetchAdminInsights,
   buildInsightsSummary,
   filterInsights,
-  INSIGHT_CONTENT_TYPES,
-  INSIGHT_STATUSES,
 } from "@/lib/insights";
 import { AdminInsightsList } from "./components/admin-insights-list";
 

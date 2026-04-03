@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
 import { EventGalleryStrip } from "@/components/public/event-gallery-strip";
 import { MediaArticleCard } from "@/components/public/media-article-card";
@@ -16,15 +17,16 @@ export const metadata = {
 };
 
 export default async function EventsPage() {
+  const t = await getTranslations();
   const publicEvents = await fetchPublicEvents();
   const { patnaEvents, externalEvents } = splitPublicEventCollections(publicEvents);
 
   return (
     <>
       <MarketingPageHero
-        label="Events"
-        subtitle="From PATNA-led summits and workshops to the international forums shaping African negotiating space, this archive tracks the convenings that matter."
-        title="Convenings, workshops, and the wider policy calendar"
+        label={t("events.label")}
+        subtitle={t("events.subtitle")}
+        title={t("events.title")}
       />
 
       <EventGalleryStrip section={publicPageMedia.events.gallery} />
@@ -32,9 +34,9 @@ export default async function EventsPage() {
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label="PATNA convenings"
-            title="Summits, workshops, and coalition moments led by PATNA"
-            subtitle="These public events reflect PATNA's own convening history and the role the network has played in African climate and maritime coordination."
+            label={t("events.patnaLabel")}
+            title={t("events.patnaTitle")}
+            subtitle={t("events.patnaSubtitle")}
           />
 
           <div className="media-article-grid">
@@ -42,18 +44,18 @@ export default async function EventsPage() {
               patnaEvents.map((event) => (
                 <MediaArticleCard
                   key={event.slug}
-                  label={event.event_type || "Event"}
+                  label={event.eventTypeDisplay || event.event_type || "Event"}
                   media={getEventMedia(event.slug)}
-                  meta={[event.display_date, event.location].filter(Boolean)}
+                  meta={[event.displayDateDisplay || event.display_date, event.location].filter(Boolean)}
                   summary={event.summary}
-                  sourceLabel="Open PATNA coverage"
+                  sourceLabel={t("events.coverageLabel")}
                   title={event.title}
                 />
               ))
             ) : (
               <article className="content-card">
-                <h3>No PATNA convenings published yet</h3>
-                <p>The PATNA event archive will appear here as soon as public records are available.</p>
+                <h3>{t("events.emptyTitle")}</h3>
+                <p>{t("events.emptyText")}</p>
               </article>
             )}
           </div>
@@ -64,20 +66,20 @@ export default async function EventsPage() {
         <section className="section">
           <div className="section-inner">
             <SectionIntro
-              label="Policy calendar"
-              title="Wider meetings shaping Africa's climate and maritime agenda"
-              subtitle="PATNA also tracks key external IMO, UNFCCC, and ocean-governance meetings that influence African strategy, negotiation, and implementation."
+              label={t("events.calendarLabel")}
+              title={t("events.calendarTitle")}
+              subtitle={t("events.calendarSubtitle")}
             />
 
             <div className="media-article-grid">
               {externalEvents.map((event) => (
                 <MediaArticleCard
                   key={event.slug}
-                  label={event.event_type || "Event"}
+                  label={event.eventTypeDisplay || event.event_type || "Event"}
                   media={getEventMedia(event.slug)}
-                  meta={[event.display_date, event.location].filter(Boolean)}
+                  meta={[event.displayDateDisplay || event.display_date, event.location].filter(Boolean)}
                   summary={event.summary}
-                  sourceLabel={isPatnaLedEvent(event) ? "Open PATNA coverage" : "Official event page"}
+                  sourceLabel={isPatnaLedEvent(event) ? t("events.coverageLabel") : t("events.officialPage")}
                   sourceUrl={
                     isPatnaLedEvent(event)
                       ? undefined

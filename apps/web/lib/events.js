@@ -5,6 +5,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/env";
 import { publicEvents as seededPublicEvents } from "@/lib/patna-data";
+import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
 const ADMIN_EVENT_SELECT = `
   *,
@@ -190,6 +191,73 @@ function normaliseEventRow(row) {
   };
 }
 
+async function translateEventsForDisplay(events, locale) {
+  if (!events.length) {
+    return events;
+  }
+
+  const items = [];
+  const pushItem = (cacheKey, fieldName, text) => {
+    if (typeof text !== "string" || !text.trim()) {
+      return;
+    }
+
+    items.push({
+      cacheKey,
+      contentType: "event",
+      fieldName,
+      text,
+      format: "text",
+    });
+  };
+
+  for (const event of events) {
+    pushItem(`event:${event.id}:title`, "title", event.title || "");
+    pushItem(`event:${event.id}:summary`, "summary", event.summary || "");
+    pushItem(`event:${event.id}:body`, "body", event.body || "");
+    pushItem(`event:${event.id}:location`, "location", event.location || "");
+    pushItem(`event:${event.id}:event_type`, "event_type", event.event_type || "");
+    pushItem(`event:${event.id}:display_date`, "display_date", event.display_date || "");
+    pushItem(`event:${event.id}:patna_involvement`, "patna_involvement", event.patna_involvement || "");
+
+    for (const [index, institution] of (event.organising_institutions || []).entries()) {
+      pushItem(`event:${event.id}:organising_institution:${index}`, "organising_institution", institution);
+    }
+
+    for (const [index, theme] of (event.themes || []).entries()) {
+      pushItem(`event:${event.id}:theme:${index}`, "theme", theme);
+    }
+  }
+
+  const translated = await translateContentItems(locale, items);
+  const translatedByKey = new Map(translated.map((item) => [item.cacheKey, item.displayText]));
+
+  return events.map((event) => ({
+    ...event,
+    sourceTitle: event.title,
+    sourceSummary: event.summary,
+    sourceBody: event.body,
+    sourceLocation: event.location,
+    sourcePatnaInvolvement: event.patna_involvement,
+    sourceOrganisingInstitutions: event.organising_institutions || [],
+    sourceThemes: event.themes || [],
+    title: translatedByKey.get(`event:${event.id}:title`) || event.title,
+    summary: translatedByKey.get(`event:${event.id}:summary`) || event.summary,
+    body: translatedByKey.get(`event:${event.id}:body`) || event.body,
+    location: translatedByKey.get(`event:${event.id}:location`) || event.location,
+    eventTypeDisplay: translatedByKey.get(`event:${event.id}:event_type`) || event.event_type,
+    displayDateDisplay: translatedByKey.get(`event:${event.id}:display_date`) || event.display_date,
+    patna_involvement:
+      translatedByKey.get(`event:${event.id}:patna_involvement`) || event.patna_involvement,
+    organising_institutions: (event.organising_institutions || []).map((institution, index) =>
+      translatedByKey.get(`event:${event.id}:organising_institution:${index}`) || institution
+    ),
+    themes: (event.themes || []).map((theme, index) =>
+      translatedByKey.get(`event:${event.id}:theme:${index}`) || theme
+    ),
+  }));
+}
+
 function createSeedFallbackEvents() {
   return seededPublicEvents.map((event) => ({
     id: event.slug,
@@ -222,7 +290,8 @@ export async function fetchPublicEvents({ limit = 0 } = {}) {
   const fallback = createSeedFallbackEvents();
 
   if (!isSupabaseConfigured()) {
-    return limit > 0 ? fallback.slice(0, limit) : fallback;
+    const events = limit > 0 ? fallback.slice(0, limit) : fallback;
+    return translateEventsForDisplay(events, await getRequestLocale());
   }
 
   const supabase = createPublicSupabaseClient();
@@ -233,11 +302,15 @@ export async function fetchPublicEvents({ limit = 0 } = {}) {
     .eq("visibility", "public");
 
   if (error || !data) {
-    return limit > 0 ? fallback.slice(0, limit) : fallback;
+    const events = limit > 0 ? fallback.slice(0, limit) : fallback;
+    return translateEventsForDisplay(events, await getRequestLocale());
   }
 
   const events = data.map(normaliseEventRow).sort(compareEvents);
-  return limit > 0 ? events.slice(0, limit) : events;
+  return translateEventsForDisplay(
+    limit > 0 ? events.slice(0, limit) : events,
+    await getRequestLocale(),
+  );
 }
 
 export function isPatnaLedEvent(event) {
@@ -263,8 +336,9 @@ export async function fetchMemberEvents({ supabase, limit = 0 } = {}) {
   const fallback = createSeedFallbackEvents();
 
   if (!supabase) {
+    const events = limit > 0 ? fallback.slice(0, limit) : fallback;
     return {
-      events: limit > 0 ? fallback.slice(0, limit) : fallback,
+      events: await translateEventsForDisplay(events, await getRequestLocale()),
       error: null,
     };
   }
@@ -275,8 +349,9 @@ export async function fetchMemberEvents({ supabase, limit = 0 } = {}) {
     .eq("status", "published");
 
   if (error || !data) {
+    const events = limit > 0 ? fallback.slice(0, limit) : fallback;
     return {
-      events: limit > 0 ? fallback.slice(0, limit) : fallback,
+      events: await translateEventsForDisplay(events, await getRequestLocale()),
       error,
     };
   }
@@ -284,7 +359,10 @@ export async function fetchMemberEvents({ supabase, limit = 0 } = {}) {
   const events = data.map(normaliseEventRow).sort(compareEvents);
 
   return {
-    events: limit > 0 ? events.slice(0, limit) : events,
+    events: await translateEventsForDisplay(
+      limit > 0 ? events.slice(0, limit) : events,
+      await getRequestLocale(),
+    ),
     error: null,
   };
 }
@@ -296,7 +374,10 @@ export async function fetchAdminEvents({ supabase }) {
     .order("created_at", { ascending: false });
 
   return {
-    events: (data || []).map(normaliseEventRow).sort(compareEvents),
+    events: await translateEventsForDisplay(
+      (data || []).map(normaliseEventRow).sort(compareEvents),
+      await getRequestLocale(),
+    ),
     error,
   };
 }

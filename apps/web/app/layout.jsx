@@ -1,4 +1,7 @@
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import localFont from "next/font/local";
+import { isRtlLocale } from "@/lib/locales";
 import "./globals.css";
 
 const plusJakartaSans = localFont({
@@ -33,10 +36,18 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const dir = isRtlLocale(locale) ? "rtl" : "ltr";
+
   return (
-    <html lang="en">
-      <body className={`${plusJakartaSans.variable} ${dmSerifDisplay.variable}`}>{children}</body>
+    <html lang={locale} dir={dir}>
+      <body className={`${plusJakartaSans.variable} ${dmSerifDisplay.variable}`}>
+        <NextIntlClientProvider messages={messages}>
+          {children}
+        </NextIntlClientProvider>
+      </body>
     </html>
   );
 }

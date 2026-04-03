@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
-import { fetchAvailabilityRules } from "@/lib/calendar/data";
+import { fetchAvailabilityRules, fetchBookingSettings } from "@/lib/calendar/data";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { AvailabilityEditorClient } from "./availability-editor-client";
 
@@ -21,9 +21,10 @@ export default async function AvailabilityPage() {
     redirect("/auth/login?next=/app/calendar/availability");
   }
 
-  const [frameData, rulesResult] = await Promise.all([
+  const [frameData, rulesResult, settingsResult] = await Promise.all([
     fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
     fetchAvailabilityRules({ memberId: user.id, supabase }),
+    fetchBookingSettings({ memberId: user.id, supabase }),
   ]);
 
   const sidebarUser = frameData.sidebarUser || null;
@@ -45,6 +46,7 @@ export default async function AvailabilityPage() {
       <div className="availability-page-content">
         <AvailabilityEditorClient
           initialRules={rulesResult.rules}
+          initialBookingSettings={settingsResult.settings}
           memberId={user.id}
         />
       </div>

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { MemberDirectoryClient } from "@/components/member-directory-client";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
@@ -10,6 +11,7 @@ import {
 } from "@/lib/member-workspace";
 
 export default async function MembersPage() {
+  const t = await getTranslations();
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -28,17 +30,19 @@ export default async function MembersPage() {
   // Allow navigation even with incomplete profile
   const sidebarUser = frameData.sidebarUser || null;
 
+  const cohortCount = new Set(members.map((member) => member.primaryCohort?.slug).filter(Boolean)).size;
+
   return (
     <MemberWorkspaceShell
-      eyebrow="Community"
-      headerActions={<span className="member-lock-chip">Members only</span>}
+      eyebrow={t("members.eyebrow")}
+      headerActions={<span className="member-lock-chip">{t("members.membersOnly")}</span>}
       sidebarUser={sidebarUser}
-      subtitle={`${members.length} active members across ${new Set(members.map((member) => member.primaryCohort?.slug).filter(Boolean)).size} cohorts, visible to current PATNA members.`}
-      title="Member directory"
+      subtitle={t("members.subtitle", { count: members.length, cohortCount })}
+      title={t("members.title")}
     >
       {error ? (
         <article className="dashboard-card">
-          <h3>Directory unavailable</h3>
+          <h3>{t("members.errorTitle")}</h3>
           <p>{error.message}</p>
         </article>
       ) : (

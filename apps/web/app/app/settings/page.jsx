@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LanguageSelector } from "@/components/language-selector";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
@@ -160,6 +161,14 @@ export default async function SettingsPage({ searchParams }) {
 
         {/* Secondary Settings */}
         <div className="settings-grid-secondary">
+          {/* Language */}
+          <SettingsCard
+            description="Choose the language for your PATNA workspace"
+            title="Language"
+          >
+            <LanguageSelector variant="full" />
+          </SettingsCard>
+
           {/* Timezone */}
           <SettingsCard
             description="Your local timezone for meeting scheduling"

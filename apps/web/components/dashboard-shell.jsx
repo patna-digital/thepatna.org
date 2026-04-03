@@ -3,9 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BrandLogo } from "@/components/brand-logo";
+import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
+
+const ADMIN_NAV_KEY = {
+  "/admin": "dashboard",
+  "/admin/applications": "applications",
+  "/admin/members": "members",
+  "/admin/spaces": "spaces",
+  "/admin/events": "events",
+  "/admin/insights": "publications",
+};
 
 export function DashboardShell({
   title,
@@ -18,6 +29,7 @@ export function DashboardShell({
   spotlight,
 }) {
   const pathname = usePathname();
+  const t = useTranslations();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const footerLinks = [
@@ -58,7 +70,7 @@ export function DashboardShell({
               <Link className={isActive ? "active" : ""} href={item.href} key={item.href}>
                 <span className="nav-item-label">
                   <span className="nav-item-icon">{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span>{ADMIN_NAV_KEY[item.href] ? t(`member.${ADMIN_NAV_KEY[item.href]}`) : item.label}</span>
                 </span>
                 {item.badge ? <span className="badge">{item.badge}</span> : null}
               </Link>
@@ -76,15 +88,16 @@ export function DashboardShell({
         </div>
 
         <div className="sidebar-cross-nav">
-          <div className="sidebar-cross-nav-label">Navigate to</div>
+          <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
           <Link className="sidebar-cross-nav-link" href="/">
-            <span>Website</span>
+            <span>{t("nav_cross.website")}</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
           <Link className="sidebar-cross-nav-link" href="/app">
-            <span>Community app</span>
+            <span>{t("nav_cross.communityApp")}</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
+          <LanguageSelector variant="compact" />
           <SignOutButton />
         </div>
       </aside>

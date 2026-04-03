@@ -4,8 +4,12 @@
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { getCalendarDisplayRange } from './core';
-import { fetchProviderEvents, refreshAccessToken } from './providers';
+import { refreshGoogleCalendarConnectionMetadata } from './google-connection-metadata.js';
+import { getCalendarDisplayRange } from './core.js';
+import { fetchProviderEvents, refreshAccessToken } from './providers/index.js';
+import { syncMatchedBookingConferenceDetails } from './sync-bookings.js';
+
+export { syncMatchedBookingConferenceDetails } from './sync-bookings.js';
 
 /**
  * Sync events from an external calendar connection
@@ -64,6 +68,22 @@ export async function syncCalendarConnection(connection, options = {}) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', connection.id);
+    }
+
+    if (connection.provider === 'google') {
+      try {
+        const metadataRefresh = await refreshGoogleCalendarConnectionMetadata({
+          accessToken,
+          refreshToken,
+          memberId: connection.member_id,
+          supabase,
+        });
+
+        accessToken = metadataRefresh.accessToken;
+        refreshToken = metadataRefresh.refreshToken;
+      } catch (error) {
+        stats.errors.push(`Metadata refresh error: ${error.message}`);
+      }
     }
 
     // Fetch events from provider
@@ -141,6 +161,9 @@ export async function syncCalendarConnection(connection, options = {}) {
           organizer: event.organizer,
           status: event.status,
           visibility: event.visibility,
+          conference_url: event.conferenceUrl || null,
+          conference_provider: event.conferenceProvider || null,
+          conference_data: event.conferenceData || null,
           external_created_at: event.externalCreatedAt,
           external_updated_at: event.externalUpdatedAt,
           last_synced_at: new Date().toISOString(),
@@ -165,6 +188,9 @@ export async function syncCalendarConnection(connection, options = {}) {
           organizer: event.organizer,
           status: event.status,
           visibility: event.visibility,
+          conference_url: event.conferenceUrl || null,
+          conference_provider: event.conferenceProvider || null,
+          conference_data: event.conferenceData || null,
           external_updated_at: event.externalUpdatedAt,
           last_synced_at: new Date().toISOString(),
         });
@@ -198,6 +224,16 @@ export async function syncCalendarConnection(connection, options = {}) {
           stats.eventsUpdated++;
         }
       }
+    }
+
+    const bookingConferenceSync = await syncMatchedBookingConferenceDetails({
+      externalEvents,
+      memberId: connection.member_id,
+      supabase,
+    });
+
+    if (bookingConferenceSync.errors.length > 0) {
+      stats.errors.push(...bookingConferenceSync.errors.map((message) => `Booking sync error: ${message}`));
     }
 
     // Delete events that no longer exist (for incremental syncs)
