@@ -55,6 +55,26 @@ export function getCalendarDays(month, year) {
 }
 
 /**
+ * Get the calendar horizon PATNA renders in the member workspace.
+ * Uses UTC boundaries so date-only queries do not drift by server timezone.
+ * @param {Date} referenceDate
+ * @returns {{year: number, start: Date, end: Date, startDate: string, endDate: string}}
+ */
+export function getCalendarDisplayRange(referenceDate = new Date()) {
+  const year = referenceDate.getUTCFullYear();
+  const start = new Date(Date.UTC(year - 1, 0, 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year + 1, 11, 31, 23, 59, 59, 999));
+
+  return {
+    year,
+    start,
+    end,
+    startDate: `${year - 1}-01-01`,
+    endDate: `${year + 1}-12-31`,
+  };
+}
+
+/**
  * Get the week dates for a given date
  * @param {Date} date - Reference date
  * @param {number} startOfWeek - First day of week (0 = Sunday, 1 = Monday)

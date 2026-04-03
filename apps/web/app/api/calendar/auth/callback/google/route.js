@@ -38,12 +38,10 @@ export async function GET(request) {
   try {
     // Decode state parameter to get member ID
     let memberId;
-    let calendarId = 'primary';
     
     try {
       const stateData = JSON.parse(Buffer.from(state, 'base64url').toString());
       memberId = stateData.memberId;
-      calendarId = stateData.calendarId || 'primary';
     } catch {
       return NextResponse.redirect(
         `${baseUrl}/app/calendar/settings?error=invalid_state`
@@ -72,7 +70,6 @@ export async function GET(request) {
     );
 
     const allCalendars = calendarList.calendars || [];
-    const primaryCalendar = allCalendars.find((c) => c.primary) || allCalendars[0];
 
     const supabase = createSupabaseAdminClient();
 
@@ -83,9 +80,10 @@ export async function GET(request) {
     ];
 
     const savedConnections = [];
+    const saveErrors = [];
 
     for (const cal of connectionRecords) {
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('calendar_connections')
         .select('id')
         .eq('member_id', memberId)
@@ -93,6 +91,11 @@ export async function GET(request) {
         .eq('provider_account_email', userInfo.email)
         .eq('calendar_id', cal.id)
         .maybeSingle();
+
+      if (existingError) {
+        saveErrors.push(existingError);
+        continue;
+      }
 
       const connectionData = {
         access_token: tokens.accessToken,
@@ -106,15 +109,23 @@ export async function GET(request) {
         updated_at: new Date().toISOString(),
       };
 
-      let savedId;
+      let savedConnection;
       if (existing) {
-        await supabase
+        const { data: updatedConnection, error: updateError } = await supabase
           .from('calendar_connections')
           .update(connectionData)
-          .eq('id', existing.id);
-        savedId = existing.id;
+          .eq('id', existing.id)
+          .select('*')
+          .single();
+
+        if (updateError) {
+          saveErrors.push(updateError);
+          continue;
+        }
+
+        savedConnection = updatedConnection;
       } else {
-        const { data: inserted } = await supabase
+        const { data: insertedConnection, error: insertError } = await supabase
           .from('calendar_connections')
           .insert({
             member_id: memberId,
@@ -124,28 +135,54 @@ export async function GET(request) {
             auth_method: 'oauth',
             ...connectionData,
           })
-          .select('id')
+          .select('*')
           .single();
-        savedId = inserted?.id;
+
+        if (insertError) {
+          saveErrors.push(insertError);
+          continue;
+        }
+
+        savedConnection = insertedConnection;
       }
 
-      if (savedId) {
-        savedConnections.push({ id: savedId, ...connectionData });
+      if (savedConnection) {
+        savedConnections.push(savedConnection);
       }
     }
 
-    // Trigger initial sync for all saved connections (non-blocking)
-    Promise.all(
-      savedConnections.map((conn) =>
-        syncCalendarConnection(conn, { forceFullSync: true }).catch((e) =>
-          console.error(`Initial sync failed for ${conn.calendar_id}:`, e)
-        )
-      )
-    ).catch(() => {});
+    if (savedConnections.length === 0) {
+      throw saveErrors[0] || new Error('Failed to save Google Calendar connection');
+    }
+
+    const syncResults = await Promise.all(
+      savedConnections.map(async (connection) => {
+        try {
+          return await syncCalendarConnection(connection, { forceFullSync: true });
+        } catch (syncError) {
+          console.error(`Initial sync failed for ${connection.calendar_id}:`, syncError);
+          return {
+            success: false,
+            stats: null,
+            error: syncError,
+          };
+        }
+      })
+    );
+
+    const hasPartialSyncFailure = saveErrors.length > 0 || syncResults.some((result) => !result.success);
+    const redirectParams = new URLSearchParams({
+      success: 'connected',
+      provider: 'google',
+    });
+
+    if (hasPartialSyncFailure) {
+      redirectParams.set('sync', 'partial');
+    }
 
     // Redirect back to settings with success
     return NextResponse.redirect(
-      `${baseUrl}/app/calendar/settings?success=connected&provider=google`
+      `${baseUrl}/app/calendar/settings?${redirectParams.toString()}`
     );
   } catch (error) {
     console.error('Google OAuth callback error:', error);

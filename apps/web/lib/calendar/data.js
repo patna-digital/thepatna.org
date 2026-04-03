@@ -61,6 +61,61 @@ const BOOKING_SETTINGS_SELECT = `
   cancellation_policy
 `;
 
+const PROVIDER_NAMES = {
+  google: 'Google Calendar',
+  microsoft: 'Outlook Calendar',
+  zoho: 'Zoho Calendar',
+  apple: 'Apple Calendar',
+  generic_ical: 'iCal Feed',
+};
+
+const EXTERNAL_EVENTS_WARNING =
+  'Some connected calendar items could not be loaded right now. PATNA events and bookings are still shown.';
+
+function getExternalSourceLabel(connection) {
+  return connection?.calendar_name || PROVIDER_NAMES[connection?.provider] || 'Connected Calendar';
+}
+
+function getExternalSourceDetail(connection) {
+  const providerLabel = connection?.provider
+    ? PROVIDER_NAMES[connection.provider] || connection.provider
+    : null;
+
+  if (!providerLabel) {
+    return null;
+  }
+
+  return connection?.calendar_name && connection.calendar_name !== providerLabel
+    ? providerLabel
+    : null;
+}
+
+function buildConnectionEventCountMap(events = []) {
+  const countMap = new Map();
+
+  for (const event of events) {
+    if (!event?.connection_id) {
+      continue;
+    }
+
+    countMap.set(event.connection_id, (countMap.get(event.connection_id) || 0) + 1);
+  }
+
+  return countMap;
+}
+
+async function fetchConnectionEventCountMap({ memberId, supabase }) {
+  const { data, error } = await supabase
+    .from('external_calendar_events')
+    .select('connection_id')
+    .eq('member_id', memberId);
+
+  return {
+    eventCountMap: buildConnectionEventCountMap(data || []),
+    error,
+  };
+}
+
 /**
  * Fetch calendar connections for a member
  * @param {Object} params
@@ -76,9 +131,24 @@ export async function fetchCalendarConnections({ memberId, supabase }) {
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
+  if (error) {
+    return {
+      connections: [],
+      error,
+    };
+  }
+
+  const { eventCountMap, error: countError } = await fetchConnectionEventCountMap({
+    memberId,
+    supabase,
+  });
+
   return {
-    connections: data || [],
-    error,
+    connections: (data || []).map((connection) => ({
+      ...connection,
+      event_count: eventCountMap.get(connection.id) || 0,
+    })),
+    error: countError || null,
   };
 }
 
@@ -387,6 +457,8 @@ export async function fetchExternalCalendarEvents({ memberId, startDate, endDate
     event_type_label: event.connection?.provider
       ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
       : 'External Event',
+    source_label: getExternalSourceLabel(event.connection),
+    source_detail: getExternalSourceDetail(event.connection),
     is_rsvped: true, // External events are always "accepted"
   }));
 
@@ -430,6 +502,7 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
 
   // Fetch external calendar events (wrapped in try-catch in case table doesn't exist yet)
   let externalEvents = [];
+  let warning = null;
   try {
     const { data: extEvents, error: extError } = await supabase
       .from('external_calendar_events')
@@ -455,11 +528,15 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
       .lte('starts_at', `${endDate}T23:59:59`)
       .order('starts_at', { ascending: true });
     
-    if (!extError && extEvents) {
+    if (extError) {
+      warning = EXTERNAL_EVENTS_WARNING;
+      console.error('External calendar events fetch error:', extError);
+    } else if (extEvents) {
       externalEvents = extEvents;
     }
-  } catch (e) {
-    // External events table might not exist yet, silently skip
+  } catch (error) {
+    warning = EXTERNAL_EVENTS_WARNING;
+    console.error('External calendar events fetch failed:', error);
     externalEvents = [];
   }
 
@@ -491,12 +568,16 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
       ...e,
       event_source: 'community',
       event_type_label: e.event_type || 'Community Event',
+      source_label: 'PATNA Event',
+      source_detail: null,
       is_rsvped: rsvpedEventIds.has(e.id),
     })),
     ...(hostBookings || []).map(b => ({
       ...b,
       event_source: 'personal',
       event_type_label: 'Meeting',
+      source_label: 'PATNA Booking',
+      source_detail: null,
       title: b.title,
       is_rsvped: true,
     })),
@@ -507,7 +588,9 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
         event_source: 'external',
         event_type_label: provider
           ? `${PROVIDER_NAMES[provider] || provider} Event`
-          : 'External Event',
+          : 'Connected Calendar Event',
+        source_label: getExternalSourceLabel(e.connection),
+        source_detail: getExternalSourceDetail(e.connection),
         is_rsvped: true,
       };
     }),
@@ -516,17 +599,8 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
   // Sort by start time
   events.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
 
-  return { events, error: null };
+  return { events, error: null, warning };
 }
-
-// Provider names mapping
-const PROVIDER_NAMES = {
-  google: 'Google Calendar',
-  microsoft: 'Outlook Calendar',
-  zoho: 'Zoho Calendar',
-  apple: 'Apple Calendar',
-  generic_ical: 'iCal Feed',
-};
 
 /**
  * Get calendar statistics for a member
