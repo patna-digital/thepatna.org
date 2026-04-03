@@ -123,6 +123,7 @@ export async function GET(request) {
         id,
         provider,
         calendar_name,
+        access_role,
         provider_account_email,
         last_synced_at,
         last_sync_error,

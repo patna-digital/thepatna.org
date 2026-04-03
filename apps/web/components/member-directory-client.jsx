@@ -17,12 +17,17 @@ function getInitials(name) {
 function getSearchText(member) {
   return [
     member.displayNameLabel || member.displayName,
+    member.roleTitleDisplay,
     member.roleTitleLabel || member.role_title,
+    member.organisationDisplay,
     member.organisationLabel || member.organisation_name,
+    member.countryDisplay,
     member.country_of_residence,
+    member.professionalBioDisplay,
     member.professional_bio,
+    member.primaryCohort?.nameDisplay,
     member.primaryCohort?.name,
-    ...(member.domainTags || []).map((tag) => tag.name),
+    ...(member.domainTags || []).flatMap((tag) => [tag.nameDisplay, tag.name]),
   ]
     .filter(Boolean)
     .join(" ")
@@ -31,10 +36,14 @@ function getSearchText(member) {
 
 function getBioExcerpt(member, t) {
   const source =
+    member.professionalBioDisplay ||
     member.professional_bio ||
     [
+      member.roleTitleDisplay,
       member.roleTitleLabel || member.role_title,
+      member.organisationDisplay,
       member.organisationLabel || member.organisation_name,
+      member.countryDisplay,
       member.country_of_residence,
     ]
       .filter(Boolean)
@@ -151,8 +160,8 @@ export function MemberDirectoryClient({ directory }) {
               <select onChange={(event) => setCountryFilter(event.target.value)} value={countryFilter}>
                 <option value="all">{t("filterAllCountries")}</option>
                 {directory.filters.countries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
+                  <option key={country.value} value={country.value}>
+                    {country.label}
                   </option>
                 ))}
               </select>
@@ -170,9 +179,9 @@ export function MemberDirectoryClient({ directory }) {
         {filteredMembers.map((member) => {
           const isSelf = member.id === directory.currentUserId;
           const tone = getCohortTone(member.primaryCohort?.slug);
-          const roleLabel = toRoleCase(member.roleTitleLabel || "");
-          const organisationLabel = member.organisationLabel || "";
-          const countryLabel = member.country_of_residence || "";
+          const roleLabel = toRoleCase(member.roleTitleDisplay || member.roleTitleLabel || "");
+          const organisationLabel = member.organisationDisplay || member.organisationLabel || "";
+          const countryLabel = member.countryDisplay || member.country_of_residence || "";
 
           const allCohorts = [
             member.primaryCohort,
@@ -244,12 +253,12 @@ export function MemberDirectoryClient({ directory }) {
                       className={`status-chip member-directory-cohort-chip tone-${getCohortTone(cohort.slug)}`}
                       key={cohort.slug}
                     >
-                      {cohort.name}
+                      {cohort.nameDisplay || cohort.name}
                     </span>
                   ))}
                   {visibleTags.map((tag) => (
                     <span className="status-chip chip-neutral" key={tag.slug}>
-                      {tag.name}
+                      {tag.nameDisplay || tag.name}
                     </span>
                   ))}
                   {remainingCount > 0 ? (

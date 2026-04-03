@@ -1,5 +1,6 @@
 import { getSiteUrl } from "../env.js";
 import { resolveHeadshotAsset } from "../member-headshots.js";
+import { getRequestLocale, translateContentItems } from "../translation.js";
 import { selectGoogleWritebackConnection } from "./booking-writeback.js";
 import { generateTimeSlots } from "./core.js";
 
@@ -151,6 +152,64 @@ function truncateText(value, maxLength = 180) {
   }
 
   return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1).trim()}…`;
+}
+
+async function translateBookingMemberForDisplay(member, locale) {
+  if (!member) {
+    return null;
+  }
+
+  const baseMember = {
+    ...member,
+    displayName: getDisplayName(member),
+    profileSummary: truncateText(getSummaryDescription(member), 190),
+    initials: getInitials(member),
+  };
+
+  const translationItems = [
+    {
+      cacheKey: `booking_member:${member.id}:role_title`,
+      contentType: "member",
+      fieldName: "role_title",
+      text: baseMember.role_title || "",
+    },
+    {
+      cacheKey: `booking_member:${member.id}:country_of_residence`,
+      contentType: "member",
+      fieldName: "country_of_residence",
+      text: baseMember.country_of_residence || "",
+    },
+    {
+      cacheKey: `booking_member:${member.id}:professional_bio`,
+      contentType: "member",
+      fieldName: "professional_bio",
+      text: baseMember.professional_bio || "",
+    },
+    {
+      cacheKey: `booking_member:${member.id}:profile_summary`,
+      contentType: "member",
+      fieldName: "profile_summary",
+      text: baseMember.profileSummary || "",
+    },
+  ];
+
+  const translated = await translateContentItems(locale, translationItems);
+  const translatedByKey = new Map(translated.map((item) => [item.cacheKey, item.displayText]));
+
+  return {
+    ...baseMember,
+    sourceRoleTitle: baseMember.role_title,
+    sourceCountryOfResidence: baseMember.country_of_residence,
+    sourceProfessionalBio: baseMember.professional_bio,
+    role_title:
+      translatedByKey.get(`booking_member:${member.id}:role_title`) || baseMember.role_title,
+    country_of_residence:
+      translatedByKey.get(`booking_member:${member.id}:country_of_residence`) || baseMember.country_of_residence,
+    professional_bio:
+      translatedByKey.get(`booking_member:${member.id}:professional_bio`) || baseMember.professional_bio,
+    profileSummary:
+      translatedByKey.get(`booking_member:${member.id}:profile_summary`) || baseMember.profileSummary,
+  };
 }
 
 function intervalsOverlap(leftStart, leftEnd, rightStart, rightEnd) {
@@ -462,7 +521,7 @@ export async function fetchPublicBookingPageData({ slug, supabase }) {
       .maybeSingle(),
     supabase
       .from("calendar_connections")
-      .select("id, provider, calendar_name, access_token, refresh_token, is_primary_calendar, is_active, sync_enabled")
+      .select("id, provider, calendar_name, access_role, access_token, refresh_token, is_primary_calendar, is_active, sync_enabled")
       .eq("member_id", settings.member_id)
       .eq("provider", "google")
       .eq("is_active", true),
@@ -473,6 +532,7 @@ export async function fetchPublicBookingPageData({ slug, supabase }) {
     cohortProfile?.headshot_url,
     cohortProfile?.raw_responses,
   );
+  const locale = await getRequestLocale();
 
   return {
     settings: {
@@ -483,11 +543,8 @@ export async function fetchPublicBookingPageData({ slug, supabase }) {
       }),
       member: member
         ? {
-            ...member,
-            displayName: getDisplayName(member),
-            profileSummary: truncateText(getSummaryDescription(member), 190),
+            ...(await translateBookingMemberForDisplay(member, locale)),
             headshotSrc: headshotAsset.display_url,
-            initials: getInitials(member),
           }
         : null,
     },

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   BookingWritebackError,
+  buildGoogleBookingDescription,
   persistBookingWithGoogleWriteback,
   selectGoogleWritebackConnection,
 } from "./booking-writeback.js";
@@ -28,8 +29,19 @@ test("selectGoogleWritebackConnection only chooses active synced primary Google 
       sync_enabled: true,
     },
     {
+      id: "google-readonly",
+      provider: "google",
+      access_role: "reader",
+      access_token: "token",
+      refresh_token: "refresh",
+      is_primary_calendar: true,
+      is_active: true,
+      sync_enabled: true,
+    },
+    {
       id: "google-live",
       provider: "google",
+      access_role: "writer",
       access_token: "token",
       refresh_token: "refresh",
       is_primary_calendar: true,
@@ -39,6 +51,35 @@ test("selectGoogleWritebackConnection only chooses active synced primary Google 
   ]);
 
   assert.equal(connection.id, "google-live");
+});
+
+test("selectGoogleWritebackConnection does not choose Google calendars with unknown access", () => {
+  const connection = selectGoogleWritebackConnection([
+    {
+      id: "google-unknown",
+      provider: "google",
+      access_role: null,
+      access_token: "token",
+      refresh_token: "refresh",
+      is_primary_calendar: true,
+      is_active: true,
+      sync_enabled: true,
+    },
+  ]);
+
+  assert.equal(connection, null);
+});
+
+test("buildGoogleBookingDescription includes guest emails when present", () => {
+  const description = buildGoogleBookingDescription({
+    bookerName: "Jane Doe",
+    bookerEmail: "jane@example.com",
+    bookerOrganisation: "PATNA",
+    guestEmails: ["guest.one@example.com", "guest.two@example.com"],
+    notes: "Looking forward to it",
+  });
+
+  assert.match(description, /Guest emails: guest\.one@example\.com, guest\.two@example\.com/);
 });
 
 test("persistBookingWithGoogleWriteback confirms PATNA booking only after Google write-back succeeds", async () => {

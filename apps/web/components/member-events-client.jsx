@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
-function getEventDateInfo(event) {
+function getEventDateInfo(event, locale) {
   if (event.starts_at) {
     const start = new Date(event.starts_at);
 
     if (!Number.isNaN(start.getTime())) {
-      const month = new Intl.DateTimeFormat("en-GB", { month: "short" }).format(start).toUpperCase();
+      const month = new Intl.DateTimeFormat(locale, { month: "short" }).format(start).toUpperCase();
       let day = String(start.getUTCDate());
 
       if (event.ends_at) {
@@ -28,7 +28,7 @@ function getEventDateInfo(event) {
     }
   }
 
-  const monthOnlyMatch = String(event.display_date || "").match(/^([A-Za-z]+) (\d{4})(?: \(TBC\))?$/i);
+  const monthOnlyMatch = String(event.sourceDisplayDate || event.display_date || "").match(/^([A-Za-z]+) (\d{4})(?: \(TBC\))?$/i);
 
   if (monthOnlyMatch) {
     return {
@@ -43,27 +43,40 @@ function getEventDateInfo(event) {
 function getEventSearchText(event) {
   return [
     event.title,
+    event.sourceTitle,
     event.summary,
+    event.sourceSummary,
     event.body,
+    event.sourceBody,
     event.location,
+    event.sourceLocation,
+    event.eventTypeDisplay,
     event.event_type,
+    event.displayDateDisplay,
     event.display_date,
     event.visibility,
     event.patna_involvement,
+    event.sourcePatnaInvolvement,
     ...(event.organising_institutions || []),
+    ...(event.sourceOrganisingInstitutions || []),
     ...(event.themes || []),
+    ...(event.sourceThemes || []),
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 }
 
-function getEventTypeLabel(event) {
+function getEventTypeValue(event) {
   return event.event_type || "Event";
 }
 
+function getEventTypeLabel(event) {
+  return event.eventTypeDisplay || event.event_type || "Event";
+}
+
 function isPatnaLedEvent(event) {
-  const involvement = (event.patna_involvement || "").toLowerCase();
+  const involvement = (event.sourcePatnaInvolvement || event.patna_involvement || "").toLowerCase();
   return involvement.includes("lead organiser") || involvement.includes("co-organiser");
 }
 
@@ -82,7 +95,7 @@ function getEventTone(event) {
     return "academic";
   }
 
-  const type = getEventTypeLabel(event).toLowerCase();
+  const type = getEventTypeValue(event).toLowerCase();
 
   if (type.includes("imo") || type.includes("mepc") || type.includes("iswg")) {
     return "policy";
@@ -112,6 +125,7 @@ function getScheduleClass(status) {
 
 export function MemberEventsClient({ events }) {
   const t = useTranslations();
+  const locale = useLocale();
   const [searchTerm, setSearchTerm] = useState("");
   const [scheduleFilter, setScheduleFilter] = useState(
     events.some((e) => e.schedule_status === "upcoming" || e.schedule_status === "tbc") ? "upcoming" : "past",
@@ -120,8 +134,11 @@ export function MemberEventsClient({ events }) {
   const [selectedEventId, setSelectedEventId] = useState("");
 
   const typeFilters = useMemo(() => {
-    const values = [...new Set(events.map((e) => getEventTypeLabel(e)))];
-    return values.sort((a, b) => a.localeCompare(b));
+    return [...new Map(
+      events.map((event) => [getEventTypeValue(event), getEventTypeLabel(event)]),
+    ).entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((left, right) => left.label.localeCompare(right.label));
   }, [events]);
 
   const summary = useMemo(
@@ -149,7 +166,7 @@ export function MemberEventsClient({ events }) {
         return false;
       }
 
-      if (typeFilter !== "all" && getEventTypeLabel(event) !== typeFilter) {
+      if (typeFilter !== "all" && getEventTypeValue(event) !== typeFilter) {
         return false;
       }
 
@@ -238,12 +255,12 @@ export function MemberEventsClient({ events }) {
           </button>
           {typeFilters.map((type) => (
             <button
-              className={typeFilter === type ? "member-events-type-chip member-events-type-chip-active" : "member-events-type-chip"}
-              key={type}
-              onClick={() => setTypeFilter(type)}
+              className={typeFilter === type.value ? "member-events-type-chip member-events-type-chip-active" : "member-events-type-chip"}
+              key={type.value}
+              onClick={() => setTypeFilter(type.value)}
               type="button"
             >
-              {type}
+              {type.label}
             </button>
           ))}
         </div>
@@ -252,7 +269,7 @@ export function MemberEventsClient({ events }) {
       <div className="member-events-list">
         {filteredEvents.length ? (
           filteredEvents.map((event) => {
-            const dateInfo = getEventDateInfo(event);
+            const dateInfo = getEventDateInfo(event, locale);
             const tone = getEventTone(event);
             const typeLabel = getEventTypeLabel(event);
 
@@ -295,7 +312,9 @@ export function MemberEventsClient({ events }) {
                   <div className="member-event-archive-copy">
                     <strong>{event.title}</strong>
                     <div className="member-event-archive-meta">
-                      {event.display_date ? <span>{event.display_date}</span> : null}
+                      {(event.displayDateDisplay || event.display_date) ? (
+                        <span>{event.displayDateDisplay || event.display_date}</span>
+                      ) : null}
                       {event.location ? <span>{event.location}</span> : null}
                       {isPatnaLedEvent(event) ? <span>{event.patna_involvement}</span> : null}
                     </div>
@@ -348,10 +367,10 @@ export function MemberEventsClient({ events }) {
                 </div>
                 <h3>{selectedEvent.title}</h3>
                 <div className="member-event-dialog-meta">
-                  {selectedEvent.display_date ? (
+                  {(selectedEvent.displayDateDisplay || selectedEvent.display_date) ? (
                     <span>
                       <svg fill="none" height="13" viewBox="0 0 16 16" width="13" xmlns="http://www.w3.org/2000/svg"><rect height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" width="12" x="2" y="3.5"/><path d="M2 7h12" stroke="currentColor" strokeWidth="1.3"/><path d="M5.5 2v3M10.5 2v3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.3"/></svg>
-                      {selectedEvent.display_date}
+                      {selectedEvent.displayDateDisplay || selectedEvent.display_date}
                     </span>
                   ) : null}
                   {selectedEvent.location ? (

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { formatContentType, formatPublishStatus } from "@/lib/content-types";
 import { deleteInsightAction } from "../[insightId]/actions";
-import { formatContentType, formatPublishStatus } from "@/lib/insights";
 
 const STATUS_CHIP_CLASSES = {
   published: "chip-success",

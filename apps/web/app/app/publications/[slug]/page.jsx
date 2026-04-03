@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { fetchInsightBySlug } from "@/lib/insights";
 
 export default async function MemberPublicationDetailPage({ params }) {
+  const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -30,11 +32,11 @@ export default async function MemberPublicationDetailPage({ params }) {
   const pdfAttachment = pub.attachments?.find(
     (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
   );
-  const typeLabel = CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
+  const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
     <MemberWorkspaceShell
-      eyebrow="Publication"
+      eyebrow={t("publicationUi.eyebrow")}
       sidebarUser={sidebarUser}
       title={pub.title}
       subtitle={typeLabel}
@@ -56,7 +58,7 @@ export default async function MemberPublicationDetailPage({ params }) {
             <div className="publication-detail-meta-left">
               <span className="status-chip chip-neutral">{typeLabel}</span>
               {pub.published_at && (
-                <time dateTime={pub.published_at}>{formatDate(pub.published_at)}</time>
+                <time dateTime={pub.published_at}>{formatDate(pub.published_at, locale)}</time>
               )}
               {pub.tags?.map((tag) => (
                 <span className="status-chip chip-neutral" key={tag.slug}>{tag.name}</span>
@@ -70,7 +72,7 @@ export default async function MemberPublicationDetailPage({ params }) {
                 rel="noreferrer"
                 target="_blank"
               >
-                ↓ Download PDF
+                {t("publicationUi.downloadPdf")}
               </a>
             )}
           </div>
@@ -95,7 +97,7 @@ export default async function MemberPublicationDetailPage({ params }) {
         {/* Footer */}
         <div className="publication-detail-footer">
           <Link className="secondary-button" href="/app/publications">
-            ← Back to Publications
+            {t("publicationUi.backToPublications")}
           </Link>
           {pdfAttachment && (
             <a
@@ -105,7 +107,7 @@ export default async function MemberPublicationDetailPage({ params }) {
               rel="noreferrer"
               target="_blank"
             >
-              ↓ Download PDF
+              {t("publicationUi.downloadPdf")}
             </a>
           )}
         </div>
@@ -126,7 +128,7 @@ const CONTENT_TYPE_LABELS = {
   workshop_proceedings: "Workshop Proceedings",
 };
 
-function formatDate(value) {
+function formatDate(value, locale = "en") {
   if (!value) return "";
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(value));
 }

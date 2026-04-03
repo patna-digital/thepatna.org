@@ -1,6 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import localFont from "next/font/local";
+import { isRtlLocale } from "@/lib/locales";
 import "./globals.css";
 
 const plusJakartaSans = localFont({
@@ -38,7 +39,7 @@ export const metadata = {
 export default async function RootLayout({ children }) {
   const locale = await getLocale();
   const messages = await getMessages();
-  const dir = locale === "ar" ? "rtl" : "ltr";
+  const dir = isRtlLocale(locale) ? "rtl" : "ltr";
 
   return (
     <html lang={locale} dir={dir}>

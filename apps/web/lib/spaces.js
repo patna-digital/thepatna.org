@@ -1,3 +1,22 @@
+import { getRequestLocale, translateContentItems } from "@/lib/translation";
+import {
+  SPACE_MEMBER_ROLES,
+  SPACE_TYPES,
+  SPACE_VISIBILITY,
+  formatSpaceType,
+  formatSpaceVisibility,
+  generateSpaceSlug,
+} from "@/lib/space-types";
+
+export {
+  SPACE_MEMBER_ROLES,
+  SPACE_TYPES,
+  SPACE_VISIBILITY,
+  formatSpaceType,
+  formatSpaceVisibility,
+  generateSpaceSlug,
+} from "@/lib/space-types";
+
 /**
  * Safe wrapper around space_tag_map query.
  * Returns [] instead of throwing if the table doesn't exist yet (pre-migration).
@@ -16,27 +35,53 @@ async function fetchSpaceTagsSafe(supabase, spaceId) {
   }
 }
 
-// Space types
-export const SPACE_TYPES = [
-  { value: "cohort",        label: "Cohort" },
-  { value: "constituency",  label: "Constituency" },
-  { value: "working_group", label: "Working Group" },
-  { value: "geography",     label: "Geography" },
-];
+async function translateSpacesForDisplay(spaces, locale) {
+  if (!spaces.length) {
+    return spaces;
+  }
 
-// Visibility options
-export const SPACE_VISIBILITY = [
-  { value: "public_members", label: "All members" },
-  { value: "invite_only",    label: "Invite only" },
-  { value: "private",        label: "Private" },
-];
+  const items = [];
+  const pushItem = (cacheKey, contentType, fieldName, text) => {
+    if (typeof text !== "string" || !text.trim()) {
+      return;
+    }
 
-// Member roles within a space
-export const SPACE_MEMBER_ROLES = [
-  { value: "member",    label: "Member" },
-  { value: "moderator", label: "Moderator" },
-  { value: "lead",      label: "Lead" },
-];
+    items.push({
+      cacheKey,
+      contentType,
+      fieldName,
+      text,
+      format: "text",
+    });
+  };
+
+  for (const space of spaces) {
+    pushItem(`space:${space.id}:name`, "space", "name", space.name || "");
+    pushItem(`space:${space.id}:description`, "space", "description", space.description || "");
+
+    for (const tag of space.tags || []) {
+      if (tag?.slug && tag?.name) {
+        pushItem(`domain_tag:${tag.slug}:name`, "domain_tag", "name", tag.name);
+      }
+    }
+  }
+
+  const translated = await translateContentItems(locale, items);
+  const translatedByKey = new Map(translated.map((item) => [item.cacheKey, item.displayText]));
+
+  return spaces.map((space) => ({
+    ...space,
+    originalName: space.name,
+    originalDescription: space.description,
+    name: translatedByKey.get(`space:${space.id}:name`) || space.name,
+    description: translatedByKey.get(`space:${space.id}:description`) || space.description,
+    tags: (space.tags || []).map((tag) => ({
+      ...tag,
+      originalName: tag.name,
+      name: translatedByKey.get(`domain_tag:${tag.slug}:name`) || tag.name,
+    })),
+  }));
+}
 
 /**
  * Fetch all spaces for the admin interface, with member counts and tags.
@@ -416,7 +461,13 @@ export async function fetchMemberSpaces({ supabase, userId }) {
     })
   );
 
-  return { spaces: [...enriched, ...publicEnriched], error: null };
+  return {
+    spaces: await translateSpacesForDisplay(
+      [...enriched, ...publicEnriched],
+      await getRequestLocale(),
+    ),
+    error: null,
+  };
 }
 
 /**
@@ -447,39 +498,4 @@ export function filterSpaces(spaces, { type = "all", search = "" } = {}) {
 
     return true;
   });
-}
-
-/**
- * Generate a URL-friendly slug from a name.
- */
-export function generateSpaceSlug(name) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-/**
- * Format space type for display.
- */
-export function formatSpaceType(type) {
-  const map = {
-    cohort:        "Cohort",
-    constituency:  "Constituency",
-    working_group: "Working Group",
-    geography:     "Geography",
-  };
-  return map[type] || type;
-}
-
-/**
- * Format visibility for display.
- */
-export function formatSpaceVisibility(visibility) {
-  const map = {
-    public_members: "All members",
-    invite_only:    "Invite only",
-    private:        "Private",
-  };
-  return map[visibility] || visibility;
 }

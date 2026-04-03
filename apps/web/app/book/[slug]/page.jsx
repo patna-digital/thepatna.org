@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { BrandLogo } from "@/components/brand-logo";
 import { fetchPublicBookingPageData } from "@/lib/calendar/booking";
 import { getSiteUrl } from "@/lib/env";
@@ -77,7 +78,7 @@ export async function generateMetadata({ params }) {
 
 export default async function PublicBookingPage({ params }) {
   const { slug } = await params;
-  const { settings } = await getBookingPageData(slug);
+  const [t, { settings }] = await Promise.all([getTranslations(), getBookingPageData(slug)]);
 
   if (!settings || !settings.public_booking_enabled) {
     notFound();
@@ -128,12 +129,12 @@ export default async function PublicBookingPage({ params }) {
               variant="mark"
             />
             <div className="public-booking-brand-copy">
-              <span className="public-booking-tag">Public booking page</span>
-              <strong>PATNA scheduling</strong>
+              <span className="public-booking-tag">{t("bookingPage.publicBookingPage")}</span>
+              <strong>{t("bookingPage.patnaScheduling")}</strong>
             </div>
           </div>
           <a className="secondary-button public-booking-home" href={getSiteUrl()}>
-            PATNA platform
+            {t("bookingPage.platform")}
           </a>
         </header>
 
@@ -148,14 +149,17 @@ export default async function PublicBookingPage({ params }) {
                 )}
               </div>
               <div className="public-booking-profile-copy">
-                <span className="public-booking-kicker">Book directly</span>
+                <span className="public-booking-kicker">{t("bookingPage.bookDirectly")}</span>
                 <h1>{member?.displayName || "PATNA Member"}</h1>
-                <p>{[member?.role_title, member?.organisation_name].filter(Boolean).join(" · ") || "PATNA community member"}</p>
+                <p>
+                  {[member?.role_title, member?.organisation_name].filter(Boolean).join(" · ") ||
+                    t("bookingPage.communityMember")}
+                </p>
               </div>
             </div>
 
             <div className="public-booking-meta-row">
-              <span>{settings.default_meeting_duration} min default</span>
+              <span>{t("bookingPage.defaultDuration", { count: settings.default_meeting_duration })}</span>
               <span>{settings.timezone}</span>
               {member?.country_of_residence ? <span>{member.country_of_residence}</span> : null}
             </div>
@@ -165,10 +169,9 @@ export default async function PublicBookingPage({ params }) {
             ) : null}
 
             <div className="public-booking-note">
-              <strong>Scheduling quality</strong>
+              <strong>{t("bookingPage.schedulingQuality")}</strong>
               <p>
-                Available dates and times are calculated from this member’s PATNA availability,
-                notice window, meeting buffers, existing bookings, and connected calendar conflicts.
+                {t("bookingPage.schedulingQualityBody")}
               </p>
             </div>
           </section>
@@ -184,7 +187,9 @@ export default async function PublicBookingPage({ params }) {
 
         <footer className="public-booking-footer">
           <p>
-            Scheduling powered by <strong>PATNA</strong>.
+            {t.rich("bookingPage.poweredBy", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
         </footer>
       </div>

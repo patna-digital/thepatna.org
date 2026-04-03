@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  getGoogleCalendarAccessLabel,
+  isKnownReadOnlyGoogleCalendar,
+  isGoogleCalendarWriteCapable,
+  isUnknownGoogleCalendarAccess,
+} from "@/lib/calendar/google-access";
 import { setPrimaryCalendarConnection, updateBookingSettings } from "../actions";
 
 function getEligibleGoogleConnections(connections = []) {
@@ -9,7 +15,8 @@ function getEligibleGoogleConnections(connections = []) {
     (connection) =>
       connection.provider === "google" &&
       connection.is_active &&
-      connection.sync_enabled,
+      connection.sync_enabled &&
+      isGoogleCalendarWriteCapable(connection),
   );
 }
 
@@ -182,6 +189,12 @@ function ICalConnectForm({ onConnect, disabled }) {
 // Connected calendar item with sync controls
 function ConnectedCalendarItem({ connection, onSync, onDisconnect, onToggleSync }) {
   const [isSyncing, setIsSyncing] = useState(false);
+  const isReadOnlyGoogleCalendar =
+    connection.provider === "google" && isKnownReadOnlyGoogleCalendar(connection);
+  const isUnknownGoogleCalendar =
+    connection.provider === "google" && isUnknownGoogleCalendarAccess(connection);
+  const googleAccessLabel =
+    connection.provider === "google" ? getGoogleCalendarAccessLabel(connection) : "";
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -205,8 +218,11 @@ function ConnectedCalendarItem({ connection, onSync, onDisconnect, onToggleSync 
           <strong>
             {connection.calendar_name || PROVIDER_NAMES[connection.provider]}
             {connection.is_primary_calendar ? <span className="primary-calendar-badge">Booking destination</span> : null}
+            {isReadOnlyGoogleCalendar ? <span className="calendar-access-badge">Read-only</span> : null}
+            {isUnknownGoogleCalendar ? <span className="calendar-access-badge">Access unknown</span> : null}
           </strong>
           <span>{connection.provider_account_email || "iCal Feed"}</span>
+          {googleAccessLabel ? <span>Access: {googleAccessLabel}</span> : null}
           <span className="sync-meta">
             Last synced: {lastSynced}
             {connection.event_count > 0 && ` • ${connection.event_count} events`}
@@ -279,10 +295,28 @@ function BookingSettingsForm({
   const [isSavingDestination, setIsSavingDestination] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const eligibleGoogleConnections = getEligibleGoogleConnections(connections);
+  const readOnlyGoogleConnections = connections.filter(
+    (connection) =>
+      connection.provider === "google" &&
+      connection.is_active &&
+      connection.sync_enabled &&
+      isKnownReadOnlyGoogleCalendar(connection),
+  );
+  const unknownAccessGoogleConnections = connections.filter(
+    (connection) =>
+      connection.provider === "google" &&
+      connection.is_active &&
+      connection.sync_enabled &&
+      isUnknownGoogleCalendarAccess(connection),
+  );
   const activePrimaryConnection =
     eligibleGoogleConnections.find((connection) => connection.is_primary_calendar) || null;
   const currentPrimaryConnection =
     connections.find((connection) => connection.provider === "google" && connection.is_primary_calendar) || null;
+  const currentPrimaryIsReadOnly =
+    currentPrimaryConnection && isKnownReadOnlyGoogleCalendar(currentPrimaryConnection);
+  const currentPrimaryAccessUnknown =
+    currentPrimaryConnection && isUnknownGoogleCalendarAccess(currentPrimaryConnection);
   const [selectedConnectionId, setSelectedConnectionId] = useState(
     activePrimaryConnection?.id || eligibleGoogleConnections[0]?.id || "",
   );
@@ -410,20 +444,39 @@ function BookingSettingsForm({
           </div>
         ) : (
           <div className="booking-destination-empty">
-            Connect Google Calendar and keep sync enabled to receive PATNA bookings.
+            {readOnlyGoogleConnections.length > 0 || unknownAccessGoogleConnections.length > 0
+              ? "No writable Google calendars are available right now. Choose a different Google calendar or sync or reconnect Google to refresh permissions."
+              : "Connect Google Calendar and choose a writable calendar with sync enabled to receive PATNA bookings."}
           </div>
         )}
         <span className="form-hint">
-          Public bookings are written to this Google calendar. PATNA mirrors the meeting link from the synced Google event.
+          Public bookings are written to this Google calendar. PATNA creates the Google event, invites attendees, and mirrors the meeting link back into the booking.
         </span>
+        {readOnlyGoogleConnections.length > 0 ? (
+          <span className="form-hint">
+            Read-only Google calendars cannot receive PATNA bookings:{" "}
+            {readOnlyGoogleConnections.map((connection) => connection.calendar_name || "Google Calendar").join(", ")}.
+          </span>
+        ) : null}
+        {unknownAccessGoogleConnections.length > 0 ? (
+          <span className="form-hint">
+            PATNA still needs to confirm access for these Google calendars:{" "}
+            {unknownAccessGoogleConnections.map((connection) => connection.calendar_name || "Google Calendar").join(", ")}.
+            Sync or reconnect Google before using one for bookings.
+          </span>
+        ) : null}
       </div>
 
       {showBlockingDestinationWarning ? (
         <div className="booking-destination-warning">
-          Public booking is enabled, but no active Google destination calendar is selected.
+          Public booking is enabled, but no writable Google destination calendar is selected.
           {currentPrimaryConnection && !currentPrimaryConnection.sync_enabled
-            ? " Resume sync on the current destination or choose another Google calendar."
-            : " Choose a synced Google calendar before sharing your booking page."}
+            ? " Resume sync on the current destination or choose another writable Google calendar."
+            : currentPrimaryIsReadOnly
+              ? " The current destination is read-only, so PATNA cannot write bookings into it."
+              : currentPrimaryAccessUnknown
+                ? " PATNA could not confirm write access for the current destination yet. Sync or reconnect Google to refresh permissions."
+              : " Choose a synced writable Google calendar before sharing your booking page."}
         </div>
       ) : null}
 
@@ -1127,6 +1180,20 @@ export function CalendarSettingsClient({
           border-radius: 999px;
           background: rgba(15, 58, 138, 0.12);
           color: var(--blue-dark);
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          vertical-align: middle;
+        }
+
+        .calendar-access-badge {
+          display: inline-flex;
+          align-items: center;
+          margin-left: 0.5rem;
+          padding: 0.1rem 0.45rem;
+          border-radius: 999px;
+          background: rgba(239, 68, 68, 0.12);
+          color: #b91c1c;
           font-size: 0.68rem;
           font-weight: 700;
           letter-spacing: 0.02em;

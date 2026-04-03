@@ -6,6 +6,10 @@ import {
   ensureBookingSettingsForMember,
   normalizeBookingSettingsRecord,
 } from "@/lib/calendar/booking";
+import {
+  isKnownReadOnlyGoogleCalendar,
+  isUnknownGoogleCalendarAccess,
+} from "@/lib/calendar/google-access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 
@@ -88,7 +92,7 @@ export async function setPrimaryCalendarConnection(memberId, connectionId) {
 
   const { data: targetConnection, error: targetError } = await supabase
     .from("calendar_connections")
-    .select("id, member_id, provider, is_active, sync_enabled")
+    .select("id, member_id, provider, access_role, access_token, refresh_token, is_active, sync_enabled")
     .eq("id", connectionId)
     .eq("member_id", memberId)
     .maybeSingle();
@@ -103,6 +107,24 @@ export async function setPrimaryCalendarConnection(memberId, connectionId) {
 
   if (!targetConnection.is_active || !targetConnection.sync_enabled) {
     return { success: false, error: "Only active Google calendars with sync enabled can receive bookings." };
+  }
+
+  if (!targetConnection.access_token || !targetConnection.refresh_token) {
+    return { success: false, error: "Reconnect this Google calendar before using it for PATNA bookings." };
+  }
+
+  if (isKnownReadOnlyGoogleCalendar(targetConnection)) {
+    return {
+      success: false,
+      error: "Choose a writable Google calendar. Read-only or subscribed calendars cannot receive PATNA bookings.",
+    };
+  }
+
+  if (isUnknownGoogleCalendarAccess(targetConnection)) {
+    return {
+      success: false,
+      error: "PATNA could not confirm write access for this Google calendar yet. Sync or reconnect Google before using it for bookings.",
+    };
   }
 
   const { error: clearError } = await supabase

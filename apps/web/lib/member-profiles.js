@@ -3,6 +3,7 @@ import { buildPublicBookingUrl } from "@/lib/calendar/booking";
 import { resolveHeadshotAsset } from "@/lib/member-headshots";
 import { resolveResumeAsset } from "@/lib/member-resumes";
 import { buildProfileProgress } from "@/lib/profile-onboarding";
+import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
 function getLatestInvite(invites) {
   return (invites || []).reduce((latest, invite) => {
@@ -99,6 +100,141 @@ function inferRoleFromBio(professionalBio) {
     .replace(/^(a|an|the)\s+/i, "");
 }
 
+function getTranslatedDisplayValue(translatedByKey, cacheKey, fallback = "") {
+  return translatedByKey.get(cacheKey)?.displayText || fallback;
+}
+
+async function translateMemberViews(members, locale) {
+  if (!members.length) {
+    return members;
+  }
+
+  const translationItems = [];
+  const pushItem = (cacheKey, contentType, fieldName, text) => {
+    if (typeof text !== "string" || !text.trim()) {
+      return;
+    }
+
+    translationItems.push({
+      cacheKey,
+      contentType,
+      fieldName,
+      text,
+      format: "text",
+    });
+  };
+
+  for (const member of members) {
+    pushItem(`member:${member.id}:role_title`, "member", "role_title", member.roleTitleLabel || member.role_title || "");
+    pushItem(`member:${member.id}:country_of_residence`, "member", "country_of_residence", member.country_of_residence || "");
+    pushItem(`member:${member.id}:professional_bio`, "member", "professional_bio", member.professional_bio || "");
+    pushItem(`member:${member.id}:domain_knowledge`, "member", "domain_knowledge", member.cohortProfile?.domain_knowledge || "");
+    pushItem(`member:${member.id}:focus_area`, "member", "focus_area", member.cohortProfile?.focus_area || "");
+    pushItem(`member:${member.id}:notable_work`, "member", "notable_work", member.cohortProfile?.notable_work || "");
+    pushItem(`member:${member.id}:opportunity_interest`, "member", "opportunity_interest", member.cohortProfile?.opportunity_interest || "");
+
+    if (member.primaryCohort?.slug && member.primaryCohort?.name) {
+      pushItem(`cohort:${member.primaryCohort.slug}:name`, "cohort", "name", member.primaryCohort.name);
+    }
+
+    for (const cohort of member.secondaryCohorts || []) {
+      if (cohort?.slug && cohort?.name) {
+        pushItem(`cohort:${cohort.slug}:name`, "cohort", "name", cohort.name);
+      }
+    }
+
+    for (const tag of member.domainTags || []) {
+      if (tag?.slug && tag?.name) {
+        pushItem(`domain_tag:${tag.slug}:name`, "domain_tag", "name", tag.name);
+      }
+    }
+
+    for (const [index, language] of (member.languages || []).entries()) {
+      pushItem(`member:${member.id}:language:${index}`, "member", "language", language);
+    }
+  }
+
+  const translatedItems = await translateContentItems(locale, translationItems);
+  const translatedByKey = new Map(
+    translatedItems.map((item) => [item.cacheKey, item]),
+  );
+
+  return members.map((member) => ({
+    ...member,
+    roleTitleDisplay: getTranslatedDisplayValue(
+      translatedByKey,
+      `member:${member.id}:role_title`,
+      member.roleTitleLabel || member.role_title || "",
+    ),
+    organisationDisplay: member.organisationLabel || member.organisation_name || "",
+    countryDisplay: getTranslatedDisplayValue(
+      translatedByKey,
+      `member:${member.id}:country_of_residence`,
+      member.country_of_residence || "",
+    ),
+    professionalBioDisplay: getTranslatedDisplayValue(
+      translatedByKey,
+      `member:${member.id}:professional_bio`,
+      member.professional_bio || "",
+    ),
+    primaryCohort: member.primaryCohort
+      ? {
+          ...member.primaryCohort,
+          nameDisplay: getTranslatedDisplayValue(
+            translatedByKey,
+            `cohort:${member.primaryCohort.slug}:name`,
+            member.primaryCohort.name,
+          ),
+        }
+      : null,
+    secondaryCohorts: (member.secondaryCohorts || []).map((cohort) => ({
+      ...cohort,
+      nameDisplay: getTranslatedDisplayValue(
+        translatedByKey,
+        `cohort:${cohort.slug}:name`,
+        cohort.name,
+      ),
+    })),
+    domainTags: (member.domainTags || []).map((tag) => ({
+      ...tag,
+      nameDisplay: getTranslatedDisplayValue(
+        translatedByKey,
+        `domain_tag:${tag.slug}:name`,
+        tag.name,
+      ),
+    })),
+    languagesDisplay: (member.languages || []).map((language, index) =>
+      getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:language:${index}`,
+        language,
+      )
+    ),
+    cohortProfileDisplay: {
+      domainKnowledge: getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:domain_knowledge`,
+        member.cohortProfile?.domain_knowledge || "",
+      ),
+      focusArea: getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:focus_area`,
+        member.cohortProfile?.focus_area || "",
+      ),
+      notableWork: getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:notable_work`,
+        member.cohortProfile?.notable_work || "",
+      ),
+      opportunityInterest: getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:opportunity_interest`,
+        member.cohortProfile?.opportunity_interest || "",
+      ),
+    },
+  }));
+}
+
 export function buildMemberProfileView({
   authUser,
   bookingSettings,
@@ -190,6 +326,7 @@ export async function fetchMemberProfileView({
   userId,
   includeAuthUser = false,
   includeInviteHistory = false,
+  locale,
 }) {
   const [
     authUsers,
@@ -261,18 +398,25 @@ export async function fetchMemberProfileView({
     ? 0
     : new Set((spaceMembershipsResult.data || []).map((row) => row.space_id).filter(Boolean)).size;
 
+  const [translatedMember] = await translateMemberViews(
+    [
+      buildMemberProfileView({
+        authUser,
+        bookingSettings: bookingSettingsResult.data,
+        cohortProfile: cohortProfileResult.data,
+        cohortRows: cohortRowsResult.data,
+        inviteRows: inviteRowsResult.data,
+        profile: profileResult.data,
+        spaceCount,
+        tagRows: tagRowsResult.data,
+      }),
+    ],
+    locale || await getRequestLocale(),
+  );
+
   return {
     error: null,
-    member: buildMemberProfileView({
-      authUser,
-      bookingSettings: bookingSettingsResult.data,
-      cohortProfile: cohortProfileResult.data,
-      cohortRows: cohortRowsResult.data,
-      inviteRows: inviteRowsResult.data,
-      profile: profileResult.data,
-      spaceCount,
-      tagRows: tagRowsResult.data,
-    }),
+    member: translatedMember,
   };
 }
 
@@ -355,7 +499,7 @@ export async function fetchActiveMemberCounts({ adminClient, cohortSlug = "" }) 
   };
 }
 
-export async function fetchActiveMemberDirectory({ adminClient }) {
+export async function fetchActiveMemberDirectory({ adminClient, locale }) {
   const { data: memberRoleRows, error: memberRoleError } = await adminClient
     .from("user_roles")
     .select("user_id")
@@ -456,19 +600,21 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
     spaceCountsByUserId.set(row.user_id, existing);
   }
 
+  const members = (profilesResult.data || []).map((profile) =>
+    buildMemberProfileView({
+      authUser: null,
+      bookingSettings: bookingSettingsByUserId.get(profile.id) || null,
+      cohortProfile: cohortProfileByUserId.get(profile.id) || null,
+      cohortRows: allCohortsByUserId.get(profile.id) || [],
+      inviteRows: [],
+      profile,
+      spaceCount: spaceCountsByUserId.get(profile.id)?.size || 0,
+      tagRows: allTagsByUserId.get(profile.id) || [],
+    }),
+  );
+
   return {
     error: null,
-    members: (profilesResult.data || []).map((profile) =>
-      buildMemberProfileView({
-        authUser: null,
-        bookingSettings: bookingSettingsByUserId.get(profile.id) || null,
-        cohortProfile: cohortProfileByUserId.get(profile.id) || null,
-        cohortRows: allCohortsByUserId.get(profile.id) || [],
-        inviteRows: [],
-        profile,
-        spaceCount: spaceCountsByUserId.get(profile.id)?.size || 0,
-        tagRows: allTagsByUserId.get(profile.id) || [],
-      }),
-    ),
+    members: await translateMemberViews(members, locale || await getRequestLocale()),
   };
 }

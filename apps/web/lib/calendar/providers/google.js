@@ -224,7 +224,7 @@ export async function createGoogleEvent(
       calendarId,
       requestBody,
       conferenceDataVersion: requestBody.conferenceData ? 1 : undefined,
-      sendUpdates: 'none',
+      sendUpdates: event.sendUpdates || 'none',
     });
 
     const conferenceDetails = extractGoogleConferenceDetails(response.data);

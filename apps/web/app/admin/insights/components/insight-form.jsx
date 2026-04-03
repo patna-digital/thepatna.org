@@ -8,7 +8,7 @@ import {
   INSIGHT_STATUSES,
   INSIGHT_VISIBILITY,
   generateInsightSlug,
-} from "@/lib/insights";
+} from "@/lib/content-types";
 import { RichTextEditor } from "@/components/rich-text-editor";
 
 export function InsightForm({

@@ -4,6 +4,7 @@
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { refreshGoogleCalendarConnectionMetadata } from './google-connection-metadata.js';
 import { getCalendarDisplayRange } from './core.js';
 import { fetchProviderEvents, refreshAccessToken } from './providers/index.js';
 import { syncMatchedBookingConferenceDetails } from './sync-bookings.js';
@@ -67,6 +68,22 @@ export async function syncCalendarConnection(connection, options = {}) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', connection.id);
+    }
+
+    if (connection.provider === 'google') {
+      try {
+        const metadataRefresh = await refreshGoogleCalendarConnectionMetadata({
+          accessToken,
+          refreshToken,
+          memberId: connection.member_id,
+          supabase,
+        });
+
+        accessToken = metadataRefresh.accessToken;
+        refreshToken = metadataRefresh.refreshToken;
+      } catch (error) {
+        stats.errors.push(`Metadata refresh error: ${error.message}`);
+      }
     }
 
     // Fetch events from provider

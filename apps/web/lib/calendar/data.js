@@ -9,6 +9,7 @@ import {
   normalizeBookingSettingsRecord,
 } from "@/lib/calendar/booking";
 import { findConferenceLink } from "@/lib/calendar/conference";
+import { isMissingDatabaseFeatureError, normalizeError } from "@/lib/error-utils";
 
 const CALENDAR_CONNECTION_SELECT = `
   id,
@@ -16,6 +17,7 @@ const CALENDAR_CONNECTION_SELECT = `
   provider_account_email,
   calendar_id,
   calendar_name,
+  access_role,
   is_primary_calendar,
   is_active,
   sync_enabled,
@@ -42,6 +44,7 @@ const BOOKING_SELECT = `
   host_id,
   booker_email,
   booker_name,
+  guest_emails,
   booker_organisation,
   title,
   description,
@@ -79,6 +82,41 @@ const PROVIDER_NAMES = {
 
 const EXTERNAL_EVENTS_WARNING =
   'Some connected calendar items could not be loaded right now. PATNA events and bookings are still shown.';
+
+const EXTERNAL_EVENTS_BASE_SELECT = `
+  id,
+  connection_id,
+  external_event_id,
+  external_calendar_id,
+  title,
+  description,
+  location,
+  starts_at,
+  ends_at,
+  timezone,
+  is_all_day,
+  recurrence_rule,
+  recurring_event_id,
+  attendees,
+  organizer,
+  status,
+  visibility,
+  external_created_at,
+  external_updated_at
+`;
+
+const EXTERNAL_EVENTS_FULL_SELECT = `
+  ${EXTERNAL_EVENTS_BASE_SELECT},
+  conference_url,
+  conference_provider,
+  conference_data,
+  connection:calendar_connections(provider, calendar_name)
+`;
+
+const EXTERNAL_EVENTS_LEGACY_SELECT = `
+  ${EXTERNAL_EVENTS_BASE_SELECT},
+  connection:calendar_connections(provider, calendar_name)
+`;
 
 function getMeetingMetadata({
   conferenceUrl = null,
@@ -119,6 +157,82 @@ function getExternalSourceDetail(connection) {
   return connection?.calendar_name && connection.calendar_name !== providerLabel
     ? providerLabel
     : null;
+}
+
+function buildExternalCalendarEventsQuery({ memberId, startDate, endDate, select, supabase }) {
+  return supabase
+    .from("external_calendar_events")
+    .select(select)
+    .eq("member_id", memberId)
+    .gte("starts_at", `${startDate}T00:00:00`)
+    .lte("starts_at", `${endDate}T23:59:59`)
+    .order("starts_at", { ascending: true });
+}
+
+async function queryExternalCalendarEventRows({ memberId, startDate, endDate, supabase }) {
+  const attempts = [
+    { mode: "full", select: EXTERNAL_EVENTS_FULL_SELECT },
+    { mode: "legacy", select: EXTERNAL_EVENTS_LEGACY_SELECT },
+    { mode: "minimal", select: EXTERNAL_EVENTS_BASE_SELECT },
+  ];
+
+  for (const attempt of attempts) {
+    const { data, error } = await buildExternalCalendarEventsQuery({
+      memberId,
+      startDate,
+      endDate,
+      select: attempt.select,
+      supabase,
+    });
+
+    if (!error) {
+      return {
+        rows: data || [],
+        degraded: attempt.mode !== "full",
+        unavailable: false,
+        error: null,
+      };
+    }
+
+    if (!isMissingDatabaseFeatureError(error)) {
+      return {
+        rows: [],
+        degraded: false,
+        unavailable: false,
+        error,
+      };
+    }
+  }
+
+  return {
+    rows: [],
+    degraded: true,
+    unavailable: true,
+    error: null,
+  };
+}
+
+function transformExternalCalendarEvents(events = []) {
+  return events.map((event) => {
+    const meetingMetadata = getMeetingMetadata({
+      conferenceUrl: event.conference_url,
+      conferenceProvider: event.conference_provider,
+      description: event.description,
+      location: event.location,
+    });
+
+    return {
+      ...event,
+      ...meetingMetadata,
+      event_source: "external",
+      event_type_label: event.connection?.provider
+        ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
+        : "External Event",
+      source_label: getExternalSourceLabel(event.connection),
+      source_detail: getExternalSourceDetail(event.connection),
+      is_rsvped: true,
+    };
+  });
 }
 
 function buildConnectionEventCountMap(events = []) {
@@ -432,64 +546,22 @@ async function ensureAdminEventRsvps({ communityEvents, isAdmin, memberId, supab
  * @returns {Promise<{events: Array, error: Error}>}
  */
 export async function fetchExternalCalendarEvents({ memberId, startDate, endDate, supabase }) {
-  const { data, error } = await supabase
-    .from('external_calendar_events')
-    .select(`
-      id,
-      external_event_id,
-      external_calendar_id,
-      title,
-      description,
-      location,
-      conference_url,
-      conference_provider,
-      conference_data,
-      starts_at,
-      ends_at,
-      timezone,
-      is_all_day,
-      recurrence_rule,
-      recurring_event_id,
-      attendees,
-      organizer,
-      status,
-      visibility,
-      external_created_at,
-      external_updated_at,
-      connection:calendar_connections(provider, calendar_name)
-    `)
-    .eq('member_id', memberId)
-    .gte('starts_at', `${startDate}T00:00:00`)
-    .lte('starts_at', `${endDate}T23:59:59`)
-    .order('starts_at', { ascending: true });
+  const { rows, error, unavailable } = await queryExternalCalendarEventRows({
+    memberId,
+    startDate,
+    endDate,
+    supabase,
+  });
 
   if (error) {
     return { events: [], error };
   }
 
-  // Transform to match the event format
-  const events = (data || []).map((event) => {
-    const meetingMetadata = getMeetingMetadata({
-      conferenceUrl: event.conference_url,
-      conferenceProvider: event.conference_provider,
-      description: event.description,
-      location: event.location,
-    });
-
-    return {
-      ...event,
-      ...meetingMetadata,
-      event_source: 'external',
-      event_type_label: event.connection?.provider
-        ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
-        : 'External Event',
-      source_label: getExternalSourceLabel(event.connection),
-      source_detail: getExternalSourceDetail(event.connection),
-      is_rsvped: true,
-    };
-  });
-
-  return { events, error: null };
+  return {
+    events: transformExternalCalendarEvents(rows),
+    error: null,
+    warning: unavailable ? EXTERNAL_EVENTS_WARNING : null,
+  };
 }
 
 /**
@@ -531,42 +603,29 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
   let externalEvents = [];
   let warning = null;
   try {
-    const { data: extEvents, error: extError } = await supabase
-      .from('external_calendar_events')
-      .select(`
-        id,
-        title,
-        description,
-        location,
-        conference_url,
-        conference_provider,
-        conference_data,
-        starts_at,
-        ends_at,
-        timezone,
-        is_all_day,
-        recurrence_rule,
-        recurring_event_id,
-        attendees,
-        organizer,
-        status,
-        visibility,
-        connection:calendar_connections!inner(provider, calendar_name)
-      `)
-      .eq('member_id', memberId)
-      .gte('starts_at', `${startDate}T00:00:00`)
-      .lte('starts_at', `${endDate}T23:59:59`)
-      .order('starts_at', { ascending: true });
-    
+    const {
+      rows: extEvents,
+      error: extError,
+      unavailable: externalEventsUnavailable,
+    } = await queryExternalCalendarEventRows({
+      memberId,
+      startDate,
+      endDate,
+      supabase,
+    });
+
     if (extError) {
       warning = EXTERNAL_EVENTS_WARNING;
-      console.error('External calendar events fetch error:', extError);
+      console.error("External calendar events fetch error:", normalizeError(extError));
     } else if (extEvents) {
       externalEvents = extEvents;
+      if (externalEventsUnavailable) {
+        warning = EXTERNAL_EVENTS_WARNING;
+      }
     }
   } catch (error) {
     warning = EXTERNAL_EVENTS_WARNING;
-    console.error('External calendar events fetch failed:', error);
+    console.error("External calendar events fetch failed:", normalizeError(error));
     externalEvents = [];
   }
 
@@ -621,28 +680,15 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
       title: b.title,
       is_rsvped: true,
     })),
-    ...externalEvents
+    ...transformExternalCalendarEvents(externalEvents)
       .filter((event) => !bookingExternalIds.has(event.external_event_id))
-      .map(e => {
-      const meetingMetadata = getMeetingMetadata({
-        conferenceUrl: e.conference_url,
-        conferenceProvider: e.conference_provider,
-        description: e.description,
-        location: e.location,
-      });
-      const provider = e.connection?.provider;
-      return {
-        ...e,
-        ...meetingMetadata,
-        event_source: 'external',
-        event_type_label: provider
-          ? `${PROVIDER_NAMES[provider] || provider} Event`
-          : 'Connected Calendar Event',
-        source_label: getExternalSourceLabel(e.connection),
-        source_detail: getExternalSourceDetail(e.connection),
-        is_rsvped: true,
-      };
-      }),
+      .map((event) => ({
+        ...event,
+        event_type_label:
+          event.connection?.provider
+            ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
+            : "Connected Calendar Event",
+      })),
   ];
 
   // Sort by start time

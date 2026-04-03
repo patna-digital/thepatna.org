@@ -412,6 +412,54 @@
     "intro": "Enter your email address to receive a password reset link. The link will be valid for a limited time.",
     "btnBackToSignin": "Back to sign in"
   },
+  "contentTypes": {
+    "report": "Report",
+    "brief": "Brief",
+    "case_study": "Case Study",
+    "article": "Article",
+    "blog": "Article",
+    "news": "News",
+    "event_output": "Event Output",
+    "learning_note": "Learning Note",
+    "workshop_proceedings": "Workshop Proceedings"
+  },
+  "publicationUi": {
+    "eyebrow": "Publication",
+    "readMore": "Read more →",
+    "download": "↓ Download",
+    "latest": "Latest",
+    "readPublication": "Read publication",
+    "downloadPdf": "↓ Download PDF",
+    "backToPublications": "← Back to Publications"
+  },
+  "profileModal": {
+    "close": "Close",
+    "available": "Available",
+    "about": "About",
+    "areasOfExpertise": "Areas of expertise",
+    "languages": "Languages",
+    "workAndFocus": "Work & focus",
+    "domainKnowledge": "Domain knowledge",
+    "focusArea": "Focus area",
+    "notableWork": "Notable work",
+    "collaborationInterest": "Open to collaboration & mentorship",
+    "relevantProjects": "Relevant projects",
+    "adminHidden": "Admin — not visible to members",
+    "editProfile": "Edit profile",
+    "bookMeeting": "Book meeting",
+    "fullAdminView": "Full admin view"
+  },
+  "bookingPage": {
+    "publicBookingPage": "Public booking page",
+    "patnaScheduling": "PATNA scheduling",
+    "platform": "PATNA platform",
+    "bookDirectly": "Book directly",
+    "communityMember": "PATNA community member",
+    "defaultDuration": "{count} min default",
+    "schedulingQuality": "Scheduling quality",
+    "schedulingQualityBody": "Available dates and times are calculated from this member's PATNA availability, notice window, meeting buffers, existing bookings, and connected calendar conflicts.",
+    "poweredBy": "Scheduling powered by <strong>PATNA</strong>."
+  },
   "admin": {
     "brandLabel": "PATNA Admin",
     "eyebrow": "Admin workspace",

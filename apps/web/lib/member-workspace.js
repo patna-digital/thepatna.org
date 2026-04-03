@@ -25,11 +25,17 @@ function getSpaceKindLabel(space) {
 export function buildSidebarUser(member) {
   return {
     name: member.displayName,
-    role: member.roleTitleLabel || member.role_title || "PATNA Member",
-    organisation: member.organisationLabel || member.organisation_name || member.country_of_residence || "Community workspace",
-    cohort: member.primaryCohort?.name || "Member workspace",
+    role: member.roleTitleDisplay || member.roleTitleLabel || member.role_title || "PATNA Member",
+    organisation:
+      member.organisationDisplay ||
+      member.organisationLabel ||
+      member.organisation_name ||
+      member.countryDisplay ||
+      member.country_of_residence ||
+      "Community workspace",
+    cohort: member.primaryCohort?.nameDisplay || member.primaryCohort?.name || "Member workspace",
     profileStatus: member.profileStatus,
-    tags: member.domainTags.slice(0, 3).map((tag) => tag.name),
+    tags: member.domainTags.slice(0, 3).map((tag) => tag.nameDisplay || tag.name),
     headshotSrc: member.headshotSrc,
     initials: member.displayName
       .split(/\s+/)
@@ -99,7 +105,7 @@ export async function fetchMemberDashboardMainData({ adminClient, member }) {
     error,
     stats: [
       {
-        label: `${member.primaryCohort?.name || "PATNA"} members`,
+        label: `${member.primaryCohort?.nameDisplay || member.primaryCohort?.name || "PATNA"} members`,
         value: cohortMemberCount,
         note: `${totalActiveMembers} active members in directory`,
         tone: "blue",
@@ -144,12 +150,17 @@ export async function fetchMemberDashboardRailData({ supabase, member }) {
     upcomingEvents,
     recentInsights: publicInsights,
     profileSnapshot: {
-      role: member.roleTitleLabel || member.role_title || "PATNA Member",
+      role: member.roleTitleDisplay || member.roleTitleLabel || member.role_title || "PATNA Member",
       organisation:
-        member.organisationLabel || member.organisation_name || member.country_of_residence || "Organisation pending",
-      country: member.country_of_residence || "Country pending",
-      cohort: member.primaryCohort?.name || "Cohort pending",
-      tags: member.domainTags.slice(0, 4).map((tag) => tag.name),
+        member.organisationDisplay ||
+        member.organisationLabel ||
+        member.organisation_name ||
+        member.countryDisplay ||
+        member.country_of_residence ||
+        "Organisation pending",
+      country: member.countryDisplay || member.country_of_residence || "Country pending",
+      cohort: member.primaryCohort?.nameDisplay || member.primaryCohort?.name || "Cohort pending",
+      tags: member.domainTags.slice(0, 4).map((tag) => tag.nameDisplay || tag.name),
       completionPercent: member.completionPercent,
       availability: member.availabilityStatus,
       profileStatus: member.profileStatus,
@@ -167,7 +178,7 @@ export function buildMemberDirectoryView({ currentUserId, members }) {
     if (member.primaryCohort?.slug) {
       const existing = cohortsBySlug.get(member.primaryCohort.slug) || {
         slug: member.primaryCohort.slug,
-        name: member.primaryCohort.name,
+        name: member.primaryCohort.nameDisplay || member.primaryCohort.name,
         count: 0,
       };
       existing.count += 1;
@@ -176,12 +187,17 @@ export function buildMemberDirectoryView({ currentUserId, members }) {
 
     for (const tag of member.domainTags || []) {
       if (!tagsBySlug.has(tag.slug)) {
-        tagsBySlug.set(tag.slug, { slug: tag.slug, name: tag.name });
+        tagsBySlug.set(tag.slug, { slug: tag.slug, name: tag.nameDisplay || tag.name });
       }
     }
 
     if (member.country_of_residence) {
-      countries.add(member.country_of_residence);
+      countries.add(
+        JSON.stringify({
+          value: member.country_of_residence,
+          label: member.countryDisplay || member.country_of_residence,
+        }),
+      );
     }
   }
 
@@ -210,7 +226,9 @@ export function buildMemberDirectoryView({ currentUserId, members }) {
         return left.name.localeCompare(right.name);
       }),
       tags: [...tagsBySlug.values()].sort((left, right) => left.name.localeCompare(right.name)),
-      countries: [...countries].sort((left, right) => left.localeCompare(right)),
+      countries: [...countries]
+        .map((value) => JSON.parse(value))
+        .sort((left, right) => left.label.localeCompare(right.label)),
     },
   };
 }

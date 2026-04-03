@@ -2,6 +2,8 @@ import {
   canUseSupabaseAdmin,
   createSupabaseAdminClient,
 } from "@/lib/supabase/admin";
+import { formatContentType } from "@/lib/content-types";
+import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
 const PUBLICATION_SELECT = `
   *,
@@ -15,6 +17,70 @@ function normalisePublication(item) {
     attachments: item.content_attachments || [],
     tags: item.content_tag_map?.map((tagRow) => tagRow.domain_tags).filter(Boolean) || [],
   };
+}
+
+async function translatePublicationsForDisplay(publications, locale) {
+  if (!publications.length) {
+    return publications;
+  }
+
+  const items = [];
+  const pushItem = (cacheKey, fieldName, text) => {
+    if (typeof text !== "string" || !text.trim()) {
+      return;
+    }
+
+    items.push({
+      cacheKey,
+      contentType: "publication",
+      fieldName,
+      text,
+    });
+  };
+
+  for (const publication of publications) {
+    pushItem(`publication:${publication.id}:title`, "title", publication.title || "");
+    pushItem(`publication:${publication.id}:summary`, "summary", publication.summary || "");
+    pushItem(`publication:${publication.id}:body`, "body", publication.body || "");
+    pushItem(`publication:${publication.id}:meta_description`, "meta_description", publication.meta_description || "");
+    pushItem(`publication:${publication.id}:cover_image_alt`, "cover_image_alt", publication.cover_image_alt || "");
+    pushItem(
+      `content_type:${publication.content_type}:label`,
+      "content_type_label",
+      formatContentType(publication.content_type),
+    );
+
+    for (const tag of publication.tags || []) {
+      if (tag?.slug && tag?.name) {
+        pushItem(`domain_tag:${tag.slug}:name`, "tag_name", tag.name);
+      }
+    }
+  }
+
+  const translated = await translateContentItems(locale, items);
+  const translatedByKey = new Map(translated.map((item) => [item.cacheKey, item.displayText]));
+
+  return publications.map((publication) => ({
+    ...publication,
+    sourceTitle: publication.title,
+    sourceSummary: publication.summary,
+    sourceBody: publication.body,
+    title: translatedByKey.get(`publication:${publication.id}:title`) || publication.title,
+    summary: translatedByKey.get(`publication:${publication.id}:summary`) || publication.summary,
+    body: translatedByKey.get(`publication:${publication.id}:body`) || publication.body,
+    meta_description:
+      translatedByKey.get(`publication:${publication.id}:meta_description`) || publication.meta_description,
+    cover_image_alt:
+      translatedByKey.get(`publication:${publication.id}:cover_image_alt`) || publication.cover_image_alt,
+    contentTypeLabel:
+      translatedByKey.get(`content_type:${publication.content_type}:label`) ||
+      formatContentType(publication.content_type),
+    tags: (publication.tags || []).map((tag) => ({
+      ...tag,
+      originalName: tag.name,
+      name: translatedByKey.get(`domain_tag:${tag.slug}:name`) || tag.name,
+    })),
+  }));
 }
 
 export async function fetchPublicPublications({ limit = 0 } = {}) {
@@ -41,7 +107,10 @@ export async function fetchPublicPublications({ limit = 0 } = {}) {
     return [];
   }
 
-  return (data || []).map(normalisePublication);
+  return translatePublicationsForDisplay(
+    (data || []).map(normalisePublication),
+    await getRequestLocale(),
+  );
 }
 
 export async function fetchPublicPublicationBySlug(slug) {
@@ -62,5 +131,10 @@ export async function fetchPublicPublicationBySlug(slug) {
     return null;
   }
 
-  return normalisePublication(data);
+  const [publication] = await translatePublicationsForDisplay(
+    [normalisePublication(data)],
+    await getRequestLocale(),
+  );
+
+  return publication;
 }

@@ -76,7 +76,7 @@ export async function GET(request) {
     // Upsert a connection for every calendar (primary + subscribed like Holidays)
     // so all events including holidays/shared calendars get synced
     const connectionRecords = allCalendars.length > 0 ? allCalendars : [
-      { id: 'primary', name: 'Google Calendar', primary: true },
+      { id: 'primary', name: 'Google Calendar', primary: true, accessRole: 'owner' },
     ];
     const defaultPrimaryCalendarId =
       connectionRecords.find((calendar) => calendar.primary)?.id ||
@@ -107,6 +107,7 @@ export async function GET(request) {
         token_expires_at: tokens.expiresAt?.toISOString(),
         calendar_id: cal.id,
         calendar_name: cal.name || 'Google Calendar',
+        access_role: cal.accessRole || (cal.primary ? 'owner' : null),
         is_primary_calendar: Boolean(
           existing?.is_primary_calendar ||
             (!hasExistingPrimary && cal.id === defaultPrimaryCalendarId),

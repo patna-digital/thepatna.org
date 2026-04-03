@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
 import { fetchPublicPublicationBySlug } from "@/lib/publications";
 
@@ -15,14 +16,18 @@ export async function generateMetadata({ params }) {
 
 export default async function PublicationDetailPage({ params }) {
   const { slug } = await params;
-  const pub = await fetchPublicPublicationBySlug(slug);
+  const [pub, t, locale] = await Promise.all([
+    fetchPublicPublicationBySlug(slug),
+    getTranslations(),
+    getLocale(),
+  ]);
 
   if (!pub) notFound();
 
   const pdfAttachment = pub.attachments.find(
     (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
   );
-  const typeLabel = CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
+  const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
     <>
@@ -52,7 +57,7 @@ export default async function PublicationDetailPage({ params }) {
               <span className="status-chip chip-neutral">{typeLabel}</span>
               {pub.published_at && (
                 <time dateTime={pub.published_at}>
-                  {formatDate(pub.published_at)}
+                  {formatDate(pub.published_at, locale)}
                 </time>
               )}
               {pub.tags?.length > 0 &&
@@ -70,7 +75,7 @@ export default async function PublicationDetailPage({ params }) {
                 rel="noreferrer"
                 target="_blank"
               >
-                ↓ Download PDF
+                {t("publicationUi.downloadPdf")}
               </a>
             )}
           </div>
@@ -92,7 +97,7 @@ export default async function PublicationDetailPage({ params }) {
           {/* Footer nav */}
           <div className="publication-detail-footer">
             <Link className="secondary-button" href="/publications">
-              ← Back to Publications
+              {t("publicationUi.backToPublications")}
             </Link>
             {pdfAttachment && (
               <a
@@ -102,7 +107,7 @@ export default async function PublicationDetailPage({ params }) {
                 rel="noreferrer"
                 target="_blank"
               >
-                ↓ Download PDF
+                {t("publicationUi.downloadPdf")}
               </a>
             )}
           </div>
@@ -124,7 +129,7 @@ const CONTENT_TYPE_LABELS = {
   workshop_proceedings: "Workshop Proceedings",
 };
 
-function formatDate(value) {
+function formatDate(value, locale = "en") {
   if (!value) return "";
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(value));
 }

@@ -166,9 +166,9 @@ export default async function HomePage() {
             {featuredEvents.map((event) => (
               <MediaArticleCard
                 key={event.slug}
-                label={event.event_type || "Event"}
+                label={event.eventTypeDisplay || event.event_type || "Event"}
                 media={getEventMedia(event.slug)}
-                meta={[event.display_date, event.location].filter(Boolean)}
+                meta={[event.displayDateDisplay || event.display_date, event.location].filter(Boolean)}
                 summary={event.summary}
                 sourceLabel={t("home.coverageLabel")}
                 title={event.title}

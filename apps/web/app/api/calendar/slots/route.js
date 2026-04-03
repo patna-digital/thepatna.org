@@ -54,7 +54,7 @@ export async function GET(request) {
     const supabase = createSupabaseAdminClient();
     const { data: googleConnections } = await supabase
       .from("calendar_connections")
-      .select("id, provider, access_token, refresh_token, is_primary_calendar, is_active, sync_enabled")
+      .select("id, provider, access_role, access_token, refresh_token, is_primary_calendar, is_active, sync_enabled")
       .eq("member_id", memberId)
       .eq("provider", "google")
       .eq("is_active", true);

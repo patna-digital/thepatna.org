@@ -38,6 +38,13 @@ function formatSlotRange(slot) {
   return `${formatClockTime(slot.start_time)} - ${formatClockTime(slot.end_time)}`;
 }
 
+function splitGuestEmailEntries(value) {
+  return String(value || "")
+    .split(/[\n,;]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 function DatePicker({
   availableDates,
   currentMonthDate,
@@ -158,6 +165,7 @@ function BookingForm({
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    guestEmails: "",
     organisation: "",
     notes: "",
   });
@@ -225,6 +233,23 @@ function BookingForm({
             type="email"
             value={formData.email}
           />
+          <span className="booking-field-help">
+            PATNA uses this to confirm the booking and send the calendar invite.
+          </span>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="booker-guests">Additional guest emails</label>
+          <textarea
+            id="booker-guests"
+            onChange={(event) => handleChange("guestEmails", event.target.value)}
+            placeholder={"guest.one@example.com\nguest.two@example.com"}
+            rows={3}
+            value={formData.guestEmails}
+          />
+          <span className="booking-field-help">
+            Optional. Add one email per line or separate them with commas. PATNA will invite these guests too.
+          </span>
         </div>
 
         <div className="form-group">
@@ -314,11 +339,19 @@ function BookingConfirmation({ booking, memberName, onReset, settings, writeback
             <dt>Booked by</dt>
             <dd>{booking.booker_name} ({booking.booker_email})</dd>
           </div>
+          {Array.isArray(booking.guest_emails) && booking.guest_emails.length > 0 ? (
+            <div>
+              <dt>Guests</dt>
+              <dd>{booking.guest_emails.join(", ")}</dd>
+            </div>
+          ) : null}
         </dl>
       </div>
 
       {writeback?.provider === "google" && writeback.success ? (
-        <p className="confirmation-meta">The host’s connected Google Calendar was updated as well.</p>
+        <p className="confirmation-meta">
+          The host’s connected Google Calendar was updated, and calendar invites were sent to all attendees.
+        </p>
       ) : null}
 
       {meetingUrl ? (
@@ -429,7 +462,9 @@ export function BookingPageClient({ settings, memberId, memberName }) {
   async function handleBookingSubmit(formData) {
     if (!selectedSlot || bookingUnavailable) {
       if (bookingUnavailable) {
-        setErrorMessage("Bookings are temporarily unavailable while the host finishes Google Calendar setup.");
+        setErrorMessage(
+          "Bookings are temporarily unavailable while the host finishes configuring a writable Google Calendar booking destination.",
+        );
       }
       return;
     }
@@ -451,6 +486,7 @@ export function BookingPageClient({ settings, memberId, memberName }) {
           end_time: selectedSlot.end_time,
           booker_name: formData.name,
           booker_email: formData.email,
+          guest_emails: splitGuestEmailEntries(formData.guestEmails),
           booker_organisation: formData.organisation,
           booker_notes: formData.notes,
           title: `Meeting with ${memberName}`,
@@ -498,7 +534,7 @@ export function BookingPageClient({ settings, memberId, memberName }) {
             <div className="booking-empty-card booking-empty-card-large">
               <strong>Scheduling temporarily unavailable</strong>
               <p>
-                PATNA is waiting for the host’s Google Calendar booking destination to be completed.
+                PATNA is waiting for the host to finish configuring a writable Google Calendar booking destination.
                 Please try again shortly.
               </p>
             </div>
@@ -521,7 +557,7 @@ export function BookingPageClient({ settings, memberId, memberName }) {
             <div className="booking-empty-card booking-empty-card-large">
               <strong>Booking setup in progress</strong>
               <p>
-                This page will accept bookings as soon as the host selects an active Google calendar destination in PATNA.
+                This page will accept bookings as soon as the host selects a synced writable Google calendar destination in PATNA.
               </p>
             </div>
           ) : null}
@@ -874,6 +910,12 @@ export function BookingPageClient({ settings, memberId, memberName }) {
           font-size: 0.9rem;
           font-weight: 700;
           color: #0f172a;
+        }
+
+        .booking-field-help {
+          font-size: 0.8rem;
+          line-height: 1.5;
+          color: #64748b;
         }
 
         .form-group input,

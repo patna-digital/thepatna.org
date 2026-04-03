@@ -26,6 +26,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dir = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(__dir, "..");
 
 // Load .env.local so the script can run standalone outside Next.js
 async function loadEnv() {
@@ -45,23 +46,17 @@ async function loadEnv() {
   }
 }
 
-const __dir = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dir, "..");
-
 const TARGETS = ["fr", "pt", "ar"];
 const SOURCE = "en";
 
-// ── Google Cloud Translation API v2 ─────────────────────────────────────────
-const GOOGLE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY;
-
-if (!GOOGLE_API_KEY) {
-  console.error("❌ GOOGLE_TRANSLATE_API_KEY is not set in .env.local");
-  console.error("   Get a key at https://console.cloud.google.com/ (enable Cloud Translation API)");
-  process.exit(1);
-}
-
 async function googleTranslate(text, from, to) {
   if (!text || typeof text !== "string" || !text.trim()) return text;
+
+  const GOOGLE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY;
+
+  if (!GOOGLE_API_KEY) {
+    throw new Error("GOOGLE_TRANSLATE_API_KEY is not set");
+  }
 
   const url = `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_API_KEY}`;
 
@@ -116,6 +111,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
+  await loadEnv();
+
+  if (!process.env.GOOGLE_TRANSLATE_API_KEY) {
+    console.error("❌ GOOGLE_TRANSLATE_API_KEY is not set in .env.local");
+    console.error("   Get a key at https://console.cloud.google.com/ (enable Cloud Translation API)");
+    process.exit(1);
+  }
+
   const enPath = resolve(ROOT, "messages", "en.json");
   const en = JSON.parse(await readFile(enPath, "utf-8"));
   const flatEn = flatten(en);

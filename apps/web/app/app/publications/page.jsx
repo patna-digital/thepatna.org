@@ -4,7 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
-import { fetchMemberInsights, INSIGHT_CONTENT_TYPES } from "@/lib/insights";
+import { INSIGHT_CONTENT_TYPES } from "@/lib/content-types";
+import { fetchMemberInsights } from "@/lib/insights";
 import { FeaturedPublicationCard } from "@/components/publication-card";
 import { MemberPublicationsList } from "./components/member-publications-list";
 
@@ -81,7 +82,7 @@ export default async function MemberPublicationsPage({ searchParams }) {
                   }
                   href={`/app/publications?type=${type.value}`}
                 >
-                  {type.label}
+                  {t(`contentTypes.${type.value}`)}
                 </Link>
               ))}
             </div>

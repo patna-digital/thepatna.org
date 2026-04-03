@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { locales } from "@/i18n";
+import { locales } from "@/lib/locales";
 
 export async function setLocale(locale) {
   if (!locales.includes(locale)) return;

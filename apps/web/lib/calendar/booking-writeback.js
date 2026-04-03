@@ -1,3 +1,5 @@
+import { isGoogleCalendarWriteCapable } from "./google-access.js";
+
 export class BookingConfigurationError extends Error {
   constructor(message, status = 412) {
     super(message);
@@ -24,6 +26,7 @@ export function selectGoogleWritebackConnection(connections = []) {
     connection?.is_primary_calendar &&
     connection?.is_active !== false &&
     connection?.sync_enabled !== false &&
+    isGoogleCalendarWriteCapable(connection) &&
     hasWritebackTokens(connection),
   ) || null;
 }
@@ -32,6 +35,7 @@ export function buildGoogleBookingDescription({
   bookerName,
   bookerEmail,
   bookerOrganisation,
+  guestEmails = [],
   notes,
 }) {
   const sections = [
@@ -42,6 +46,10 @@ export function buildGoogleBookingDescription({
 
   if (bookerOrganisation) {
     sections.push(`Organisation: ${bookerOrganisation}`);
+  }
+
+  if (guestEmails.length) {
+    sections.push(`Guest emails: ${guestEmails.join(", ")}`);
   }
 
   if (notes) {
@@ -141,7 +149,7 @@ export async function persistBookingWithGoogleWriteback({
       console.error("Failed to log Google booking write-back failure:", logError);
     }
 
-    if (error instanceof BookingWritebackError) {
+    if (error instanceof BookingConfigurationError || error instanceof BookingWritebackError) {
       throw error;
     }
 

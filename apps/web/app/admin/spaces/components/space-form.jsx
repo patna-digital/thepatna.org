@@ -7,7 +7,7 @@ import {
   SPACE_TYPES,
   SPACE_VISIBILITY,
   generateSpaceSlug,
-} from "@/lib/spaces";
+} from "@/lib/space-types";
 
 export function SpaceForm({
   space,

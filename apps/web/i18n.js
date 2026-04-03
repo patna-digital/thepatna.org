@@ -1,8 +1,7 @@
 import { getRequestConfig } from "next-intl/server";
 import { cookies } from "next/headers";
-
-export const locales = ["en", "fr", "pt", "ar"];
-export const defaultLocale = "en";
+import { defaultLocale, locales } from "@/lib/locales";
+import { getTranslatedMessages } from "@/lib/translation";
 
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
@@ -11,6 +10,6 @@ export default getRequestConfig(async () => {
 
   return {
     locale: safeLocale,
-    messages: (await import(`./messages/${safeLocale}.json`)).default,
+    messages: await getTranslatedMessages(safeLocale),
   };
 });

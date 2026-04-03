@@ -9,7 +9,18 @@ import {
   persistBookingWithGoogleWriteback,
   selectGoogleWritebackConnection,
 } from "@/lib/calendar/booking-writeback";
+import {
+  isValidEmailAddress,
+  normalizeEmailAddress,
+  normalizeGuestEmailsInput,
+} from "@/lib/calendar/booking-attendees";
+import {
+  BOOKING_DESTINATION_CONFIGURATION_MESSAGE,
+  isGoogleCalendarPermissionError,
+  refreshGoogleCalendarConnectionMetadata,
+} from "@/lib/calendar/google-connection-metadata.js";
 import { createGoogleEvent, deleteGoogleEvent } from "@/lib/calendar/providers";
+import { normalizeError } from "@/lib/error-utils";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 async function logWritebackResult({
@@ -39,6 +50,12 @@ async function logWritebackResult({
 }
 
 export async function POST(request) {
+  let memberId = null;
+  let supabase = null;
+  let providerAccessToken = null;
+  let providerRefreshToken = null;
+  let writebackConnection = null;
+
   try {
     const body = await request.json();
     const {
@@ -50,9 +67,11 @@ export async function POST(request) {
       title,
       booker_name,
       booker_email,
+      guest_emails,
       booker_organisation,
       booker_notes,
     } = body;
+    memberId = member_id;
 
     if (!member_id || !slot_date || !start_time || !end_time || !booker_name || !booker_email) {
       return NextResponse.json(
@@ -61,7 +80,34 @@ export async function POST(request) {
       );
     }
 
-    const supabase = createSupabaseAdminClient();
+    const normalizedBookerName = String(booker_name || "").trim();
+    const normalizedBookerEmail = normalizeEmailAddress(booker_email);
+    const normalizedBookerOrganisation = String(booker_organisation || "").trim();
+    const normalizedBookerNotes = String(booker_notes || "").trim();
+    const { guestEmails, invalidEmails } = normalizeGuestEmailsInput(guest_emails, {
+      primaryEmail: normalizedBookerEmail,
+    });
+
+    if (!normalizedBookerName || !isValidEmailAddress(normalizedBookerEmail)) {
+      return NextResponse.json(
+        { error: "Please provide a valid name and email address." },
+        { status: 400 },
+      );
+    }
+
+    if (invalidEmails.length) {
+      return NextResponse.json(
+        {
+          error:
+            invalidEmails.length === 1
+              ? `Invalid guest email: ${invalidEmails[0]}`
+              : `Invalid guest emails: ${invalidEmails.join(", ")}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    supabase = createSupabaseAdminClient();
     const context = await fetchBookingAvailabilityContext({
       memberId: member_id,
       startDate: slot_date,
@@ -96,29 +142,28 @@ export async function POST(request) {
 
     const { data: googleConnections } = await supabase
       .from("calendar_connections")
-      .select("id, provider, calendar_id, calendar_name, access_token, refresh_token, token_expires_at, is_primary_calendar, is_active, sync_enabled")
+      .select("id, provider, calendar_id, calendar_name, access_role, access_token, refresh_token, token_expires_at, is_primary_calendar, is_active, sync_enabled")
       .eq("member_id", member_id)
       .eq("provider", "google")
       .eq("is_active", true)
       .order("created_at", { ascending: true });
 
-    const writebackConnection = selectGoogleWritebackConnection(googleConnections || []);
-    let providerAccessToken = writebackConnection?.access_token || null;
-    let providerRefreshToken = writebackConnection?.refresh_token || null;
+    writebackConnection = selectGoogleWritebackConnection(googleConnections || []);
+    providerAccessToken = writebackConnection?.access_token || null;
+    providerRefreshToken = writebackConnection?.refresh_token || null;
 
     if (!writebackConnection) {
-      throw new BookingConfigurationError(
-        "Bookings are temporarily unavailable while the host finishes Google Calendar setup.",
-      );
+      throw new BookingConfigurationError(BOOKING_DESTINATION_CONFIGURATION_MESSAGE);
     }
 
     const bookingInsertPayload = {
       host_id: member_id,
-      booker_name,
-      booker_email,
-      booker_organisation: booker_organisation || null,
-      booker_notes: booker_notes || null,
-      title: title || `Meeting with ${booker_name}`,
+      booker_name: normalizedBookerName,
+      booker_email: normalizedBookerEmail,
+      guest_emails: guestEmails,
+      booker_organisation: normalizedBookerOrganisation || null,
+      booker_notes: normalizedBookerNotes || null,
+      title: title || `Meeting with ${normalizedBookerName}`,
       status: "confirmed",
       starts_at: availableSlot.starts_at,
       ends_at: availableSlot.ends_at,
@@ -138,21 +183,24 @@ export async function POST(request) {
     const googleEventPayload = {
       title: bookingInsertPayload.title,
       description: buildGoogleBookingDescription({
-        bookerName: booker_name,
-        bookerEmail: booker_email,
-        bookerOrganisation: booker_organisation,
-        notes: booker_notes,
+        bookerName: normalizedBookerName,
+        bookerEmail: normalizedBookerEmail,
+        bookerOrganisation: normalizedBookerOrganisation,
+        guestEmails,
+        notes: normalizedBookerNotes,
       }),
       startsAt: availableSlot.starts_at,
       endsAt: availableSlot.ends_at,
       timezone: context.settings.timezone,
       attendees: [
         {
-          email: booker_email,
-          displayName: booker_name,
+          email: normalizedBookerEmail,
+          displayName: normalizedBookerName,
         },
+        ...guestEmails.map((email) => ({ email })),
       ],
       createConference: true,
+      sendUpdates: "all",
     };
 
     const { booking, writeback } = await persistBookingWithGoogleWriteback({
@@ -208,12 +256,36 @@ export async function POST(request) {
         }
       },
       createProviderEvent: async () => {
-        const createdEvent = await createGoogleEvent(
-          providerAccessToken,
-          writebackConnection.calendar_id || "primary",
-          googleEventPayload,
-          providerRefreshToken,
-        );
+        let createdEvent;
+
+        try {
+          createdEvent = await createGoogleEvent(
+            providerAccessToken,
+            writebackConnection.calendar_id || "primary",
+            googleEventPayload,
+            providerRefreshToken,
+          );
+        } catch (providerError) {
+          if (isGoogleCalendarPermissionError(providerError)) {
+            try {
+              await refreshGoogleCalendarConnectionMetadata({
+                accessToken: providerAccessToken,
+                refreshToken: providerRefreshToken,
+                memberId,
+                supabase,
+              });
+            } catch (refreshError) {
+              console.error(
+                "Failed to refresh Google calendar metadata after booking permission error:",
+                normalizeError(refreshError),
+              );
+            }
+
+            throw new BookingConfigurationError(BOOKING_DESTINATION_CONFIGURATION_MESSAGE);
+          }
+
+          throw providerError;
+        }
 
         if (createdEvent.newTokens) {
           providerAccessToken = createdEvent.newTokens.accessToken;
@@ -249,11 +321,33 @@ export async function POST(request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Calendar bookings API error:", error);
+    let responseError = error;
+
+    if (!(error instanceof BookingConfigurationError) && isGoogleCalendarPermissionError(error)) {
+      if (supabase && memberId && providerAccessToken) {
+        try {
+          await refreshGoogleCalendarConnectionMetadata({
+            accessToken: providerAccessToken,
+            refreshToken: providerRefreshToken,
+            memberId,
+            supabase,
+          });
+        } catch (refreshError) {
+          console.error(
+            "Failed to refresh Google calendar metadata after booking permission error:",
+            normalizeError(refreshError),
+          );
+        }
+      }
+
+      responseError = new BookingConfigurationError(BOOKING_DESTINATION_CONFIGURATION_MESSAGE);
+    }
+
+    console.error("Calendar bookings API error:", normalizeError(error));
 
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: error.status || 500 },
+      { error: responseError.message || "Internal server error" },
+      { status: responseError.status || 500 },
     );
   }
 }

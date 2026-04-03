@@ -44,9 +44,9 @@ export default async function EventsPage() {
               patnaEvents.map((event) => (
                 <MediaArticleCard
                   key={event.slug}
-                  label={event.event_type || "Event"}
+                  label={event.eventTypeDisplay || event.event_type || "Event"}
                   media={getEventMedia(event.slug)}
-                  meta={[event.display_date, event.location].filter(Boolean)}
+                  meta={[event.displayDateDisplay || event.display_date, event.location].filter(Boolean)}
                   summary={event.summary}
                   sourceLabel={t("events.coverageLabel")}
                   title={event.title}
@@ -75,9 +75,9 @@ export default async function EventsPage() {
               {externalEvents.map((event) => (
                 <MediaArticleCard
                   key={event.slug}
-                  label={event.event_type || "Event"}
+                  label={event.eventTypeDisplay || event.event_type || "Event"}
                   media={getEventMedia(event.slug)}
-                  meta={[event.display_date, event.location].filter(Boolean)}
+                  meta={[event.displayDateDisplay || event.display_date, event.location].filter(Boolean)}
                   summary={event.summary}
                   sourceLabel={isPatnaLedEvent(event) ? t("events.coverageLabel") : t("events.officialPage")}
                   sourceUrl={
