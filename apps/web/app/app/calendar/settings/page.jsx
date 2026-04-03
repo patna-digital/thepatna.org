@@ -11,7 +11,49 @@ export const metadata = {
   description: "Manage your calendar connections and booking preferences",
 };
 
-export default async function CalendarSettingsPage() {
+function getCalendarSettingsNotice(searchParams) {
+  const success = typeof searchParams?.success === "string" ? searchParams.success : "";
+  const error = typeof searchParams?.error === "string" ? searchParams.error : "";
+  const provider = typeof searchParams?.provider === "string" ? searchParams.provider : "calendar";
+  const sync = typeof searchParams?.sync === "string" ? searchParams.sync : "";
+  const providerLabel = provider === "google" ? "Google Calendar" : "calendar";
+
+  if (error === "oauth_denied") {
+    return {
+      message: `${providerLabel} connection was cancelled.`,
+      tone: "error",
+    };
+  }
+
+  if (error) {
+    return {
+      message: `There was a problem connecting ${providerLabel}. Please try again.`,
+      tone: "error",
+    };
+  }
+
+  if (success === "connected" && sync === "partial") {
+    return {
+      message: `${providerLabel} connected, but some calendars still need a retry. Use Sync now if items are missing.`,
+      tone: "warning",
+    };
+  }
+
+  if (success === "connected") {
+    return {
+      message: `${providerLabel} connected and initial import completed.`,
+      tone: "success",
+    };
+  }
+
+  return {
+    message: "",
+    tone: "success",
+  };
+}
+
+export default async function CalendarSettingsPage({ searchParams }) {
+  const resolvedSearchParams = await searchParams;
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -28,6 +70,7 @@ export default async function CalendarSettingsPage() {
   ]);
 
   const sidebarUser = frameData.sidebarUser || null;
+  const notice = getCalendarSettingsNotice(resolvedSearchParams);
 
   const headerActions = (
     <Link href="/app/calendar" className="secondary-button">
@@ -46,6 +89,8 @@ export default async function CalendarSettingsPage() {
       <div className="calendar-settings-content">
         <CalendarSettingsClient
           connections={connectionsResult.connections}
+          initialMessage={notice.message}
+          initialMessageTone={notice.tone}
           settings={settingsResult.settings}
           memberId={user.id}
         />

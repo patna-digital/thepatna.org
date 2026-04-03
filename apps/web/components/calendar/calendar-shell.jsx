@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useTransition } from "react";
-import { formatDate, getCalendarDays, getMonthName, getNextMonth, getPreviousMonth } from "@/lib/calendar/core";
+import { formatDate, getCalendarDays, getNextMonth, getPreviousMonth } from "@/lib/calendar/core";
 import { setEventRsvp } from "../../app/app/calendar/actions";
 import "./calendar-styles.css";
 
@@ -69,6 +69,10 @@ function getEventTypeLabel(event) {
   return getEventTypeConfig(event);
 }
 
+function getOrganizerName(event) {
+  return event.organizer?.displayName || event.organizer?.name || null;
+}
+
 // ── sub-components ─────────────────────────────────────────────────────────────
 
 function TypeTag({ event }) {
@@ -83,6 +87,18 @@ function TypeTag({ event }) {
   );
 }
 
+function SourceBadge({ event }) {
+  if (!event.source_label) {
+    return null;
+  }
+
+  return (
+    <span className={`cal-source-badge ${event.event_source || "community"}`}>
+      {event.source_label}
+    </span>
+  );
+}
+
 function EventCard({ event, isExpanded, onToggle, onRsvp, isPending }) {
   const isRsvped = Boolean(event.is_rsvped);
   const isCommunity = event.event_source === "community";
@@ -93,7 +109,10 @@ function EventCard({ event, isExpanded, onToggle, onRsvp, isPending }) {
     <div className={`cal-event-item ${isExpanded ? "expanded" : ""}`}>
       <button className="cal-event-row" onClick={onToggle} type="button">
         <TypeTag event={event} />
-        <span className="cal-event-row-title">{event.title}</span>
+        <span className="cal-event-row-main">
+          <span className="cal-event-row-title">{event.title}</span>
+          <SourceBadge event={event} />
+        </span>
         <span className="cal-event-row-date">{formatEventDate(event)}</span>
         {isCommunity && isRsvped && <span className="cal-rsvped-dot" title="Attending" />}
         <svg
@@ -125,6 +144,15 @@ function EventCard({ event, isExpanded, onToggle, onRsvp, isPending }) {
               <dt>When</dt>
               <dd>{formatEventDate(event)}</dd>
             </div>
+            {event.source_label && (
+              <div>
+                <dt>Source</dt>
+                <dd>
+                  {event.source_label}
+                  {event.source_detail ? ` · ${event.source_detail}` : ""}
+                </dd>
+              </div>
+            )}
             {event.location && (
               <div>
                 <dt>Where</dt>
@@ -137,16 +165,10 @@ function EventCard({ event, isExpanded, onToggle, onRsvp, isPending }) {
                 <dd style={{ textTransform: "capitalize" }}>{event.location_type.replace("_", " ")}</dd>
               </div>
             )}
-            {isExternal && event.connection?.provider && (
-              <div>
-                <dt>Source</dt>
-                <dd>{event.event_type_label}</dd>
-              </div>
-            )}
-            {event.organizer?.displayName && (
+            {getOrganizerName(event) && (
               <div>
                 <dt>Organiser</dt>
-                <dd>{event.organizer.displayName}</dd>
+                <dd>{getOrganizerName(event)}</dd>
               </div>
             )}
             {isPersonal && event.booker_name && (
@@ -442,13 +464,14 @@ function YearView({ year, events, filter, onYearChange, onMonthSelect }) {
 
 // ── Main shell ─────────────────────────────────────────────────────────────────
 
-export function CalendarShell({ initialEvents = [], initialYear, isAdmin = false }) {
+export function CalendarShell({ initialEvents = [], initialWarning = "", initialYear, isAdmin = false }) {
   const today = new Date();
   const [view, setView] = useState("month");
   const [selectedYear, setSelectedYear] = useState(initialYear || today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [filter, setFilter] = useState("all");
   const [events, setEvents] = useState(initialEvents);
+  const [warning] = useState(initialWarning);
   const [pendingEventIds, setPendingEventIds] = useState([]);
   const [notice, setNotice] = useState("");
   const [, startTransition] = useTransition();
@@ -553,6 +576,9 @@ export function CalendarShell({ initialEvents = [], initialYear, isAdmin = false
       </div>
 
       {/* Notices */}
+      {warning && (
+        <div className="cal-notice warning">{warning}</div>
+      )}
       {notice && (
         <div className="cal-notice">{notice}</div>
       )}

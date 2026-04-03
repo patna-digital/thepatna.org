@@ -104,8 +104,8 @@ export function CalendarListView({
                   </span>
                 </div>
                 <div className="calendar-list-item-content">
-                  <div className="event-source-badge">
-                    {event.event_source === "personal" ? "Personal" : "Community"}
+                  <div className={`event-source-badge ${event.event_source || "community"}`}>
+                    {event.source_label || (event.event_source === "personal" ? "PATNA Booking" : event.event_source === "external" ? "Connected Calendar" : "PATNA Event")}
                   </div>
                   <h4 className="event-title">{event.title}</h4>
                   {event.summary && (

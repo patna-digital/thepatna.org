@@ -265,6 +265,11 @@
   color: #6d28d9;
 }
 
+.calendar-event-chip.external {
+  background: rgba(107, 33, 168, 0.12);
+  color: #6b21a8;
+}
+
 .calendar-event-chip .event-time {
   opacity: 0.7;
   margin-right: 0.25rem;
@@ -409,6 +414,12 @@
   color: #6d28d9;
 }
 
+.calendar-week-event.external {
+  background: rgba(107, 33, 168, 0.12);
+  border-left: 3px solid #7c3aed;
+  color: #6b21a8;
+}
+
 .calendar-week-event .event-title {
   font-weight: 700;
   white-space: nowrap;
@@ -503,6 +514,12 @@
   background: #ede9fe;
   border-left: 4px solid #8b5cf6;
   color: #6d28d9;
+}
+
+.calendar-day-event.external {
+  background: rgba(107, 33, 168, 0.1);
+  border-left: 4px solid #7c3aed;
+  color: #6b21a8;
 }
 
 .calendar-day-event .event-time-badge {
@@ -640,6 +657,11 @@
 .event-source-badge.personal {
   background: #ede9fe;
   color: #6d28d9;
+}
+
+.event-source-badge.external {
+  background: rgba(107, 33, 168, 0.12);
+  color: #6b21a8;
 }
 
 .calendar-list-item-content .event-title {
@@ -943,6 +965,12 @@
   background: rgba(14, 116, 144, 0.07);
   font-size: var(--text-sm);
   color: #0e7490;
+}
+
+.cal-notice.warning {
+  border-color: rgba(217, 119, 6, 0.28);
+  background: rgba(245, 158, 11, 0.09);
+  color: #92400e;
 }
 
 .cal-admin-note {
@@ -1306,14 +1334,50 @@
   white-space: nowrap;
 }
 
-.cal-event-row-title {
+.cal-event-row-main {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cal-event-row-title {
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.cal-source-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  background: rgba(148, 163, 184, 0.14);
+  white-space: nowrap;
+}
+
+.cal-source-badge.community {
+  color: #0e7490;
+  background: rgba(14, 116, 144, 0.1);
+}
+
+.cal-source-badge.personal {
+  color: #6d28d9;
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.cal-source-badge.external {
+  color: #6b21a8;
+  background: rgba(107, 33, 168, 0.12);
 }
 
 .cal-event-row-date {
@@ -1461,6 +1525,10 @@
   }
   .cal-event-row-date {
     display: none;
+  }
+  .cal-event-row-main {
+    flex-direction: column;
+    align-items: flex-start;
   }
   .cal-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));

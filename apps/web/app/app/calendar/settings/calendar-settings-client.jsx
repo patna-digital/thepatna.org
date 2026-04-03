@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateBookingSettings } from "../actions";
 
@@ -157,7 +157,6 @@ function ICalConnectForm({ onConnect, disabled }) {
 // Connected calendar item with sync controls
 function ConnectedCalendarItem({ connection, onSync, onDisconnect, onToggleSync }) {
   const [isSyncing, setIsSyncing] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -433,17 +432,25 @@ function BookingSettingsForm({ initialSettings, memberId }) {
   );
 }
 
-export function CalendarSettingsClient({ connections: initialConnections, settings, memberId }) {
+export function CalendarSettingsClient({
+  connections: initialConnections,
+  settings,
+  memberId,
+  initialMessage = "",
+  initialMessageTone = "success",
+}) {
   const [connections, setConnections] = useState(initialConnections || []);
   const [isConnecting, setIsConnecting] = useState(false);
   const [activeProvider, setActiveProvider] = useState(null);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage);
+  const [messageTone, setMessageTone] = useState(initialMessageTone);
 
   // Initiate OAuth connection
   const handleConnect = async (provider, options = {}) => {
     setIsConnecting(true);
     setActiveProvider(provider);
     setMessage("");
+    setMessageTone("success");
 
     try {
       const response = await fetch("/api/calendar/auth", {
@@ -472,9 +479,11 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
       if (data.success && data.connection) {
         setConnections((prev) => [...prev, data.connection]);
         setMessage(`Successfully imported ${data.eventsImported} events`);
+        setMessageTone("success");
       }
     } catch (error) {
       setMessage(`Error: ${error.message}`);
+      setMessageTone("error");
     } finally {
       setIsConnecting(false);
       setActiveProvider(null);
@@ -506,11 +515,14 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
 
       if (data.success) {
         setMessage(`Sync completed: ${data.stats.eventsCreated} new, ${data.stats.eventsUpdated} updated`);
+        setMessageTone("success");
       } else {
         setMessage(`Sync completed with errors: ${data.error?.message || "Unknown error"}`);
+        setMessageTone("warning");
       }
     } catch (error) {
       setMessage(`Sync error: ${error.message}`);
+      setMessageTone("error");
     }
   };
 
@@ -527,6 +539,7 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
       await toggleCalendarSync(connectionId, enabled);
     } catch (error) {
       setMessage(`Error: ${error.message}`);
+      setMessageTone("error");
       // Revert on error
       setConnections((prev) =>
         prev.map((c) => (c.id === connectionId ? { ...c, sync_enabled: !enabled } : c))
@@ -552,8 +565,10 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
 
       setConnections((prev) => prev.filter((c) => c.id !== connectionId));
       setMessage("Calendar disconnected successfully");
+      setMessageTone("success");
     } catch (error) {
       setMessage(`Error: ${error.message}`);
+      setMessageTone("error");
     }
   };
 
@@ -601,7 +616,7 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           </div>
 
           {message && (
-            <div className={`sync-message ${message.includes("Error") ? "error" : "success"}`}>
+            <div className={`sync-message ${messageTone}`}>
               {message}
             </div>
           )}
@@ -803,6 +818,11 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
         .sync-message.error {
           background: #fee2e2;
           color: #991b1b;
+        }
+
+        .sync-message.warning {
+          background: #fef3c7;
+          color: #92400e;
         }
 
         .connected-calendars-section {
