@@ -1,19 +1,14 @@
 import "server-only";
 
-import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isDatabaseAccessError, isMissingDatabaseFeatureError, normalizeError } from "@/lib/error-utils";
 import { getGoogleTranslateApiKey } from "@/lib/env";
 import { defaultLocale, resolveLocale } from "@/lib/locales";
+import { loadBundledMessages } from "@/lib/translation-messages";
 
-const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
-const APP_ROOT = resolve(MODULE_DIR, "..");
-const MESSAGES_DIR = resolve(APP_ROOT, "messages");
 const CACHE_TABLE = "content_translations";
 const GOOGLE_TRANSLATE_ENDPOINT = "https://translation.googleapis.com/language/translate/v2";
 const PLACEHOLDER_PATTERN = /\{[^{}]+\}/g;
@@ -106,17 +101,8 @@ function restorePlaceholders(text, placeholders) {
   );
 }
 
-async function readMessageFile(locale) {
-  try {
-    const raw = await readFile(resolve(MESSAGES_DIR, `${locale}.json`), "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-}
-
-const loadSourceMessages = cache(async () => readMessageFile(defaultLocale));
-const loadFallbackMessages = cache(async (locale) => readMessageFile(locale));
+const loadSourceMessages = cache(async () => loadBundledMessages(defaultLocale));
+const loadFallbackMessages = cache(async (locale) => loadBundledMessages(locale));
 
 async function getRequestLocaleFromCookies() {
   try {
