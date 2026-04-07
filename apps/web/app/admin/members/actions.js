@@ -2,8 +2,8 @@
 
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
-import { getAuthCallbackUrl } from "@/lib/auth";
-import { getSiteUrl } from "@/lib/env";
+import { sendAccessSetupEmail } from "@/lib/access-emails";
+import { provisionMemberFromApplication } from "@/lib/member-provisioning";
 import { createSupabaseAdminClient, listSupabaseAuthUsers } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
 
@@ -25,41 +25,32 @@ function resolveReturnPath(formData) {
   return returnTo.startsWith("/admin/members") ? returnTo : "/admin/members";
 }
 
+function getSelectedProfileIds(formData) {
+  return [
+    ...new Set(
+      formData
+        .getAll("profile_ids")
+        .map((value) => String(value || "").trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
 async function sendMemberAccessEmail({ adminClient, authUsers, createdByUserId, profile, supabase }) {
   const normalizedEmail = String(profile.email).trim().toLowerCase();
-  const authUser = authUsers.find(
-    (candidate) =>
-      candidate.id === profile.id || String(candidate.email || "").trim().toLowerCase() === normalizedEmail,
-  );
-
-  let userId = authUser?.id || profile.id;
-  let deliveryMethod = "manual_reset";
-
-  if (!authUser) {
-    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
-      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    userId = data.user.id;
-    deliveryMethod = "supabase_invite";
-  } else {
-    const { error } = await adminClient.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
-    });
-
-    if (error) {
-      throw error;
-    }
-  }
+  const { deliveryMethod, userId } = await sendAccessSetupEmail({
+    adminClient,
+    authUsers,
+    email: normalizedEmail,
+    profileId: profile.id || "",
+  });
 
   const { error: profileUpdateError } = await supabase
     .from("profiles")
-    .update({ invited_at: new Date().toISOString() })
-    .eq("id", userId);
+    .upsert(
+      { id: userId, email: normalizedEmail, invited_at: new Date().toISOString() },
+      { onConflict: "id" },
+    );
 
   if (profileUpdateError) {
     throw profileUpdateError;
@@ -84,7 +75,6 @@ async function sendMemberAccessEmail({ adminClient, authUsers, createdByUserId, 
 export async function sendMemberInviteAction(formData) {
   const { supabase, user } = await requireAdminContext();
   const adminClient = createSupabaseAdminClient();
-  const authUsers = await listSupabaseAuthUsers(adminClient);
   const profileId = String(formData.get("profile_id") || "").trim();
   const returnPath = resolveReturnPath(formData);
 
@@ -103,7 +93,13 @@ export async function sendMemberInviteAction(formData) {
   }
 
   try {
-    await sendMemberAccessEmail({ adminClient, authUsers, createdByUserId: user.id, profile, supabase });
+    await sendMemberAccessEmail({
+      adminClient,
+      authUsers: null,
+      createdByUserId: user.id,
+      profile,
+      supabase,
+    });
   } catch {
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}notice=error`);
   }
@@ -116,7 +112,7 @@ export async function sendSelectedMemberInvitesAction(formData) {
   const adminClient = createSupabaseAdminClient();
   const authUsers = await listSupabaseAuthUsers(adminClient);
   const returnPath = resolveReturnPath(formData);
-  const profileIds = [...new Set(formData.getAll("profile_ids").map((value) => String(value || "").trim()).filter(Boolean))];
+  const profileIds = getSelectedProfileIds(formData);
 
   if (profileIds.length === 0) {
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}notice=missing-fields`);
@@ -159,6 +155,59 @@ export async function sendSelectedMemberInvitesAction(formData) {
   }
 
   redirect(`${returnPath}${separator}notice=error`);
+}
+
+export async function repairSelectedMemberProfilesAction(formData) {
+  const { supabase } = await requireAdminContext();
+  const adminClient = createSupabaseAdminClient();
+  const returnPath = resolveReturnPath(formData);
+  const profileIds = getSelectedProfileIds(formData);
+
+  if (profileIds.length === 0) {
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}notice=missing-fields`);
+  }
+
+  const { data: profiles, error: profileLookupError } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .in("id", profileIds);
+
+  if (profileLookupError || !profiles?.length) {
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}notice=error`);
+  }
+
+  let repairedCount = 0;
+  let skippedCount = 0;
+  let failedCount = 0;
+
+  for (const profile of profiles) {
+    if (!profile?.id || !profile?.email) {
+      failedCount += 1;
+      continue;
+    }
+
+    try {
+      const result = await provisionMemberFromApplication({
+        adminClient,
+        email: profile.email,
+        userId: profile.id,
+      });
+
+      if (result.status === "repaired") {
+        repairedCount += 1;
+      } else {
+        skippedCount += 1;
+      }
+    } catch {
+      failedCount += 1;
+    }
+  }
+
+  const separator = returnPath.includes("?") ? "&" : "?";
+
+  redirect(
+    `${returnPath}${separator}notice=repair-summary&repaired=${repairedCount}&skipped=${skippedCount}&failed=${failedCount}`,
+  );
 }
 
 export async function updateMemberProfileStatusAction(formData) {

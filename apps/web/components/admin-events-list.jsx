@@ -47,15 +47,22 @@ export function AdminEventsList({ events }) {
   }, [events, search]);
 
   return (
-    <>
-      {/* Results count */}
-      {search ? (
-        <p className="muted-note">
-          Showing {filtered.length} of {events.length} events matching "{search}".
-        </p>
-      ) : null}
+    <div className="stack">
+      <div className="admin-list-search">
+        <span className="admin-list-search-icon" aria-hidden="true">⌕</span>
+        <input
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search title, institution, theme, location…"
+          type="search"
+          value={search}
+        />
+        {search ? (
+          <span className="admin-list-search-count">
+            {filtered.length} of {events.length}
+          </span>
+        ) : null}
+      </div>
 
-      {/* Event list */}
       <article className="dashboard-card app-list-card">
         {filtered.length ? (
           <div className="app-list">
@@ -157,6 +164,6 @@ export function AdminEventsList({ events }) {
           </div>
         )}
       </article>
-    </>
+    </div>
   );
 }

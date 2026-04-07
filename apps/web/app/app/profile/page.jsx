@@ -88,7 +88,7 @@ function getSectionHref(sectionId, editMode) {
 
 export default async function MemberProfilePage({ searchParams }) {
   const { supabase, user } = await getCurrentUserContext({
-    includeProfile: false,
+    includeProfile: true,
     includeRoles: false,
   });
 

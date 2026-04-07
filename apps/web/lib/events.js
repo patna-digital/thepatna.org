@@ -407,9 +407,7 @@ export function buildAdminEventSummary(events) {
   };
 }
 
-export function filterAdminEvents(events, { publishStatus = "all", scheduleStatus = "all", search = "", visibility = "all" }) {
-  const normalisedSearch = String(search || "").trim().toLowerCase();
-
+export function filterAdminEvents(events, { publishStatus = "all", scheduleStatus = "all", visibility = "all" }) {
   return events.filter((event) => {
     if (publishStatus !== "all" && event.status !== publishStatus) {
       return false;
@@ -423,24 +421,7 @@ export function filterAdminEvents(events, { publishStatus = "all", scheduleStatu
       return false;
     }
 
-    if (!normalisedSearch) {
-      return true;
-    }
-
-    const haystack = [
-      event.title,
-      event.location,
-      event.summary,
-      event.event_type,
-      event.patna_involvement,
-      ...(event.organising_institutions || []),
-      ...(event.themes || []),
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return haystack.includes(normalisedSearch);
+    return true;
   });
 }
 

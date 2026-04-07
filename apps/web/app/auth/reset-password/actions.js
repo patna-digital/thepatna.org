@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { markOnboardingStarted } from "@/lib/supabase/access";
+import { finalizeMemberAccessAfterPasswordUpdate } from "@/lib/supabase/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function updatePasswordAction(_previousState, formData) {
@@ -43,7 +43,7 @@ export async function updatePasswordAction(_previousState, formData) {
     };
   }
 
-  const profile = await markOnboardingStarted(supabase, user.id);
+  const accessResult = await finalizeMemberAccessAfterPasswordUpdate(supabase, user.id);
 
-  redirect(profile?.onboarding_status === "active" ? "/app" : "/app/profile");
+  redirect(accessResult.shouldRedirectToProfile ? "/app/profile" : "/app");
 }

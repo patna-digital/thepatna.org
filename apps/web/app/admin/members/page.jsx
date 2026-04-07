@@ -12,12 +12,13 @@ import { adminNav } from "@/lib/patna-data";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
 import {
+  repairSelectedMemberProfilesAction,
   sendMemberInviteAction,
   sendSelectedMemberInvitesAction,
   updateMemberProfileStatusAction,
 } from "./actions";
 
-function getNoticeMessage(notice, sentCount, failedCount, profileStatus) {
+function getNoticeMessage(notice, sentCount, failedCount, profileStatus, repairedCount, skippedCount, repairFailedCount) {
   const messages = {
     sent: "Login email sent.",
     error: "Member email action failed. Please retry.",
@@ -26,6 +27,9 @@ function getNoticeMessage(notice, sentCount, failedCount, profileStatus) {
   };
   if (notice === "bulk-sent") return `${sentCount || 0} login emails sent.`;
   if (notice === "bulk-partial") return `${sentCount || 0} sent, ${failedCount || 0} failed.`;
+  if (notice === "repair-summary") {
+    return `Profile repair complete: ${repairedCount || 0} repaired, ${skippedCount || 0} already up to date, ${repairFailedCount || 0} failed.`;
+  }
   if (notice === "profile-status-updated") return `Profile marked ${profileStatus || "updated"}.`;
   return messages[notice] || "";
 }
@@ -70,6 +74,9 @@ export default async function AdminMembersPage({ searchParams }) {
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
   const sentCount = Number.parseInt(String(resolvedSearchParams?.sent || "0"), 10) || 0;
   const failedCount = Number.parseInt(String(resolvedSearchParams?.failed || "0"), 10) || 0;
+  const repairedCount = Number.parseInt(String(resolvedSearchParams?.repaired || "0"), 10) || 0;
+  const skippedCount = Number.parseInt(String(resolvedSearchParams?.skipped || "0"), 10) || 0;
+  const repairFailedCount = Number.parseInt(String(resolvedSearchParams?.failed || "0"), 10) || 0;
   const updatedProfileStatus = typeof resolvedSearchParams?.profile_status === "string" ? resolvedSearchParams.profile_status : "";
 
   const { error: dataError, members, counts, cohortOptions } = await fetchAdminMembersDirectory({ supabase, adminClient });
@@ -140,46 +147,42 @@ export default async function AdminMembersPage({ searchParams }) {
             </form>
           </div>
 
-          {/* Search + Bulk Actions */}
           <div className="admin-toolbar-actions">
-            <form className="admin-search-form" method="get">
-              {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
-              {activeCohort !== "all" ? <input name="cohort" type="hidden" value={activeCohort} /> : null}
-              <span className="admin-search-icon" aria-hidden="true">⌕</span>
-              <input
-                name="search"
-                placeholder="Search name, email, organisation…"
-                type="search"
-              />
-            </form>
-
             <div className="admin-toolbar-right">
               <Link className="secondary-button" href={exportHref}>Export CSV</Link>
               <form action={sendSelectedMemberInvitesAction} id="bulk-member-action-form">
                 <input name="return_to" type="hidden" value={returnPath} />
-                <AdminMembersBulkAction />
+                <AdminMembersBulkAction
+                  secondaryAction={repairSelectedMemberProfilesAction}
+                  secondaryLabel="Repair selected"
+                />
               </form>
             </div>
           </div>
 
           {notice ? (
             <p className={notice === "error" || notice === "profile-status-error" ? "form-error" : "form-success"}>
-              {getNoticeMessage(notice, sentCount, failedCount, updatedProfileStatus)}
+              {getNoticeMessage(
+                notice,
+                sentCount,
+                failedCount,
+                updatedProfileStatus,
+                repairedCount,
+                skippedCount,
+                repairFailedCount,
+              )}
             </p>
           ) : null}
           {dataError ? <p className="form-error">{dataError.message}</p> : null}
         </div>
       </article>
 
-      {/* Member list */}
-      <article className="dashboard-card app-list-card">
-        <AdminMembersListClient
-          members={filteredMembers}
-          returnPath={returnPath}
-          sendInviteAction={sendMemberInviteAction}
-          updateStatusAction={updateMemberProfileStatusAction}
-        />
-      </article>
+      <AdminMembersListClient
+        members={filteredMembers}
+        returnPath={returnPath}
+        sendInviteAction={sendMemberInviteAction}
+        updateStatusAction={updateMemberProfileStatusAction}
+      />
     </DashboardShell>
   );
 }
