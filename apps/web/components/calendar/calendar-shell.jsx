@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useTransition } from "react";
+import { useMemo, useState, useEffect, useRef, useTransition } from "react";
 import {
   createLocalDateFromKey,
   eventOccursInMonth,
@@ -61,6 +61,11 @@ function formatEventDate(event) {
   }
 
   return `${startLabel} · ${timeLabel}`;
+}
+
+function formatDateFromKey(dateKey, options) {
+  const date = createLocalDateFromKey(dateKey);
+  return date ? new Intl.DateTimeFormat("en-GB", options).format(date) : "";
 }
 
 // Event type tag config
@@ -267,15 +272,37 @@ function EventCard({ event, isExpanded, onToggle, onRsvp, isPending }) {
   );
 }
 
-function EventList({ events, pendingEventIds, onRsvp }) {
-  const [expandedId, setExpandedId] = useState(null);
+function EventList({
+  events,
+  pendingEventIds,
+  onRsvp,
+  expandedId: controlledExpandedId,
+  onExpandedIdChange,
+  emptyMessage = "No scheduled items this month.",
+}) {
+  const [uncontrolledExpandedId, setUncontrolledExpandedId] = useState(null);
+  const isControlled = controlledExpandedId !== undefined;
+  const expandedId = isControlled ? controlledExpandedId : uncontrolledExpandedId;
+
+  useEffect(() => {
+    if (isControlled) {
+      return;
+    }
+    setUncontrolledExpandedId((current) =>
+      events.some((event) => event.id === current) ? current : null
+    );
+  }, [events, isControlled]);
 
   function toggle(id) {
-    setExpandedId((cur) => (cur === id ? null : id));
+    const nextId = expandedId === id ? null : id;
+    if (!isControlled) {
+      setUncontrolledExpandedId(nextId);
+    }
+    onExpandedIdChange?.(nextId);
   }
 
   if (!events.length) {
-    return <p className="cal-empty">No scheduled items this month.</p>;
+    return <p className="cal-empty">{emptyMessage}</p>;
   }
 
   return (
@@ -294,15 +321,118 @@ function EventList({ events, pendingEventIds, onRsvp }) {
   );
 }
 
+function DayEventsModal({
+  dayKey,
+  events,
+  expandedId,
+  onExpandedIdChange,
+  pendingEventIds,
+  onClose,
+  onRsvp,
+}) {
+  const dialogRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = dayKey ? `cal-day-modal-title-${dayKey}` : "cal-day-modal-title";
+  const dayLabel = formatDateFromKey(dayKey, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    requestAnimationFrame(() => {
+      dialogRef.current?.focus();
+    });
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <div
+      className="cal-day-modal-overlay"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="cal-day-modal"
+        onClick={(event) => event.stopPropagation()}
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+      >
+        <div className="cal-day-modal-header">
+          <div className="cal-day-modal-header-copy">
+            <p className="cal-day-modal-kicker">
+              {events.length} {events.length === 1 ? "item" : "items"} scheduled
+            </p>
+            <h3 className="cal-day-modal-title" id={titleId}>
+              {dayLabel}
+            </h3>
+          </div>
+          <button
+            aria-label="Close event list"
+            className="cal-day-modal-close"
+            onClick={onClose}
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="cal-day-modal-body">
+          <EventList
+            emptyMessage="No scheduled items on this day."
+            events={events}
+            expandedId={expandedId}
+            onExpandedIdChange={onExpandedIdChange}
+            onRsvp={onRsvp}
+            pendingEventIds={pendingEventIds}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Month view ─────────────────────────────────────────────────────────────────
 
 function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBack, onMonthChange }) {
   const days = useMemo(() => getCalendarDays(month, year), [month, year]);
   const monthEvents = useMemo(() => eventsForMonth(events, year, month), [events, year, month]);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [expandedEventId, setExpandedEventId] = useState(null);
+  const selectedDayTriggerRef = useRef(null);
 
   // Reset selection when the month changes
-  useEffect(() => { setSelectedDay(null); }, [month, year]);
+  useEffect(() => {
+    setSelectedDay(null);
+    setExpandedEventId(null);
+    selectedDayTriggerRef.current = null;
+  }, [month, year]);
 
   const filteredEvents = useMemo(() => {
     if (filter === "community") return monthEvents.filter((e) => e.event_source === "community");
@@ -311,16 +441,59 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
   }, [monthEvents, filter]);
 
   const eventsByDate = useMemo(() => groupEventsByDate(filteredEvents), [filteredEvents]);
-
-  const listEvents = selectedDay ? (eventsByDate[selectedDay] || []) : filteredEvents;
+  const selectedDayEvents = useMemo(
+    () => (selectedDay ? (eventsByDate[selectedDay] || []) : []),
+    [eventsByDate, selectedDay],
+  );
 
   const { month: prevMonth, year: prevYear } = getPreviousMonth(month, year);
   const { month: nextMonth, year: nextYear } = getNextMonth(month, year);
 
   const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(new Date(year, month, 1));
 
-  function handleDayClick(k) {
-    setSelectedDay((cur) => (cur === k ? null : k));
+  useEffect(() => {
+    if (!selectedDay) {
+      setExpandedEventId(null);
+      return;
+    }
+
+    if (!selectedDayEvents.length) {
+      setSelectedDay(null);
+      setExpandedEventId(null);
+      selectedDayTriggerRef.current = null;
+      return;
+    }
+
+    setExpandedEventId((current) =>
+      current && selectedDayEvents.some((event) => event.id === current)
+        ? current
+        : selectedDayEvents[0]?.id || null
+    );
+  }, [selectedDay, selectedDayEvents]);
+
+  function closeDayModal({ restoreFocus = true } = {}) {
+    const trigger = selectedDayTriggerRef.current;
+    setSelectedDay(null);
+    setExpandedEventId(null);
+    selectedDayTriggerRef.current = null;
+
+    if (restoreFocus && trigger && typeof trigger.focus === "function") {
+      requestAnimationFrame(() => {
+        trigger.focus();
+      });
+    }
+  }
+
+  function handleDayClick(dayKey, dayEvents, triggerElement) {
+    if (!dayEvents.length) {
+      return;
+    }
+
+    selectedDayTriggerRef.current = triggerElement;
+    setSelectedDay(dayKey);
+    setExpandedEventId((current) =>
+      dayKey === selectedDay && current ? current : dayEvents[0]?.id || null
+    );
   }
 
   return (
@@ -350,12 +523,8 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
         <span className="cal-month-count">
           {selectedDay ? (
             <>
-              {listEvents.length} {listEvents.length === 1 ? "item" : "items"} on{" "}
-              {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(createLocalDateFromKey(selectedDay))}
-              {" · "}
-              <button className="cal-clear-day-btn" onClick={() => setSelectedDay(null)} type="button">
-                show all
-              </button>
+              Viewing {selectedDayEvents.length} {selectedDayEvents.length === 1 ? "item" : "items"} on{" "}
+              {formatDateFromKey(selectedDay, { day: "numeric", month: "short" })}
             </>
           ) : (
             <>{filteredEvents.length} {filteredEvents.length === 1 ? "item" : "items"}</>
@@ -379,10 +548,17 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
               <div
                 className={`cal-day ${isCurrentMonth ? "current" : "other"} ${isToday ? "today" : ""} ${dayEvents.length ? "has-events" : ""} ${isSelected ? "selected" : ""}`}
                 key={k}
-                onClick={() => handleDayClick(k)}
+                aria-expanded={dayEvents.length ? isSelected : undefined}
+                aria-haspopup={dayEvents.length ? "dialog" : undefined}
+                onClick={(event) => handleDayClick(k, dayEvents, event.currentTarget)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(ev) => ev.key === "Enter" && handleDayClick(k)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleDayClick(k, dayEvents, event.currentTarget);
+                  }
+                }}
               >
                 <span className="cal-day-num">{date.getDate()}</span>
                 {dayEvents.length > 0 && (
@@ -411,8 +587,17 @@ function MonthView({ year, month, events, filter, pendingEventIds, onRsvp, onBac
         </div>
       </div>
 
-      {/* Event list — filtered to selected day, or all month events */}
-      <EventList events={listEvents} onRsvp={onRsvp} pendingEventIds={pendingEventIds} />
+      {selectedDay && selectedDayEvents.length > 0 ? (
+        <DayEventsModal
+          dayKey={selectedDay}
+          events={selectedDayEvents}
+          expandedId={expandedEventId}
+          onClose={() => closeDayModal()}
+          onExpandedIdChange={setExpandedEventId}
+          onRsvp={onRsvp}
+          pendingEventIds={pendingEventIds}
+        />
+      ) : null}
     </div>
   );
 }

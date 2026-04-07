@@ -133,6 +133,47 @@ export async function fetchAdminSpaces({ supabase, filters = {} }) {
 }
 
 /**
+ * Fetch a single space by slug, with tags and members.
+ * Returns null when the space doesn't exist or the user can't access it.
+ */
+export async function fetchSpaceBySlug({ supabase, slug, userId }) {
+  const { data, error } = await supabase
+    .from("spaces")
+    .select("id, name, slug, space_type, description, visibility")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !data) {
+    return { space: null, error: error || new Error("Space not found") };
+  }
+
+  const [tags, membersResult] = await Promise.all([
+    fetchSpaceTagsSafe(supabase, data.id),
+    supabase
+      .from("space_memberships")
+      .select("role, user_id, profile:user_id(id, first_name, surname, organisation_name)")
+      .eq("space_id", data.id)
+      .order("joined_at", { ascending: false }),
+  ]);
+
+  const members = membersResult.data || [];
+  const currentMembership = userId
+    ? members.find((m) => m.user_id === userId)
+    : null;
+
+  return {
+    space: {
+      ...data,
+      tags,
+      members,
+      currentUserRole: currentMembership?.role || null,
+      isMember: Boolean(currentMembership) || data.visibility === "public_members",
+    },
+    error: null,
+  };
+}
+
+/**
  * Fetch a single space by ID, with tags and members.
  */
 export async function fetchSpaceById({ supabase, id }) {

@@ -9,6 +9,8 @@ function countSelected(checkboxName) {
 export function AdminMembersBulkAction({
   checkboxName = "profile_ids",
   idleLabel = "Send to selected",
+  secondaryAction = null,
+  secondaryLabel = "",
 }) {
   const [selectedCount, setSelectedCount] = useState(0);
 
@@ -32,6 +34,16 @@ export function AdminMembersBulkAction({
       <span className={selectedCount ? "selection-count is-active" : "selection-count"}>
         {selectedCount} selected
       </span>
+      {secondaryAction && secondaryLabel ? (
+        <button
+          className="secondary-button"
+          disabled={selectedCount === 0}
+          formAction={secondaryAction}
+          type="submit"
+        >
+          {selectedCount ? `${secondaryLabel} (${selectedCount})` : secondaryLabel}
+        </button>
+      ) : null}
       <button className="primary-button" disabled={selectedCount === 0} type="submit">
         {selectedCount ? `${idleLabel} (${selectedCount})` : idleLabel}
       </button>

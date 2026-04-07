@@ -5,6 +5,7 @@ import {
   memberSpaces,
   publicInsights,
 } from "@/lib/patna-data";
+import { ensureProfileRecord } from "@/lib/supabase/access";
 
 function getSpaceKindLabel(space) {
   if (space.kind) {
@@ -74,7 +75,21 @@ function parseEventDateBadge(event) {
 }
 
 export async function fetchMemberWorkspaceFrameData({ supabase, userId }) {
-  const profileResult = await fetchMemberProfileView({ supabase, userId });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isCurrentUser = user?.id === userId;
+
+  if (isCurrentUser) {
+    await ensureProfileRecord({ supabase, user });
+  }
+
+  let profileResult = await fetchMemberProfileView({ supabase, userId });
+
+  if ((profileResult.error || !profileResult.member) && isCurrentUser) {
+    await ensureProfileRecord({ supabase, user });
+    profileResult = await fetchMemberProfileView({ supabase, userId });
+  }
 
   if (profileResult.error || !profileResult.member) {
     return {

@@ -12,3 +12,4 @@ build
 .env.test.local
 .env.production.local
 supabase/.temp
+package-lock.json

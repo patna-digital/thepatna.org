@@ -40,8 +40,8 @@ export const footerLinkGroups = [
 
 export const heroStats = [
   { value: "100+", label: "Specialists already collaborating through PATNA" },
-  { value: "4", label: "Core cohorts across policy, academia, industry, and civil society" },
   { value: "25", label: "African IMO member states represented at the Dakar workshop" },
+  { value: "15", label: "Resolutions adopted guiding Africa's engagement at MEPC 84" },
 ];
 
 export const homeHeroCards = [
@@ -77,23 +77,32 @@ export const coreValues = [
 
 export const featuredProjects = [
   {
+    slug: "patna-phase-iii-2026",
+    title: "2026 Shipping Decarbonisation Africa Regional Workplan — Phase III",
+    summary:
+      "PATNA's active 2026 programme with UCL, coordinating six working groups across evidence, diplomacy, port readiness, and implementation.",
+    type: "Active Programme",
+    outcomes: ["6 working groups", "UCL partnership", "2028 horizon"],
+    sourceUrl: "/projects",
+    featured: true,
+  },
+  {
     slug: "leap-phase-ii",
     title: "Leading Effective Afrocentric Participation (LEAP) Phase II",
     summary:
-      "LEAP Phase II deepens Africa's technical and diplomatic capacity so African countries can influence the rules, mechanisms, and funding structures shaping the transition to net-zero shipping.",
+      "Expanded African technical and diplomatic capacity across 19 nations, culminating in Dakar and 15 resolutions guiding engagement at MEPC 84.",
     type: "Flagship Programme",
-    outcomes: ["Workshops", "Technical analysis", "Just transition"],
+    outcomes: ["19 nations", "Dakar workshop", "15 resolutions"],
     sourceUrl:
       "https://thepatna.org/projects/leading-effective-afrocentric-participation-leap-phase-ii/",
-    featured: true,
   },
   {
     slug: "leap-phase-i",
     title: "Leading Effective Afrocentric Participation (LEAP) Project Phase I",
     summary:
-      "LEAP Phase I laid the foundations for African leadership in maritime decarbonisation through emissions inventories, country case studies, and regional workshops that strengthened evidence-backed participation at the IMO.",
+      "Established the evidence base through emissions inventories, country case studies, and regional workshops that strengthened African participation at the IMO.",
     type: "Flagship Programme",
-    outcomes: ["Emissions inventories", "Country case studies", "Regional workshops"],
+    outcomes: ["Emissions inventories", "6 case studies", "Regional workshops"],
     sourceUrl:
       "https://thepatna.org/projects/leading-effective-afrocentric-participation-leap-project-phase-i/",
   },
@@ -194,6 +203,136 @@ export const partnerGroups = [
       "University of Liberia",
       "University of Lagos",
     ],
+  },
+];
+
+export const journeyPhases = [
+  {
+    period: "2023–2024",
+    phase: "Phase I · LEAP",
+    title: "Foundation",
+    body: "The LEAP Phase I project targeted six case study countries — Nigeria, Ghana, Liberia, Malawi, Namibia, and Kenya — delivering National Shipping Emissions Inventories, Comprehensive Impact Assessments, and the first Afrocentric in-region convening. This built the coalition of political and technical champions from which PATNA would grow.",
+    highlights: ["6 case study countries", "Emissions inventories & CIAs", "Pan-African network formation"],
+  },
+  {
+    period: "2025",
+    phase: "Phase II · LEAP / PATNA Launch",
+    title: "Expansion & Formalisation",
+    body: "LEAP Phase II expanded to 19 African nations and key Regional Economic Communities, delivering socioeconomic impact modelling and the Ports Readiness Feasibility Study. The landmark Dakar Francophone Regional Workshop (4–6 August 2025) served as PATNA's public launch: 25 African IMO Member States, over 100 participants, and 15 resolutions adopted. PATNA transitioned from an influential network to a permanent, registered secretariat.",
+    highlights: ["19 African nations", "Dakar launch · 15 resolutions", "Registered secretariat"],
+  },
+  {
+    period: "2026",
+    phase: "Phase III · PATNA × UCL",
+    title: "Active Delivery",
+    body: "Under the 2026 Shipping Decarbonisation Africa Regional Workplan, PATNA operates as the primary in-continent partner with UCL as the technical research backbone. Six Active Working Groups deliver across diplomacy, technical evidence, port readiness, capacity building, resource mobilisation, and data & knowledge — all anchored to Key Results through 2028.",
+    highlights: ["6 active working groups", "UCL partnership", "2028 Key Results horizon"],
+  },
+];
+
+export const strategicPillars = [
+  {
+    number: "I",
+    title: "Afrocentric Participation & Diplomatic Capacity",
+    body: "Building African agency: ensuring that African delegates arrive at IMO and UNFCCC sessions with deep preparation, coordinated positions, and the negotiating confidence to defend them. Programmes include the PATNA Fellowship, pre-IMO coordination calls, and multilingual knowledge products in English, French, Portuguese, and Arabic.",
+  },
+  {
+    number: "II",
+    title: "Data-Driven Policy & Evidence Production",
+    body: "Replacing generalised talking points with verifiable, Africa-specific technical and economic evidence. Programmes include National Shipping Emissions Inventories, Comprehensive Impact Assessments, socioeconomic impact modelling on food security and GDP implications, and the Unified Knowledge & Insights Hub.",
+  },
+  {
+    number: "III",
+    title: "Shipping Decarbonisation & Just Energy Transition",
+    body: "Translating IMO policy signals into action on the ground across Africa's 50+ major ports. Programmes include the Port Readiness Feasibility Study, NZF typology-based risk and opportunity mapping, Zero and Near-Zero fuel pathway analysis, and connections to the Green Climate Fund and AfCFTA.",
+  },
+  {
+    number: "IV",
+    title: "Decision Intelligence & Institutional Sustainability",
+    body: "Transforming community and knowledge assets into an active decision-support system — so that African decision-makers act with confidence, not improvisation. Programmes include the 6-Step Data Strategy, Policy Influence Tracking & Attribution Framework, the Impact Intelligence Dashboard, and multi-year resource mobilisation.",
+  },
+];
+
+export const workingGroups = [
+  {
+    slug: "diplomacy",
+    title: "Diplomacy WG",
+    summary:
+      "Continental technical coordination, pre-IMO alignment, rapid-response briefings, and ACP+ partner engagement ahead of each ISWG-GHG and MEPC cycle.",
+  },
+  {
+    slug: "technical-nzf",
+    title: "Technical WG — NZF Evidence",
+    summary:
+      "Africa-wide NZF impact assessment and modelling: typology-based risk/opportunity mapping, ZNZ reward design, fund governance, and certification/LCA analysis.",
+  },
+  {
+    slug: "implementation-ports",
+    title: "Implementation WG — Port Readiness",
+    summary:
+      "Port case studies and investment roadmap development, connecting IMO measures to investable African infrastructure priorities and climate finance applications.",
+  },
+  {
+    slug: "capacity-building",
+    title: "Capacity Building WG",
+    summary:
+      "PATNA Fellowship Programme, negotiation coaching, and targeted training deploying 10+ cohort members into African delegations across five delegation class types.",
+  },
+  {
+    slug: "resource-mobilisation",
+    title: "Resource Mobilisation WG",
+    summary:
+      "Building PATNA's structured funding pipeline — funder-ready materials, partnership development, and partner-enabled fundraising to sustain African maritime leadership beyond 2028.",
+  },
+  {
+    slug: "data-knowledge",
+    title: "Data & Knowledge WG",
+    summary:
+      "Delivering PATNA's 6-Step Data Strategy: community platform, Insights Hub, policy influence tracking, impact dashboard, and AI decision-support readiness.",
+  },
+];
+
+export const keyResults = [
+  {
+    id: "KR 1.7",
+    deadline: "Q4 2026",
+    outcome:
+      "IMO adopts guidelines driving an inclusive and sustainable energy transition with minimum transport cost impact.",
+  },
+  {
+    id: "KR 1.8",
+    deadline: "Q2 2028",
+    outcome:
+      "IMO operationalises a funding mechanism ensuring sufficient revenue for a just and equitable transition.",
+  },
+  {
+    id: "KR 3.1",
+    deadline: "Q4 2026",
+    outcome:
+      "4–6 PATNA members playing key roles in IMO negotiations as part of at least 3 country delegations.",
+  },
+  {
+    id: "KR 5.1",
+    deadline: "End 2026",
+    outcome:
+      "3 potential major funding sources identified and scoped for PATNA's long-term sustainability.",
+  },
+  {
+    id: "KR 5.4",
+    deadline: "End 2026",
+    outcome: "Secured a funding pipeline for at least 2 more years of PATNA operations.",
+  },
+  {
+    id: "KR 6.1",
+    deadline: "Q4 2027",
+    outcome:
+      "At least 2 analyses/convenings on core NZF issues connecting IMO deliberations to project finance mechanisms.",
+  },
+  {
+    id: "KR 6.2",
+    deadline: "Q4 2028",
+    outcome:
+      "Africa makes at least one application to the IMO fund or equivalent mechanism for regionally appropriate action.",
   },
 ];
 
@@ -360,23 +499,41 @@ export const applicationEngagementOptions = [
 ];
 
 export const memberNav = [
-  { href: "/app", label: "Dashboard", icon: "⊞" },
-  { href: "/app/calendar", label: "Calendar", icon: "◷" },
-  { href: "/app/spaces", label: "My Spaces", icon: "◎", badge: 3 },
-  { href: "/app/publications", label: "Publications", icon: "⊡" },
-  { href: "/app/members", label: "Members", icon: "◈" },
-  { href: "/app/events", label: "Events", icon: "◔" },
-  { href: "/app/profile", label: "Profile", icon: "◷" },
-  { href: "/app/settings", label: "Settings", icon: "⚙" },
+  { href: "/app", label: "Dashboard", icon: "LayoutDashboard" },
+  { href: "/app/spaces", label: "My Spaces", icon: "Layers", badge: 3 },
+  { href: "/app/members", label: "Members", icon: "Users" },
+  { href: "/app/events", label: "Events", icon: "CalendarCheck" },
+  { href: "/app/publications", label: "Publications", icon: "BookOpen" },
+  { href: "/app/calendar", label: "Calendar", icon: "CalendarDays" },
+  { href: "/app/settings", label: "Settings", icon: "Settings" },
 ];
 
 export const adminNav = [
-  { href: "/admin", label: "Overview", icon: "⊞" },
-  { href: "/admin/applications", label: "Applications", icon: "◻", badge: 4, highlight: true },
-  { href: "/admin/members", label: "Members", icon: "◈" },
-  { href: "/admin/spaces", label: "Spaces", icon: "◫" },
-  { href: "/admin/events", label: "Events", icon: "◔" },
-  { href: "/admin/insights", label: "Publications", icon: "⊡" },
+  {
+    label: "Core",
+    items: [
+      { href: "/admin", label: "Overview", icon: "LayoutDashboard" },
+      { href: "/admin/applications", label: "Applications", icon: "ClipboardList", badge: 4, highlight: true },
+      { href: "/admin/members", label: "Members", icon: "Users" },
+    ],
+  },
+  {
+    label: "Community",
+    items: [
+      { href: "/admin/spaces", label: "Spaces", icon: "Layers" },
+      { href: "/admin/events", label: "Events", icon: "CalendarCheck" },
+      { href: "/admin/projects", label: "Projects", icon: "FolderKanban" },
+      { href: "/admin/insights", label: "Publications", icon: "BookOpen" },
+    ],
+  },
+  {
+    label: "Partnerships",
+    items: [
+      { href: "/admin/service-requests", label: "Service Requests", icon: "Wrench" },
+      { href: "/admin/partnership-leads", label: "Partnership Leads", icon: "Handshake" },
+      { href: "/admin/collaboration-leads", label: "Collaboration Leads", icon: "Network" },
+    ],
+  },
 ];
 
 export const memberSpaces = [

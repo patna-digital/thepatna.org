@@ -4,19 +4,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import {
+  LayoutDashboard, Layers, Users, CalendarCheck, BookOpen, CalendarDays, Settings,
+} from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
 
+const MEMBER_ICON_MAP = {
+  LayoutDashboard, Layers, Users, CalendarCheck, BookOpen, CalendarDays, Settings,
+};
+
 const MEMBER_NAV_KEY = {
   "/app": "dashboard",
-  "/app/calendar": "calendar",
   "/app/spaces": "spaces",
-  "/app/publications": "publications",
   "/app/members": "members",
   "/app/events": "events",
-  "/app/profile": "profile",
+  "/app/publications": "publications",
+  "/app/calendar": "calendar",
   "/app/settings": "settings",
   "/app/applications": "applications",
   "/app/insights": "insights",
@@ -115,6 +121,7 @@ export function MemberWorkspaceShell({
 
         <nav aria-label="Member navigation" className="member-workspace-nav">
           {primaryNavItems.map((item) => {
+            const Icon = MEMBER_ICON_MAP[item.icon];
             const isActive = item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
             return (
               <Link
@@ -124,7 +131,7 @@ export function MemberWorkspaceShell({
                 onClick={() => setSidebarOpen(false)}
               >
                 <span className="nav-item-label">
-                  <span className="nav-item-icon">{item.icon}</span>
+                  <span className="nav-item-icon">{Icon && <Icon size={15} />}</span>
                   <span>{MEMBER_NAV_KEY[item.href] ? t(`member.${MEMBER_NAV_KEY[item.href]}`) : item.label}</span>
                 </span>
                 {item.badge ? <span className="badge">{item.badge}</span> : null}

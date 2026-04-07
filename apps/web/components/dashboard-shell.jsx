@@ -4,10 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import {
+  LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
+  FolderKanban, BookOpen, Wrench, Handshake, Network,
+} from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
+
+const ADMIN_ICON_MAP = {
+  LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
+  FolderKanban, BookOpen, Wrench, Handshake, Network,
+};
 
 const ADMIN_NAV_KEY = {
   "/admin": "dashboard",
@@ -58,24 +67,33 @@ export function DashboardShell({
           </div>
         </div>
 
-        <nav aria-label="Member navigation">
-          {navItems.map((item) => {
-            const isActive = mounted && (
-              item.href === "/app" || item.href === "/admin"
-                ? pathname === item.href
-                : pathname.startsWith(item.href)
-            );
-
-            return (
-              <Link className={isActive ? "active" : ""} href={item.href} key={item.href}>
-                <span className="nav-item-label">
-                  <span className="nav-item-icon">{item.icon}</span>
-                  <span>{ADMIN_NAV_KEY[item.href] ? t(`member.${ADMIN_NAV_KEY[item.href]}`) : item.label}</span>
-                </span>
-                {item.badge ? <span className="badge">{item.badge}</span> : null}
-              </Link>
-            );
-          })}
+        <nav aria-label="Admin navigation">
+          {navItems.map((group) => (
+            <div className="nav-group" key={group.label}>
+              <div className="nav-group-label">{group.label}</div>
+              {group.items.map((item) => {
+                const Icon = ADMIN_ICON_MAP[item.icon];
+                const isActive = mounted && (
+                  item.href === "/admin"
+                    ? pathname === item.href
+                    : pathname.startsWith(item.href)
+                );
+                return (
+                  <Link
+                    className={[isActive ? "active" : "", item.highlight ? "nav-item-highlight" : ""].filter(Boolean).join(" ")}
+                    href={item.href}
+                    key={item.href}
+                  >
+                    <span className="nav-item-label">
+                      <span className="nav-item-icon">{Icon && <Icon size={15} />}</span>
+                      <span>{ADMIN_NAV_KEY[item.href] ? t(`member.${ADMIN_NAV_KEY[item.href]}`) : item.label}</span>
+                    </span>
+                    {item.badge ? <span className="badge">{item.badge}</span> : null}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="dashboard-spotlight">

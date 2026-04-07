@@ -136,6 +136,7 @@ export const mediaAssets = {
 };
 
 export const projectMediaBySlug = {
+  "patna-phase-iii-2026": mediaAssets.acs2Panel,
   "leap-phase-ii": mediaAssets.acs2Hero,
   "leap-phase-i": mediaAssets.acs2Delegates,
   "abuja-summit": mediaAssets.abujaSummit,
