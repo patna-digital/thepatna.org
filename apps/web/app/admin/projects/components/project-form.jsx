@@ -15,6 +15,7 @@ import {
   PROJECT_ICON_TYPES,
   generateProjectSlug,
 } from "@/lib/projects";
+import { CoverImageUpload } from "@/components/admin/cover-image-upload";
 
 function createEmptyItem(fields) {
   return Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""]));
@@ -642,32 +643,10 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
 
         <div className="form-section">
           <h3 className="form-section-title">Cover image</h3>
-          <div className="form-row">
-            <div className="form-field">
-              <label className="form-label" htmlFor="cover_image_url">
-                Image URL
-              </label>
-              <input
-                className="form-input"
-                defaultValue={project?.cover_image_url || ""}
-                id="cover_image_url"
-                name="cover_image_url"
-                type="url"
-              />
-            </div>
-            <div className="form-field">
-              <label className="form-label" htmlFor="cover_image_alt">
-                Alt text
-              </label>
-              <input
-                className="form-input"
-                defaultValue={project?.cover_image_alt || ""}
-                id="cover_image_alt"
-                name="cover_image_alt"
-                type="text"
-              />
-            </div>
-          </div>
+          <CoverImageUpload
+            currentAlt={project?.cover_image_alt || ""}
+            currentUrl={project?.cover_image_url || ""}
+          />
         </div>
 
         <div className="form-actions">

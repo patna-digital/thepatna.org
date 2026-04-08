@@ -77,6 +77,7 @@ const PROJECT_SELECT = `
   *,
   project_resources ( id, resource_title, resource_url, resource_type ),
   project_countries ( * ),
+  project_gallery ( id, image_url, alt_text, caption, sort_order ),
   linked_space:linked_space_id ( id, name, slug, space_type, description )
 `.trim();
 
@@ -378,6 +379,7 @@ function normalizeProjectRecord(project) {
     project_resources: pickArray(project.project_resources, override.project_resources),
     project_countries: projectCountries,
     project_footprint_hubs: projectFootprintHubs,
+    project_gallery: pickArray(project.project_gallery, []),
     cover_image_url: project.cover_image_url || override.cover_image_url || null,
     cover_image_alt:
       project.cover_image_alt || override.cover_image_alt || project.title || "Project cover image",

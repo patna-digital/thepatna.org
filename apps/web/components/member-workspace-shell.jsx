@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  LayoutDashboard, Layers, Users, CalendarCheck, BookOpen, CalendarDays, Settings,
+  LayoutDashboard, Layers, Users, CalendarCheck, BookOpen, CalendarDays, Settings, Menu, X,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
@@ -57,8 +57,25 @@ export function MemberWorkspaceShell({
     settingsItem && pathname.startsWith(settingsItem.href),
   );
 
-  // Close drawer on route change
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [sidebarOpen]);
 
   const shellClass = [
     "member-workspace-shell",
@@ -67,23 +84,23 @@ export function MemberWorkspaceShell({
 
   return (
     <div className={shellClass}>
-
-      {/* ── Mobile top bar ──────────────────────────────────────────────── */}
-      <div className="mob-topbar">
-        <button
-          aria-label="Open navigation menu"
-          className="mob-hamburger"
-          onClick={() => setSidebarOpen(true)}
-          type="button"
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-        <span className="mob-topbar-brand">PATNA</span>
+      <div className="mob-topbar mob-topbar--member">
+        <span className="mob-topbar-brand">PATNA Community</span>
+        <div className="mob-topbar-controls">
+          <LanguageSelector variant="compact" />
+          <button
+            aria-controls="member-sidebar"
+            aria-expanded={sidebarOpen}
+            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+            className="mob-hamburger"
+            onClick={() => setSidebarOpen((open) => !open)}
+            type="button"
+          >
+            <Menu size={18} />
+          </button>
+        </div>
       </div>
 
-      {/* ── Overlay (closes drawer on tap) ──────────────────────────────── */}
       {sidebarOpen && (
         <div
           aria-hidden="true"
@@ -92,17 +109,14 @@ export function MemberWorkspaceShell({
         />
       )}
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside className={`member-workspace-sidebar${sidebarOpen ? " mob-open" : ""}`}>
-
-        {/* Close button — mobile only */}
+      <aside className={`member-workspace-sidebar${sidebarOpen ? " mob-open" : ""}`} id="member-sidebar">
         <button
           aria-label="Close navigation menu"
           className="mob-sidebar-close"
           onClick={() => setSidebarOpen(false)}
           type="button"
         >
-          ✕
+          <X size={18} />
         </button>
 
         <div className="member-workspace-brand">
@@ -118,6 +132,24 @@ export function MemberWorkspaceShell({
             <span>Initiative</span>
           </div>
         </div>
+
+        {sidebarUser ? (
+          <div className={`member-sidebar-user tone-${getProfileTone(sidebarUser)}`}>
+            <div className="member-sidebar-user-head">
+              <div className="member-sidebar-avatar">
+                {sidebarUser.headshotSrc ? (
+                  <img alt={`${sidebarUser.name} headshot`} src={sidebarUser.headshotSrc} />
+                ) : (
+                  <span>{sidebarUser.initials}</span>
+                )}
+              </div>
+              <div className="member-sidebar-user-copy">
+                <strong>{sidebarUser.name}</strong>
+                <p>{sidebarUser.role}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <nav aria-label="Member navigation" className="member-workspace-nav">
           {primaryNavItems.map((item) => {
@@ -140,34 +172,19 @@ export function MemberWorkspaceShell({
           })}
         </nav>
 
-        {sidebarUser ? (
-          <div className={`member-sidebar-user tone-${getProfileTone(sidebarUser)}`}>
-            <div className="member-sidebar-user-head">
-              <div className="member-sidebar-avatar">
-                {sidebarUser.headshotSrc ? (
-                  <img alt={`${sidebarUser.name} headshot`} src={sidebarUser.headshotSrc} />
-                ) : (
-                  <span>{sidebarUser.initials}</span>
-                )}
-              </div>
-              <div className="member-sidebar-user-copy">
-                <strong>{sidebarUser.name}</strong>
-                <p>{sidebarUser.role}</p>
-              </div>
-            </div>
+        <div className="sidebar-footer">
+          <LanguageSelector variant="sidebar" />
+          <div className="sidebar-cross-nav">
+            <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
+            <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
+              <span>{t("nav_cross.website")}</span>
+              <span className="sidebar-cross-nav-arrow">↗</span>
+            </Link>
+            <Link className="sidebar-cross-nav-link" href="/admin" onClick={() => setSidebarOpen(false)}>
+              <span>{t("nav_cross.adminApp")}</span>
+              <span className="sidebar-cross-nav-arrow">↗</span>
+            </Link>
           </div>
-        ) : null}
-
-        <div className="sidebar-cross-nav">
-          <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
-          <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
-            <span>{t("nav_cross.website")}</span>
-            <span className="sidebar-cross-nav-arrow">↗</span>
-          </Link>
-          <Link className="sidebar-cross-nav-link" href="/admin" onClick={() => setSidebarOpen(false)}>
-            <span>{t("nav_cross.adminApp")}</span>
-            <span className="sidebar-cross-nav-arrow">↗</span>
-          </Link>
           <div className="sidebar-utility-nav">
             {settingsItem ? (
               <Link
@@ -178,7 +195,6 @@ export function MemberWorkspaceShell({
                 {t("member.settings")}
               </Link>
             ) : null}
-            <LanguageSelector variant="compact" />
             <SignOutButton />
           </div>
           <div className="sidebar-legal-links">

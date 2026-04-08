@@ -519,7 +519,7 @@ export async function createDefaultBookingSettings({ memberId, supabase }) {
   }
 }
 
-async function ensureAdminEventRsvps({ communityEvents, isAdmin, memberId, supabase }) {
+export async function ensureAdminEventRsvps({ communityEvents, isAdmin, memberId, supabase }) {
   if (!isAdmin || !memberId || communityEvents.length === 0) {
     return;
   }

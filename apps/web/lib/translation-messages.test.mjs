@@ -29,5 +29,5 @@ test("loadBundledMessages falls back to English for unsupported locales", async 
   const messages = await loadBundledMessages("yo");
 
   assert.equal(messages.nav.home, "Home");
-  assert.equal(messages.home.btnLearnMore, "Learn More");
+  assert.equal(messages.home.btnLearnMore, "About PATNA");
 });

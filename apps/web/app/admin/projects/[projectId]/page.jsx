@@ -6,6 +6,8 @@ import { fetchAdminProjectById } from "@/lib/projects";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { fetchAdminSpaces } from "@/lib/spaces";
 import { saveAdminProjectAction, deleteAdminProjectAction } from "./actions";
+import { addProjectGalleryImageAction, removeProjectGalleryImageAction } from "./gallery-actions";
+import { GalleryManager } from "@/components/admin/gallery-manager";
 
 const NOTICE_MESSAGES = {
   saved:            "Project saved.",
@@ -19,10 +21,17 @@ export default async function AdminProjectDetailPage({ params, searchParams }) {
   const sp = await searchParams;
   const notice = typeof sp?.notice === "string" ? sp.notice : "";
 
-  const [{ project, error }, { spaces }] = await Promise.all([
+  const [{ project, error }, { spaces }, galleryResult] = await Promise.all([
     fetchAdminProjectById({ supabase, projectId }),
     fetchAdminSpaces({ supabase }),
+    supabase
+      .from("project_gallery")
+      .select("id, image_url, alt_text, caption, sort_order")
+      .eq("project_id", projectId)
+      .order("sort_order"),
   ]);
+
+  const galleryImages = galleryResult.data || [];
 
   if (error || !project) {
     redirect("/admin/projects");
@@ -54,6 +63,17 @@ export default async function AdminProjectDetailPage({ params, searchParams }) {
           project={project}
           spaces={spaces || []}
           submitLabel="Save project"
+        />
+      </div>
+
+      {/* Gallery */}
+      <div className="form-card" style={{ marginTop: "1rem" }}>
+        <GalleryManager
+          addAction={addProjectGalleryImageAction}
+          contentId={project.id}
+          contentIdFieldName="project_id"
+          galleryImages={galleryImages}
+          removeAction={removeProjectGalleryImageAction}
         />
       </div>
 

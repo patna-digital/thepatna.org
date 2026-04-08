@@ -6,7 +6,9 @@ import {
   getAfricanCountryNameByCode,
 } from "@/lib/africa-countries";
 import { requireAdminContext } from "@/lib/supabase/access";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createProject, updateProject, deleteProject, generateProjectSlug } from "@/lib/projects";
+import { uploadContentImage } from "@/lib/content-images";
 
 function parseText(formData, key) {
   return String(formData.get(key) || "").trim();
@@ -149,7 +151,8 @@ function buildProjectPath({ projectId = "", notice = "" }) {
 }
 
 export async function saveAdminProjectAction(formData) {
-  await requireAdminContext();
+  const { user } = await requireAdminContext();
+  const adminClient = createSupabaseAdminClient();
 
   const projectId = parseText(formData, "project_id");
   const title     = parseText(formData, "title");
@@ -166,6 +169,26 @@ export async function saveAdminProjectAction(formData) {
   const countries    = parseCountries(formData);
   const footprint_hubs = parseFootprintHubs(formData);
 
+  // Cover image: upload file if provided, otherwise keep existing URL
+  const coverImageFile = formData.get("cover_image_file");
+  const existingCoverUrl = parseOptional(formData, "cover_image_url");
+  let cover_image_url = existingCoverUrl;
+
+  if (coverImageFile && Number(coverImageFile.size) > 0) {
+    try {
+      const { imageUrl } = await uploadContentImage({
+        adminSupabase: adminClient,
+        file: coverImageFile,
+        userId: user.id,
+        subfolder: "projects",
+        currentImageUrl: existingCoverUrl || "",
+      });
+      cover_image_url = imageUrl || existingCoverUrl;
+    } catch {
+      redirect(buildProjectPath({ projectId, notice: "error" }));
+    }
+  }
+
   const payload = {
     title,
     slug:             parseText(formData, "slug") || generateProjectSlug(title),
@@ -178,7 +201,7 @@ export async function saveAdminProjectAction(formData) {
     external_url:     parseOptional(formData, "external_url"),
     icon_type:        parseOptional(formData, "icon_type"),
     linked_space_id:  parseOptional(formData, "linked_space_id"),
-    cover_image_url:  parseOptional(formData, "cover_image_url"),
+    cover_image_url,
     cover_image_alt:  parseOptional(formData, "cover_image_alt"),
     summary:          parseOptional(formData, "summary"),
     body:             parseOptional(formData, "body"),

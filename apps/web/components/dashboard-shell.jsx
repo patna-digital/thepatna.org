@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
-  FolderKanban, BookOpen, Wrench, Handshake, Network,
+  FolderKanban, BookOpen, Wrench, Handshake, Network, Menu, X,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
@@ -40,7 +40,29 @@ export function DashboardShell({
   const pathname = usePathname();
   const t = useTranslations();
   const [mounted, setMounted] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { setSidebarOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [sidebarOpen]);
+
   const footerLinks = [
     { href: "/app", label: "Community App" },
     { href: "/admin", label: "Admin App" },
@@ -49,7 +71,41 @@ export function DashboardShell({
 
   return (
     <div className="dashboard-shell">
-      <aside className="dashboard-sidebar">
+      <div className="mob-topbar mob-topbar--admin">
+        <span className="mob-topbar-brand">{brandLabel}</span>
+        <div className="mob-topbar-controls">
+          <LanguageSelector variant="compact" />
+          <button
+            aria-controls="admin-sidebar"
+            aria-expanded={sidebarOpen}
+            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+            className="mob-hamburger"
+            onClick={() => setSidebarOpen((open) => !open)}
+            type="button"
+          >
+            <Menu size={18} />
+          </button>
+        </div>
+      </div>
+
+      {sidebarOpen && (
+        <div
+          aria-hidden="true"
+          className="mob-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`dashboard-sidebar${sidebarOpen ? " mob-open" : ""}`} id="admin-sidebar">
+        <button
+          aria-label="Close navigation menu"
+          className="mob-sidebar-close"
+          onClick={() => setSidebarOpen(false)}
+          type="button"
+        >
+          <X size={18} />
+        </button>
+
         <div className="dashboard-sidebar-top">
           <BrandLogo
             href={brandHref}
@@ -67,6 +123,17 @@ export function DashboardShell({
           </div>
         </div>
 
+        {spotlight ? (
+          <div className="dashboard-spotlight">
+            <div className="dashboard-spotlight-label">{spotlight.label || "Workspace"}</div>
+            <strong>{spotlight.title || "Community platform in motion"}</strong>
+            <p>
+              {spotlight.body ||
+                "The workspace is organised for coordination, review, and evidence-led action across PATNA."}
+            </p>
+          </div>
+        ) : null}
+
         <nav aria-label="Admin navigation">
           {navItems.map((group) => (
             <div className="nav-group" key={group.label}>
@@ -83,6 +150,7 @@ export function DashboardShell({
                     className={[isActive ? "active" : "", item.highlight ? "nav-item-highlight" : ""].filter(Boolean).join(" ")}
                     href={item.href}
                     key={item.href}
+                    onClick={() => setSidebarOpen(false)}
                   >
                     <span className="nav-item-label">
                       <span className="nav-item-icon">{Icon && <Icon size={15} />}</span>
@@ -96,27 +164,22 @@ export function DashboardShell({
           ))}
         </nav>
 
-        <div className="dashboard-spotlight">
-          <div className="dashboard-spotlight-label">{spotlight?.label || "Workspace"}</div>
-          <strong>{spotlight?.title || "Community platform in motion"}</strong>
-          <p>
-            {spotlight?.body ||
-              "The workspace is organised for coordination, review, and evidence-led action across PATNA."}
-          </p>
-        </div>
-
-        <div className="sidebar-cross-nav">
-          <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
-          <Link className="sidebar-cross-nav-link" href="/">
-            <span>{t("nav_cross.website")}</span>
-            <span className="sidebar-cross-nav-arrow">↗</span>
-          </Link>
-          <Link className="sidebar-cross-nav-link" href="/app">
-            <span>{t("nav_cross.communityApp")}</span>
-            <span className="sidebar-cross-nav-arrow">↗</span>
-          </Link>
-          <LanguageSelector variant="compact" />
-          <SignOutButton />
+        <div className="sidebar-footer">
+          <LanguageSelector variant="sidebar" />
+          <div className="sidebar-cross-nav">
+            <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
+            <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
+              <span>{t("nav_cross.website")}</span>
+              <span className="sidebar-cross-nav-arrow">↗</span>
+            </Link>
+            <Link className="sidebar-cross-nav-link" href="/app" onClick={() => setSidebarOpen(false)}>
+              <span>{t("nav_cross.communityApp")}</span>
+              <span className="sidebar-cross-nav-arrow">↗</span>
+            </Link>
+          </div>
+          <div className="sidebar-utility-nav">
+            <SignOutButton />
+          </div>
         </div>
       </aside>
 

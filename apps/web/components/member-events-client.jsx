@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { setEventRsvp } from "@/app/app/calendar/actions";
 
 function getEventDateInfo(event, locale) {
   if (event.starts_at) {
@@ -123,41 +124,48 @@ function getScheduleClass(status) {
   return "chip-muted";
 }
 
+function canRsvpToEvent(event) {
+  return event.schedule_status === "upcoming";
+}
+
 export function MemberEventsClient({ events }) {
   const t = useTranslations();
   const locale = useLocale();
+  const [eventList, setEventList] = useState(events);
   const [searchTerm, setSearchTerm] = useState("");
   const [scheduleFilter, setScheduleFilter] = useState(
     events.some((e) => e.schedule_status === "upcoming" || e.schedule_status === "tbc") ? "upcoming" : "past",
   );
   const [typeFilter, setTypeFilter] = useState("all");
   const [selectedEventId, setSelectedEventId] = useState("");
+  const [pendingEventIds, setPendingEventIds] = useState([]);
+  const [notice, setNotice] = useState("");
 
   const typeFilters = useMemo(() => {
     return [...new Map(
-      events.map((event) => [getEventTypeValue(event), getEventTypeLabel(event)]),
+      eventList.map((event) => [getEventTypeValue(event), getEventTypeLabel(event)]),
     ).entries()]
       .map(([value, label]) => ({ value, label }))
       .sort((left, right) => left.label.localeCompare(right.label));
-  }, [events]);
+  }, [eventList]);
 
   const summary = useMemo(
     () => ({
-      total: events.length,
-      upcoming: events.filter((e) => e.schedule_status === "upcoming").length,
-      upcomingAndTbc: events.filter((e) => e.schedule_status === "upcoming" || e.schedule_status === "tbc").length,
-      past: events.filter((e) => e.schedule_status === "past").length,
-      tbc: events.filter((e) => e.schedule_status === "tbc").length,
-      thisYear: events.filter(isCurrentYearEvent).length,
-      patnaLed: events.filter(isPatnaLedEvent).length,
+      total: eventList.length,
+      upcoming: eventList.filter((e) => e.schedule_status === "upcoming").length,
+      upcomingAndTbc: eventList.filter((e) => e.schedule_status === "upcoming" || e.schedule_status === "tbc").length,
+      past: eventList.filter((e) => e.schedule_status === "past").length,
+      tbc: eventList.filter((e) => e.schedule_status === "tbc").length,
+      thisYear: eventList.filter(isCurrentYearEvent).length,
+      patnaLed: eventList.filter(isPatnaLedEvent).length,
     }),
-    [events],
+    [eventList],
   );
 
   const filteredEvents = useMemo(() => {
     const normalisedSearch = searchTerm.trim().toLowerCase();
 
-    return events.filter((event) => {
+    return eventList.filter((event) => {
       if (scheduleFilter === "upcoming" && event.schedule_status !== "upcoming" && event.schedule_status !== "tbc") {
         return false;
       }
@@ -176,12 +184,40 @@ export function MemberEventsClient({ events }) {
 
       return true;
     });
-  }, [events, scheduleFilter, searchTerm, typeFilter]);
+  }, [eventList, scheduleFilter, searchTerm, typeFilter]);
 
   const selectedEvent = useMemo(
-    () => events.find((e) => e.id === selectedEventId) || null,
-    [events, selectedEventId],
+    () => eventList.find((e) => e.id === selectedEventId) || null,
+    [eventList, selectedEventId],
   );
+
+  function handleRsvp(eventId) {
+    if (pendingEventIds.includes(eventId)) {
+      return;
+    }
+
+    setNotice("");
+    setPendingEventIds((current) => [...current, eventId]);
+
+    void (async () => {
+      try {
+        const result = await setEventRsvp(eventId);
+
+        if (!result.success) {
+          setNotice(result.error || t("appEvents.rsvpError"));
+          return;
+        }
+
+        setEventList((current) => current.map((event) => (
+          event.id === eventId ? { ...event, is_rsvped: true } : event
+        )));
+      } catch {
+        setNotice(t("appEvents.rsvpError"));
+      } finally {
+        setPendingEventIds((current) => current.filter((value) => value !== eventId));
+      }
+    })();
+  }
 
   return (
     <div className="member-events-shell">
@@ -266,12 +302,16 @@ export function MemberEventsClient({ events }) {
         </div>
       </div>
 
+      {notice ? <p className="form-error">{notice}</p> : null}
+
       <div className="member-events-list">
         {filteredEvents.length ? (
           filteredEvents.map((event) => {
             const dateInfo = getEventDateInfo(event, locale);
             const tone = getEventTone(event);
             const typeLabel = getEventTypeLabel(event);
+            const isPending = pendingEventIds.includes(event.id);
+            const isRsvped = Boolean(event.is_rsvped);
 
             return (
               <article className={`member-event-archive-card tone-${tone}`} key={event.id}>
@@ -296,15 +336,28 @@ export function MemberEventsClient({ events }) {
                       >
                         {t("appEvents.detailsBtn")}
                       </button>
-                      {event.schedule_status === "upcoming" && event.official_link ? (
+                      {event.official_link ? (
                         <a
-                          className="member-event-rsvp-button"
+                          className="member-event-details-button"
                           href={event.official_link}
                           rel="noreferrer"
                           target="_blank"
                         >
-                          {t("appEvents.rsvpBtn")}
+                          {t("appEvents.eventPageBtn")}
                         </a>
+                      ) : null}
+                      {canRsvpToEvent(event) && !isRsvped ? (
+                        <button
+                          className="member-event-rsvp-button"
+                          disabled={isPending}
+                          onClick={() => handleRsvp(event.id)}
+                          type="button"
+                        >
+                          {isPending ? t("appEvents.rsvpPending") : t("appEvents.rsvpBtn")}
+                        </button>
+                      ) : null}
+                      {canRsvpToEvent(event) && isRsvped ? (
+                        <span className="status-chip chip-success">{t("appEvents.rsvpAttending")}</span>
                       ) : null}
                     </div>
                   </div>
@@ -425,9 +478,22 @@ export function MemberEventsClient({ events }) {
             </div>
 
             <div className="member-event-dialog-actions">
+              {canRsvpToEvent(selectedEvent) && !selectedEvent.is_rsvped ? (
+                <button
+                  className="primary-button"
+                  disabled={pendingEventIds.includes(selectedEvent.id)}
+                  onClick={() => handleRsvp(selectedEvent.id)}
+                  type="button"
+                >
+                  {pendingEventIds.includes(selectedEvent.id) ? t("appEvents.rsvpPending") : t("appEvents.rsvpBtn")}
+                </button>
+              ) : null}
+              {canRsvpToEvent(selectedEvent) && selectedEvent.is_rsvped ? (
+                <span className="status-chip chip-success">{t("appEvents.rsvpAdded")}</span>
+              ) : null}
               {selectedEvent.official_link ? (
                 <a
-                  className="primary-button"
+                  className="secondary-button"
                   href={selectedEvent.official_link}
                   rel="noreferrer"
                   target="_blank"

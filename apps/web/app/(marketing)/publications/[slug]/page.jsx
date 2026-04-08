@@ -94,6 +94,29 @@ export default async function PublicationDetailPage({ params }) {
             )
           )}
 
+          {/* Gallery */}
+          {pub.gallery?.length > 0 && (
+            <div className="publication-gallery">
+              <h2 className="publication-gallery-title">Gallery</h2>
+              <div className="publication-gallery-grid">
+                {pub.gallery.map((image) => (
+                  <figure className="publication-gallery-figure" key={image.id}>
+                    <img
+                      alt={image.alt_text || ""}
+                      className="publication-gallery-img"
+                      src={image.image_url}
+                    />
+                    {image.caption ? (
+                      <figcaption className="publication-gallery-caption">
+                        {image.caption}
+                      </figcaption>
+                    ) : null}
+                  </figure>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Footer nav */}
           <div className="publication-detail-footer">
             <Link className="secondary-button" href="/publications">
