@@ -9,9 +9,9 @@ import { getCurrentUserContext } from "@/lib/supabase/access";
 
 export default async function MemberEventsPage() {
   const t = await getTranslations();
-  const { user, supabase } = await getCurrentUserContext({
+  const { user, supabase, isAdmin } = await getCurrentUserContext({
     includeProfile: false,
-    includeRoles: false,
+    includeRoles: true,
   });
 
   if (!user || !supabase) {
@@ -20,7 +20,7 @@ export default async function MemberEventsPage() {
 
   const [frameData, memberEventsResult] = await Promise.all([
     fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
-    fetchMemberEvents({ supabase }),
+    fetchMemberEvents({ supabase, memberId: user.id, isAdmin }),
   ]);
 
   // Allow navigation even with incomplete profile

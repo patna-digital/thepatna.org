@@ -7,6 +7,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchInsightBySlug, fetchInsightTags } from "@/lib/insights";
 import { InsightForm } from "../components/insight-form";
 import { updateInsightAction } from "./actions";
+import { addInsightGalleryImageAction, removeInsightGalleryImageAction } from "./gallery-actions";
+import { GalleryManager } from "@/components/admin/gallery-manager";
 
 export default async function EditInsightPage({ params }) {
   const { user, supabase } = await requireAdminContext();
@@ -51,7 +53,16 @@ export default async function EditInsightPage({ params }) {
     notFound();
   }
 
-  const { tags, error: tagsError } = await fetchInsightTags({ supabase: adminClient });
+  const [{ tags, error: tagsError }, galleryResult] = await Promise.all([
+    fetchInsightTags({ supabase: adminClient }),
+    adminClient
+      .from("content_gallery")
+      .select("id, image_url, alt_text, caption, sort_order")
+      .eq("content_id", insight.id)
+      .order("sort_order"),
+  ]);
+
+  const galleryImages = galleryResult.data || [];
 
   if (tagsError) {
     console.error("Failed to fetch tags:", tagsError);
@@ -147,6 +158,16 @@ export default async function EditInsightPage({ params }) {
                 View in app ↗
               </Link>
             </div>
+          </div>
+
+          <div className="dashboard-card">
+            <GalleryManager
+              addAction={addInsightGalleryImageAction}
+              contentId={insight.id}
+              contentIdFieldName="content_id"
+              galleryImages={galleryImages}
+              removeAction={removeInsightGalleryImageAction}
+            />
           </div>
         </aside>
       </div>

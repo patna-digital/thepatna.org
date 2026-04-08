@@ -215,6 +215,31 @@ export default async function ProjectDetailPage({ params }) {
                 </div>
               ) : null}
 
+              {project.project_gallery?.length > 0 ? (
+                <div className="project-detail-gallery">
+                  <h2 className="project-detail-section-title">Gallery</h2>
+                  <div className="project-gallery-grid">
+                    {project.project_gallery
+                      .slice()
+                      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                      .map((image) => (
+                        <figure className="project-gallery-figure" key={image.id}>
+                          <img
+                            alt={image.alt_text || ""}
+                            className="project-gallery-img"
+                            src={image.image_url}
+                          />
+                          {image.caption ? (
+                            <figcaption className="project-gallery-caption">
+                              {image.caption}
+                            </figcaption>
+                          ) : null}
+                        </figure>
+                      ))}
+                  </div>
+                </div>
+              ) : null}
+
               {project.tags?.length > 0 ? (
                 <div className="project-detail-tags">
                   {project.tags.map((tag, index) => (

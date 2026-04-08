@@ -4,6 +4,7 @@ import {
   getSupabaseUrl,
   isSupabaseConfigured,
 } from "@/lib/env";
+import { ensureAdminEventRsvps } from "@/lib/calendar/data";
 import { publicEvents as seededPublicEvents } from "@/lib/patna-data";
 import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
@@ -283,6 +284,7 @@ function createSeedFallbackEvents() {
     updated_by_profile: null,
     creatorName: "",
     updatedByName: "",
+    is_rsvped: false,
   }));
 }
 
@@ -332,7 +334,7 @@ export function splitPublicEventCollections(events) {
   );
 }
 
-export async function fetchMemberEvents({ supabase, limit = 0 } = {}) {
+export async function fetchMemberEvents({ supabase, memberId = "", isAdmin = false, limit = 0 } = {}) {
   const fallback = createSeedFallbackEvents();
 
   if (!supabase) {
@@ -357,12 +359,35 @@ export async function fetchMemberEvents({ supabase, limit = 0 } = {}) {
   }
 
   const events = data.map(normaliseEventRow).sort(compareEvents);
+  const scopedEvents = limit > 0 ? events.slice(0, limit) : events;
+  let rsvpedEventIds = new Set();
+
+  if (memberId && scopedEvents.length > 0) {
+    await ensureAdminEventRsvps({
+      communityEvents: scopedEvents,
+      isAdmin,
+      memberId,
+      supabase,
+    });
+
+    const { data: memberRsvps, error: memberRsvpError } = await supabase
+      .from("event_rsvps")
+      .select("event_id")
+      .eq("user_id", memberId)
+      .in("event_id", scopedEvents.map((event) => event.id));
+
+    if (!memberRsvpError) {
+      rsvpedEventIds = new Set((memberRsvps || []).map((row) => row.event_id));
+    }
+  }
+
+  const memberAwareEvents = scopedEvents.map((event) => ({
+    ...event,
+    is_rsvped: rsvpedEventIds.has(event.id),
+  }));
 
   return {
-    events: await translateEventsForDisplay(
-      limit > 0 ? events.slice(0, limit) : events,
-      await getRequestLocale(),
-    ),
+    events: await translateEventsForDisplay(memberAwareEvents, await getRequestLocale()),
     error: null,
   };
 }
@@ -445,6 +470,8 @@ export function buildEventFormValues(event) {
       status: "draft",
       schedule_status: "upcoming",
       slug: "",
+      cover_image_url: "",
+      cover_image_alt: "",
     };
   }
 
@@ -466,5 +493,31 @@ export function buildEventFormValues(event) {
     status: event.status || "draft",
     schedule_status: event.schedule_status || "upcoming",
     slug: event.slug || "",
+    cover_image_url: event.cover_image_url || "",
+    cover_image_alt: event.cover_image_alt || "",
+  };
+}
+
+export async function fetchEventGallery({ supabase, eventId }) {
+  const { data, error } = await supabase
+    .from("event_gallery")
+    .select("id, image_url, alt_text, caption, sort_order")
+    .eq("event_id", eventId)
+    .order("sort_order");
+
+  return { images: data || [], error };
+}
+
+export async function fetchPublicEventBySlug({ supabase, slug }) {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  return {
+    event: data ? normaliseEventRow(data) : null,
+    error,
   };
 }

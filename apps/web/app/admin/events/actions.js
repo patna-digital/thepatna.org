@@ -4,6 +4,8 @@ import crypto from "node:crypto";
 import { redirect } from "next/navigation";
 import { createEventSlug, splitEventList } from "@/lib/events";
 import { requireAdminContext } from "@/lib/supabase/access";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { uploadContentImage } from "@/lib/content-images";
 
 function buildEventPath({ eventId = "", notice = "" }) {
   const basePath = eventId ? `/admin/events/${eventId}` : "/admin/events";
@@ -79,6 +81,7 @@ async function ensureUniqueSlug({ currentEventId = "", initialSlug, supabase }) 
 
 export async function saveAdminEventAction(formData) {
   const { supabase, user } = await requireAdminContext();
+  const adminClient = createSupabaseAdminClient();
   const eventId = parseOptionalText(formData, "event_id");
   const title = parseOptionalText(formData, "title");
   const displayDate = parseOptionalText(formData, "display_date");
@@ -118,6 +121,26 @@ export async function saveAdminEventAction(formData) {
     supabase,
   });
 
+  // Cover image: upload file if provided, otherwise keep existing URL
+  const coverImageFile = formData.get("cover_image_file");
+  const existingCoverUrl = parseOptionalText(formData, "cover_image_url") || null;
+  let cover_image_url = existingCoverUrl;
+
+  if (coverImageFile && Number(coverImageFile.size) > 0) {
+    try {
+      const { imageUrl } = await uploadContentImage({
+        adminSupabase: adminClient,
+        file: coverImageFile,
+        userId: user.id,
+        subfolder: "events",
+        currentImageUrl: existingCoverUrl || "",
+      });
+      cover_image_url = imageUrl || existingCoverUrl;
+    } catch {
+      redirect(buildEventPath({ eventId, notice: "error" }));
+    }
+  }
+
   const payload = {
     title,
     slug,
@@ -135,6 +158,8 @@ export async function saveAdminEventAction(formData) {
     visibility: normaliseVisibility(formData.get("visibility")),
     status: normaliseEventStatus(formData.get("status")),
     schedule_status: normaliseScheduleStatus(formData.get("schedule_status")),
+    cover_image_url,
+    cover_image_alt: parseOptionalText(formData, "cover_image_alt") || null,
     created_by_user_id: existingEvent?.created_by_user_id || user.id,
     updated_by_user_id: user.id,
   };

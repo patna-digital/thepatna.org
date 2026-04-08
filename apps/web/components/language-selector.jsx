@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useTransition } from "react";
+import { useId, useTransition } from "react";
 import { setLocale } from "@/app/actions/set-locale";
 
 const LANGUAGES = [
@@ -13,32 +13,60 @@ const LANGUAGES = [
 
 export function LanguageSelector({ variant = "compact" }) {
   const locale = useLocale();
-  const t = useTranslations("language");
+  const languageT = useTranslations("language");
+  const settingsT = useTranslations("settings");
   const [isPending, startTransition] = useTransition();
+  const selectId = useId();
 
   function handleChange(e) {
     const newLocale = e.target.value;
     startTransition(() => setLocale(newLocale));
   }
 
-  const current = LANGUAGES.find((l) => l.code === locale) ?? LANGUAGES[0];
-
   if (variant === "full") {
     return (
       <div className="language-selector language-selector--full">
-        <label className="language-selector-label" htmlFor="language-select-full">
-          {t("label")}
+        <label className="language-selector-label" htmlFor={selectId}>
+          {languageT("label")}
         </label>
         <select
           className="language-selector-select"
           disabled={isPending}
-          id="language-select-full"
+          id={selectId}
           onChange={handleChange}
           value={locale}
         >
           {LANGUAGES.map((lang) => (
             <option key={lang.code} value={lang.code}>
-              {t(lang.code)}
+              {languageT(lang.code)}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  if (variant === "sidebar") {
+    return (
+      <div className="language-selector language-selector--sidebar">
+        <div className="language-selector-copy">
+          <strong className="language-selector-title">{settingsT("languageTitle")}</strong>
+          <p className="language-selector-description">{settingsT("languageDescription")}</p>
+        </div>
+        <label className="sr-only" htmlFor={selectId}>
+          {languageT("label")}
+        </label>
+        <select
+          aria-label={languageT("label")}
+          className="language-selector-select language-selector-select--sidebar"
+          disabled={isPending}
+          id={selectId}
+          onChange={handleChange}
+          value={locale}
+        >
+          {LANGUAGES.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {languageT(lang.code)}
             </option>
           ))}
         </select>
@@ -48,14 +76,14 @@ export function LanguageSelector({ variant = "compact" }) {
 
   return (
     <div className="language-selector language-selector--compact">
-      <label className="sr-only" htmlFor="language-select-compact">
-        {t("label")}
+      <label className="sr-only" htmlFor={selectId}>
+        {languageT("label")}
       </label>
       <select
-        aria-label={t("label")}
+        aria-label={languageT("label")}
         className="language-selector-select language-selector-select--compact"
         disabled={isPending}
-        id="language-select-compact"
+        id={selectId}
         onChange={handleChange}
         value={locale}
       >

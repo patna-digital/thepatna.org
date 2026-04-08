@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buildEventFormValues } from "@/lib/events";
+import { CoverImageUpload } from "@/components/admin/cover-image-upload";
 
 const PUBLISH_STATUS_OPTIONS = ["draft", "published", "archived"];
 const SCHEDULE_STATUS_OPTIONS = ["upcoming", "past", "tbc"];
@@ -139,6 +140,14 @@ export function AdminEventForm({
             </select>
           </label>
         </div>
+      </div>
+
+      <div>
+        <p className="form-label" style={{ marginBottom: "0.5rem", fontWeight: 600 }}>Cover image</p>
+        <CoverImageUpload
+          currentAlt={values.cover_image_alt}
+          currentUrl={values.cover_image_url}
+        />
       </div>
 
       {event ? (

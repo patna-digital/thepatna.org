@@ -10,6 +10,7 @@ import {
   generateInsightSlug,
 } from "@/lib/content-types";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import { CoverImageUpload } from "@/components/admin/cover-image-upload";
 
 export function InsightForm({
   insight,
@@ -150,30 +151,11 @@ export function InsightForm({
           </label>
         </div>
 
-        {/* Cover Image URL */}
+        {/* Cover Image */}
         <div className="insight-form-field insight-form-field-full">
-          <label htmlFor="cover_image_url">Cover image URL</label>
-          <input
-            defaultValue={insight?.cover_image_url || ""}
-            id="cover_image_url"
-            name="cover_image_url"
-            placeholder="https://… (use the Supabase storage URL)"
-            type="url"
-          />
-          <p className="field-hint">
-            Upload the image to <strong>publications/covers/</strong> in Supabase Storage and paste the public URL here.
-          </p>
-        </div>
-
-        {/* Cover Image Alt */}
-        <div className="insight-form-field insight-form-field-full">
-          <label htmlFor="cover_image_alt">Cover image alt text</label>
-          <input
-            defaultValue={insight?.cover_image_alt || ""}
-            id="cover_image_alt"
-            name="cover_image_alt"
-            placeholder="Descriptive alt text for the cover image"
-            type="text"
+          <CoverImageUpload
+            currentAlt={insight?.cover_image_alt || ""}
+            currentUrl={insight?.cover_image_url || ""}
           />
         </div>
 

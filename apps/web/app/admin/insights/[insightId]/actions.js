@@ -10,6 +10,7 @@ import {
   deleteInsight,
   generateInsightSlug,
 } from "@/lib/insights";
+import { uploadContentImage } from "@/lib/content-images";
 
 export async function createInsightAction(formData) {
   const { user, supabase } = await requireAdminContext();
@@ -24,9 +25,26 @@ export async function createInsightAction(formData) {
   const slug = String(formData.get("slug") || "").trim() || generateInsightSlug(title);
   const tag_ids = formData.getAll("tag_ids").map(String);
   const featured = formData.get("featured") === "true";
-  const cover_image_url = String(formData.get("cover_image_url") || "").trim() || null;
-  const cover_image_alt = String(formData.get("cover_image_alt") || "").trim() || null;
   const meta_description = String(formData.get("meta_description") || "").trim() || null;
+  const cover_image_alt = String(formData.get("cover_image_alt") || "").trim() || null;
+
+  // Upload cover image if a file was provided
+  let cover_image_url = String(formData.get("cover_image_url") || "").trim() || null;
+  const coverImageFile = formData.get("cover_image_file");
+  if (coverImageFile && Number(coverImageFile.size) > 0) {
+    try {
+      const { imageUrl } = await uploadContentImage({
+        adminSupabase: adminClient,
+        file: coverImageFile,
+        userId: user.id,
+        subfolder: "insights",
+        currentImageUrl: cover_image_url || "",
+      });
+      cover_image_url = imageUrl || cover_image_url;
+    } catch {
+      return { ok: false, error: "Cover image upload failed. Try a smaller image or different format." };
+    }
+  }
 
   // Validation
   if (!title) {
@@ -77,9 +95,26 @@ export async function updateInsightAction(insightId, formData) {
   const visibility = String(formData.get("visibility") || "members").trim();
   const tag_ids = formData.getAll("tag_ids").map(String);
   const featured = formData.get("featured") === "true";
-  const cover_image_url = String(formData.get("cover_image_url") || "").trim() || null;
-  const cover_image_alt = String(formData.get("cover_image_alt") || "").trim() || null;
   const meta_description = String(formData.get("meta_description") || "").trim() || null;
+  const cover_image_alt = String(formData.get("cover_image_alt") || "").trim() || null;
+
+  // Upload cover image if a file was provided
+  let cover_image_url = String(formData.get("cover_image_url") || "").trim() || null;
+  const coverImageFile = formData.get("cover_image_file");
+  if (coverImageFile && Number(coverImageFile.size) > 0) {
+    try {
+      const { imageUrl } = await uploadContentImage({
+        adminSupabase: adminClient,
+        file: coverImageFile,
+        userId: user.id,
+        subfolder: "insights",
+        currentImageUrl: cover_image_url || "",
+      });
+      cover_image_url = imageUrl || cover_image_url;
+    } catch {
+      return { ok: false, error: "Cover image upload failed. Try a smaller image or different format." };
+    }
+  }
 
   // Validation
   if (!title) {

@@ -8,7 +8,8 @@ import { getRequestLocale, translateContentItems } from "@/lib/translation";
 const PUBLICATION_SELECT = `
   *,
   content_attachments(*),
-  content_tag_map(domain_tags(id, name, slug))
+  content_tag_map(domain_tags(id, name, slug)),
+  content_gallery(id, image_url, alt_text, caption, sort_order)
 `;
 
 function normalisePublication(item) {
@@ -16,6 +17,7 @@ function normalisePublication(item) {
     ...item,
     attachments: item.content_attachments || [],
     tags: item.content_tag_map?.map((tagRow) => tagRow.domain_tags).filter(Boolean) || [],
+    gallery: (item.content_gallery || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
   };
 }
 
