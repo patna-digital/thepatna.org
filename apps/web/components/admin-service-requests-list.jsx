@@ -1,18 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { getTranslations } from "next-intl";
 
 function formatDateLabel(value) {
   if (!value) return "";
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
 }
 
-export default function AdminServiceRequestsList({ serviceRequests, t }) {
+export function AdminServiceRequestsList({ serviceRequests }) {
   if (serviceRequests.length === 0) {
     return (
       <p className="empty-state">
-        {t("admin.serviceRequests.messages.emptyState")}
+        No service requests found.
       </p>
     );
   }
@@ -21,14 +20,14 @@ export default function AdminServiceRequestsList({ serviceRequests, t }) {
     <table className="data-table">
       <thead>
         <tr>
-          <th>{t("admin.serviceRequests.table.headers.requester")}</th>
-          <th>{t("admin.serviceRequests.table.headers.organisation")}</th>
-          <th>{t("admin.serviceRequests.table.headers.type")}</th>
-          <th>{t("admin.serviceRequests.table.headers.details")}</th>
-          <th>{t("admin.serviceRequests.table.headers.status")}</th>
-          <th>{t("admin.serviceRequests.table.headers.assigned")}</th>
-          <th>{t("admin.serviceRequests.table.headers.created")}</th>
-          <th>{t("admin.serviceRequests.table.headers.actions")}</th>
+          <th>Requester</th>
+          <th>Organisation</th>
+          <th>Type</th>
+          <th>Details</th>
+          <th>Status</th>
+          <th>Assigned To</th>
+          <th>Created</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -68,14 +67,14 @@ export default function AdminServiceRequestsList({ serviceRequests, t }) {
                 <Link
                   href={`/admin/service-requests/${request.id}`}
                   className="icon-button"
-                  title={t("admin.serviceRequests.actions.viewDetails")}
+                  title="View details"
                 >
                   👁️
                 </Link>
                 <Link
                   href={`/admin/service-requests/${request.id}/edit`}
                   className="icon-button"
-                  title={t("admin.serviceRequests.actions.editRequest")}
+                  title="Edit request"
                 >
                   ✏️
                 </Link>
@@ -85,12 +84,11 @@ export default function AdminServiceRequestsList({ serviceRequests, t }) {
                   style={{ display: "inline" }}
                   onSubmit={(e) => {
                     e.preventDefault();
-                    // This would trigger delete action in a real implementation
                   }}
                 >
                   <input type="hidden" name="request_id" value={request.id} />
-                  <button type="submit" className="icon-button" title={t("admin.serviceRequests.actions.deleteRequest")}>
-                    🗑︭
+                  <button type="submit" className="icon-button" title="Delete request">
+                    🗑️
                   </button>
                 </form>
               </div>

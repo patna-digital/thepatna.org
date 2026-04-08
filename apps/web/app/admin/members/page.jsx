@@ -108,6 +108,29 @@ export default async function AdminMembersPage({ searchParams }) {
       title="Members"
       subtitle="Manage cohort members, onboarding state, and login access from one place."
     >
+      <div className="admin-stat-grid">
+        <div className="admin-stat-card">
+          <strong>{members.length}</strong>
+          <h4>Total members</h4>
+          <p>In cohort directory</p>
+        </div>
+        <div className="admin-stat-card tone-success">
+          <strong>{counts.active ?? 0}</strong>
+          <h4>Active</h4>
+          <p>Onboarded and active</p>
+        </div>
+        <div className="admin-stat-card tone-muted">
+          <strong>{counts.contacted ?? 0}</strong>
+          <h4>Contacted</h4>
+          <p>Invite sent</p>
+        </div>
+        <div className="admin-stat-card tone-warning">
+          <strong>{counts["not-sent"] ?? 0}</strong>
+          <h4>Not yet invited</h4>
+          <p>Awaiting login email</p>
+        </div>
+      </div>
+
       {/* Toolbar */}
       <article className="dashboard-card admin-toolbar-card">
         <div className="stack">

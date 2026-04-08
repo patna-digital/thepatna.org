@@ -108,7 +108,7 @@ export default async function AdminPartnershipLeadsPage({ searchParams }) {
                  className={statusFilter === f.key ? "filter-tab active-filter" : "filter-tab"}
                  href={buildPartnershipLeadsPath({ status: f.key, orgType: orgTypeFilter, search })}
                >
-                 {t(`admin.partnershipLeads.filters.status.${f.key}`)}
+                 {f.label}
                </Link>
              ))}
              <div className="filter-tab-divider" />
@@ -118,7 +118,7 @@ export default async function AdminPartnershipLeadsPage({ searchParams }) {
                  className={orgTypeFilter === f.key ? "filter-tab filter-tab-secondary active-filter" : "filter-tab filter-tab-secondary"}
                  href={buildPartnershipLeadsPath({ status: statusFilter, orgType: f.key, search })}
                >
-                 {t(`admin.partnershipLeads.filters.orgType.${f.key}`)}
+                 {f.label}
                </Link>
              ))}
            </div>
@@ -164,7 +164,7 @@ export default async function AdminPartnershipLeadsPage({ searchParams }) {
       </article>
 
        {/* Partnership Leads List */}
-       <AdminPartnershipLeadsList partnershipLeads={filteredPartnershipLeads} t={t} />
+       <AdminPartnershipLeadsList partnershipLeads={filteredPartnershipLeads} />
     </DashboardShell>
   );
 }

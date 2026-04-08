@@ -26,10 +26,10 @@ export default async function NewAdminProjectPage({ searchParams }) {
       spotlight={{
         label: "New project",
         title: "Add a PATNA project",
-        body: "Create a flagship programme, convening, or other project record. Published projects appear on the public /projects page.",
+        body: "Create a flagship programme, convening, or other project record with highlights, footprint hubs, resources, and structured public page content.",
       }}
       title="Add project"
-      subtitle="Create a new PATNA project record."
+      subtitle="Create a new PATNA project record with map-ready country and hub data."
     >
       {notice ? <p className="form-error">{NOTICE_MESSAGES[notice] || notice}</p> : null}
       <div className="form-card">

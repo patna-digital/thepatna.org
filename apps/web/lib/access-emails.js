@@ -52,7 +52,7 @@ export async function sendAccessSetupEmail({
 
   if (!authUser) {
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
-      redirectTo: getAuthVerifyUrl(getSiteUrl(), "/auth/reset-password"),
+      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
     });
 
     if (!error) {

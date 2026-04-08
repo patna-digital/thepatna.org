@@ -85,6 +85,34 @@ export default async function AdminApplicationsPage({ searchParams }) {
       title="Application review"
       subtitle="Live review queue. Click any row to expand details and take action."
     >
+      <div className="admin-stat-grid admin-stat-grid-5">
+        <div className="admin-stat-card">
+          <strong>{applicationsWithProfile.length}</strong>
+          <h4>All applications</h4>
+          <p>Total received</p>
+        </div>
+        <div className="admin-stat-card tone-warning">
+          <strong>{statusCounts.submitted ?? 0}</strong>
+          <h4>Submitted</h4>
+          <p>Awaiting review</p>
+        </div>
+        <div className="admin-stat-card tone-muted">
+          <strong>{statusCounts.interviewing ?? 0}</strong>
+          <h4>Interviewing</h4>
+          <p>In progress</p>
+        </div>
+        <div className="admin-stat-card tone-success">
+          <strong>{statusCounts.approved ?? 0}</strong>
+          <h4>Approved</h4>
+          <p>Cohort accepted</p>
+        </div>
+        <div className="admin-stat-card tone-muted">
+          <strong>{(statusCounts.waitlist ?? 0) + (statusCounts.declined ?? 0)}</strong>
+          <h4>Waitlist / Declined</h4>
+          <p>Not progressed</p>
+        </div>
+      </div>
+
       <article className="dashboard-card admin-toolbar-card">
         <div className="stack">
           <div className="admin-toolbar-main">

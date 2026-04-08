@@ -62,23 +62,26 @@ export default async function AdminSpacesPage({ searchParams }) {
       subtitle="Create and manage community spaces — working groups, cohorts, and constituencies — and control who can access them."
       title="Spaces"
     >
-      {/* Summary stats */}
-      <div className="summary-grid">
-        <div className="summary-tile">
+      <div className="admin-stat-grid">
+        <div className="admin-stat-card">
           <strong>{summary.total}</strong>
-          <span>Total spaces</span>
+          <h4>Total spaces</h4>
+          <p>All types</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-muted">
           <strong>{summary.working_group}</strong>
-          <span>Working groups</span>
+          <h4>Working groups</h4>
+          <p>Thematic spaces</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-muted">
           <strong>{summary.cohort}</strong>
-          <span>Cohorts</span>
+          <h4>Cohorts</h4>
+          <p>Cohort rooms</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-muted">
           <strong>{summary.constituency}</strong>
-          <span>Constituencies</span>
+          <h4>Constituencies</h4>
+          <p>Regional spaces</p>
         </div>
       </div>
 

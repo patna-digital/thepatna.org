@@ -242,6 +242,7 @@ export function buildMemberProfileView({
   cohortRows,
   inviteRows,
   profile,
+  roleRows,
   spaceCount = 0,
   tagRows,
 }) {
@@ -308,6 +309,7 @@ export function buildMemberProfileView({
     missingProfileFields: progress.missingProfileFields,
     remainingRequiredFields: progress.remainingRequiredFields,
     sectionStatus: progress.sectionStatus,
+    roles: (roleRows || []).map((row) => row.role).filter(Boolean),
     isImported: Boolean(profile?.migration_batch_id),
     wasContacted: Boolean(latestInvite),
     isActive: profile?.onboarding_status === "active",
@@ -337,6 +339,7 @@ export async function fetchMemberProfileView({
     cohortProfileResult,
     spaceMembershipsResult,
     bookingSettingsResult,
+    roleRowsResult,
   ] = await Promise.all([
     includeAuthUser ? listSupabaseAuthUsers(adminClient) : Promise.resolve([]),
     supabase
@@ -364,6 +367,7 @@ export async function fetchMemberProfileView({
       .select("member_id, public_booking_enabled, public_booking_url_slug")
       .eq("member_id", userId)
       .maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id", userId),
   ]);
 
   // Only treat profile query errors as fatal - other queries can fail gracefully
@@ -407,6 +411,7 @@ export async function fetchMemberProfileView({
         cohortRows: cohortRowsResult.data,
         inviteRows: inviteRowsResult.data,
         profile: profileResult.data,
+        roleRows: roleRowsResult.data,
         spaceCount,
         tagRows: tagRowsResult.data,
       }),

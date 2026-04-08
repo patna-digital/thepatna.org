@@ -47,65 +47,90 @@ export default async function AdminPage() {
       title={t("admin.title")}
       subtitle={t("admin.subtitle")}
     >
-      <div className="summary-grid">
-        <div className="summary-tile">
+      <div className="admin-stat-grid admin-stat-grid-5">
+        <div className="admin-stat-card">
           <strong>{applicationsCount ?? 0}</strong>
-          <span>{t("admin.tileTotalApplications")}</span>
+          <h4>{t("admin.tileTotalApplications")}</h4>
+          <p>All time</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-warning">
           <strong>{submittedCount ?? 0}</strong>
-          <span>{t("admin.tileSubmitted")}</span>
+          <h4>{t("admin.tileSubmitted")}</h4>
+          <p>Awaiting review</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-muted">
           <strong>{interviewingCount ?? 0}</strong>
-          <span>{t("admin.tileInterviewing")}</span>
+          <h4>{t("admin.tileInterviewing")}</h4>
+          <p>In progress</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-success">
           <strong>{membersCount ?? 0}</strong>
-          <span>{t("admin.tileTotalMembers")}</span>
+          <h4>{t("admin.tileTotalMembers")}</h4>
+          <p>Active role holders</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-warning">
           <strong>{pendingInviteCount ?? 0}</strong>
-          <span>{t("admin.tilePendingInvites")}</span>
-        </div>
-        <div className="summary-tile is-disabled">
-          <strong>—</strong>
-          <span>{t("admin.tileActiveEvents")}</span>
+          <h4>{t("admin.tilePendingInvites")}</h4>
+          <p>Not yet contacted</p>
         </div>
       </div>
 
-      <div className="card-grid">
-        <article className="dashboard-card">
+      <div className="admin-action-grid">
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Review queue</div>
           <h3>{t("admin.applicationsTitle")}</h3>
           <p>{t("admin.applicationsText")}</p>
-          <div className="content-meta">
+          <div className="admin-action-card-footer">
             <Link className="primary-button" href="/admin/applications">
               {t("admin.btnApplicationsQueue")}
             </Link>
           </div>
         </article>
-        <article className="dashboard-card">
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Cohort directory</div>
           <h3>{t("admin.membersTitle")}</h3>
           <p>{t("admin.membersText")}</p>
-          <div className="content-meta">
+          <div className="admin-action-card-footer">
             <Link className="primary-button" href="/admin/members">
               {t("admin.btnMembersQueue")}
             </Link>
           </div>
         </article>
-        <article className="dashboard-card">
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Scheduling</div>
           <h3>{t("admin.eventsTitle")}</h3>
           <p>{t("admin.eventsText")}</p>
-          <div className="content-meta">
+          <div className="admin-action-card-footer">
             <Link className="primary-button" href="/admin/events">
               {t("admin.btnEventsWorkspace")}
             </Link>
           </div>
         </article>
-        <article className="dashboard-card is-disabled">
-          <h3>{t("admin.pipelinesTitle")} <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--ink-soft)", marginLeft: "0.5rem" }}>{t("admin.pipelinesComingSoon")}</span></h3>
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Spaces</div>
+          <h3>Community spaces</h3>
+          <p>Manage working groups, cohort rooms, and constituency spaces — control membership, tags, and visibility.</p>
+          <div className="admin-action-card-footer">
+            <Link className="primary-button" href="/admin/spaces">
+              Open spaces
+            </Link>
+          </div>
+        </article>
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Knowledge</div>
+          <h3>Insights library</h3>
+          <p>Publish reports, briefs, and articles to the member knowledge base. Manage editorial status and visibility.</p>
+          <div className="admin-action-card-footer">
+            <Link className="primary-button" href="/admin/insights">
+              Open insights
+            </Link>
+          </div>
+        </article>
+        <article className="admin-action-card is-disabled">
+          <div className="admin-action-card-label">Coming soon</div>
+          <h3>{t("admin.pipelinesTitle")}</h3>
           <p>{t("admin.pipelinesText")}</p>
-          <div className="content-meta">
+          <div className="admin-action-card-footer">
             <span className="status-chip chip-muted">{t("admin.pipelinesNotAvailable")}</span>
           </div>
         </article>

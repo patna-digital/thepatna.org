@@ -28,6 +28,8 @@
     "next": "latest",
     "next-intl": "^4.9.0",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "react-simple-maps": "^3.0.0",
+    "world-atlas": "^2.0.2"
   }
 }

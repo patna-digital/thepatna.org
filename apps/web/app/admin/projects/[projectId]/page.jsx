@@ -40,7 +40,7 @@ export default async function AdminProjectDetailPage({ params, searchParams }) {
         body: `Status: ${project.status} · ${project.status_label || "—"} · Sort order: ${project.sort_order}`,
       }}
       title={project.title}
-      subtitle="Edit project details, section, status, deliverables, and community workspace link."
+      subtitle="Edit project details, highlights, countries, footprint hubs, resources, and community workspace links."
     >
       {notice ? (
         <p className={notice === "saved" ? "form-success" : "form-error"}>
