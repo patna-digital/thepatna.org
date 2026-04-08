@@ -80,23 +80,26 @@ export default async function AdminInsightsPage({ searchParams }) {
       subtitle="Manage published, draft, and archived PATNA insights with editorial controls and attachment management."
       title="Insights"
     >
-      {/* Summary stats */}
-      <div className="summary-grid">
-        <div className="summary-tile">
+      <div className="admin-stat-grid">
+        <div className="admin-stat-card">
           <strong>{summary.total}</strong>
-          <span>Total insights</span>
+          <h4>Total insights</h4>
+          <p>All statuses</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-success">
           <strong>{summary.published}</strong>
-          <span>Published</span>
+          <h4>Published</h4>
+          <p>Visible to members</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-warning">
           <strong>{summary.draft}</strong>
-          <span>Drafts</span>
+          <h4>Drafts</h4>
+          <p>Not yet published</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-muted">
           <strong>{summary.archived}</strong>
-          <span>Archived</span>
+          <h4>Archived</h4>
+          <p>Hidden from library</p>
         </div>
       </div>
 

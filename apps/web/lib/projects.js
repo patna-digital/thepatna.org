@@ -3,6 +3,12 @@
 // Data layer for the projects table. Mirrors lib/spaces.js / lib/insights.js.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { PROJECT_CONTENT_OVERRIDES } from "@/lib/project-content";
+import {
+  getAfricanCountryByCode,
+  getAfricanCountryByName,
+} from "@/lib/africa-countries";
+import { PROJECT_FOOTPRINT_HUB_OVERRIDES } from "@/lib/project-footprints";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -37,6 +43,12 @@ export const PROJECT_ICON_TYPES = [
   { value: "check",    label: "Checkmark" },
 ];
 
+export const PROJECT_FOOTPRINT_HUB_TYPES = [
+  { value: "convening", label: "Convening" },
+  { value: "partner", label: "Partner anchor" },
+  { value: "secretariat", label: "Secretariat" },
+];
+
 export function formatProjectType(value) {
   return PROJECT_TYPES.find((t) => t.value === value)?.label || value || "";
 }
@@ -55,12 +67,16 @@ export function generateProjectSlug(title) {
     .slice(0, 80);
 }
 
+export function getProjectHref(slug) {
+  return `/projects/${slug}`;
+}
+
 // ─── Select fragment ──────────────────────────────────────────────────────────
 
 const PROJECT_SELECT = `
   *,
   project_resources ( id, resource_title, resource_url, resource_type ),
-  project_countries ( id, country, phase_label, sort_order ),
+  project_countries ( * ),
   linked_space:linked_space_id ( id, name, slug, space_type, description )
 `.trim();
 
@@ -78,7 +94,8 @@ export async function fetchPublishedProjects({ supabase }) {
     .order("section")
     .order("sort_order");
 
-  return { projects: data || [], error };
+  const projects = (data || []).map(normalizeProjectRecord);
+  return { projects: await attachProjectFootprintHubs({ supabase, projects }), error };
 }
 
 /**
@@ -95,7 +112,12 @@ export async function fetchProjectBySlug({ supabase, slug, includeUnpublished = 
   }
 
   const { data, error } = await query.maybeSingle();
-  return { project: data || null, error };
+  const [project] = await attachProjectFootprintHubs({
+    supabase,
+    projects: [normalizeProjectRecord(data)].filter(Boolean),
+  });
+
+  return { project: project || null, error };
 }
 
 /**
@@ -128,7 +150,12 @@ export async function fetchLinkedProjectsBySpaceIds({ supabase, spaceIds }) {
     .eq("status", "published")
     .in("linked_space_id", spaceIds);
 
-  const bySpaceId = new Map((data || []).map((p) => [p.linked_space_id, p]));
+  const bySpaceId = new Map(
+    (data || []).map((project) => {
+      const normalized = normalizeProjectRecord(project);
+      return [normalized.linked_space_id, normalized];
+    })
+  );
   return { bySpaceId, error };
 }
 
@@ -143,19 +170,14 @@ export async function fetchAdminProjects({ supabase }) {
   const { data, error } = await supabase
     .from("projects")
     .select(`
-      id, title, slug, summary, status, featured,
-      section, project_type, status_label, period_label,
-      partner_line, external_url, icon_type, sort_order,
-      linked_space_id, cover_image_url, cover_image_alt,
-      deliverables, tags,
-      project_countries ( id, country, phase_label, sort_order ),
-      linked_space:linked_space_id ( id, name, slug, space_type ),
-      created_at, updated_at
+      *,
+      project_countries ( * ),
+      linked_space:linked_space_id ( id, name, slug, space_type )
     `)
     .order("section")
     .order("sort_order");
 
-  return { projects: data || [], error };
+  return { projects: (data || []).map(normalizeProjectRecord), error };
 }
 
 /**
@@ -167,13 +189,18 @@ export async function fetchAdminProjectById({ supabase, projectId }) {
     .select(`
       *,
       project_resources ( id, resource_title, resource_url, resource_type ),
-      project_countries ( id, country, phase_label, sort_order ),
+      project_countries ( * ),
       linked_space:linked_space_id ( id, name, slug, space_type )
     `)
     .eq("id", projectId)
     .maybeSingle();
 
-  return { project: data || null, error };
+  const [project] = await attachProjectFootprintHubs({
+    supabase,
+    projects: [normalizeProjectRecord(data)].filter(Boolean),
+  });
+
+  return { project: project || null, error };
 }
 
 // ─── Admin mutations ──────────────────────────────────────────────────────────
@@ -184,7 +211,7 @@ export async function fetchAdminProjectById({ supabase, projectId }) {
  */
 export async function createProject({ data: payload }) {
   const adminClient = createSupabaseAdminClient();
-  const { countries, ...projectData } = payload;
+  const { countries, footprint_hubs, resources, ...projectData } = payload;
 
   const { data, error } = await adminClient
     .from("projects")
@@ -195,14 +222,30 @@ export async function createProject({ data: payload }) {
   if (error || !data) return { project: null, error };
 
   if (countries?.length) {
-    await adminClient.from("project_countries").insert(
-      countries.map((c, i) => ({
+    await replaceProjectCountries({
+      adminClient,
+      countries,
+      projectId: data.id,
+    });
+  }
+
+  if (resources?.length) {
+    await adminClient.from("project_resources").insert(
+      resources.map((resource) => ({
         project_id: data.id,
-        country: c.country,
-        phase_label: c.phase_label || null,
-        sort_order: i,
+        resource_title: resource.resource_title,
+        resource_url: resource.resource_url || null,
+        resource_type: resource.resource_type || null,
       }))
     );
+  }
+
+  if (Array.isArray(footprint_hubs)) {
+    await replaceProjectFootprintHubs({
+      adminClient,
+      hubs: footprint_hubs,
+      projectId: data.id,
+    });
   }
 
   return { project: data, error: null };
@@ -214,7 +257,7 @@ export async function createProject({ data: payload }) {
  */
 export async function updateProject({ projectId, data: payload }) {
   const adminClient = createSupabaseAdminClient();
-  const { countries, ...projectData } = payload;
+  const { countries, footprint_hubs, resources, ...projectData } = payload;
 
   const { data, error } = await adminClient
     .from("projects")
@@ -226,17 +269,35 @@ export async function updateProject({ projectId, data: payload }) {
   if (error || !data) return { project: null, error };
 
   if (Array.isArray(countries)) {
-    await adminClient.from("project_countries").delete().eq("project_id", projectId);
-    if (countries.length) {
-      await adminClient.from("project_countries").insert(
-        countries.map((c, i) => ({
+    await replaceProjectCountries({
+      adminClient,
+      countries,
+      projectId,
+      replace: true,
+    });
+  }
+
+  if (Array.isArray(resources)) {
+    await adminClient.from("project_resources").delete().eq("project_id", projectId);
+    if (resources.length) {
+      await adminClient.from("project_resources").insert(
+        resources.map((resource) => ({
           project_id: projectId,
-          country: c.country,
-          phase_label: c.phase_label || null,
-          sort_order: i,
+          resource_title: resource.resource_title,
+          resource_url: resource.resource_url || null,
+          resource_type: resource.resource_type || null,
         }))
       );
     }
+  }
+
+  if (Array.isArray(footprint_hubs)) {
+    await replaceProjectFootprintHubs({
+      adminClient,
+      hubs: footprint_hubs,
+      projectId,
+      replace: true,
+    });
   }
 
   return { project: data, error: null };
@@ -293,4 +354,171 @@ export function filterAdminProjects(projects, { status, section, search }) {
   }
 
   return result;
+}
+
+function normalizeProjectRecord(project) {
+  if (!project) return null;
+
+  const override = PROJECT_CONTENT_OVERRIDES[project.slug] || {};
+  const projectCountries = pickArray(project.project_countries, override.project_countries).map(
+    normalizeProjectCountry
+  );
+  const projectFootprintHubs = pickArray(
+    project.project_footprint_hubs,
+    PROJECT_FOOTPRINT_HUB_OVERRIDES[project.slug]
+  ).map(normalizeProjectFootprintHub);
+
+  return {
+    ...project,
+    summary: project.summary || override.summary || null,
+    body: project.body || override.body || null,
+    deliverables: pickArray(project.deliverables, override.deliverables),
+    tags: pickArray(project.tags, override.tags),
+    highlights: pickArray(project.highlights, override.highlights),
+    project_resources: pickArray(project.project_resources, override.project_resources),
+    project_countries: projectCountries,
+    project_footprint_hubs: projectFootprintHubs,
+    cover_image_url: project.cover_image_url || override.cover_image_url || null,
+    cover_image_alt:
+      project.cover_image_alt || override.cover_image_alt || project.title || "Project cover image",
+    external_url: project.external_url || override.external_url || null,
+    partner_line: project.partner_line || override.partner_line || null,
+  };
+}
+
+function pickArray(primary, fallback) {
+  if (Array.isArray(primary) && primary.length > 0) {
+    return primary;
+  }
+
+  return Array.isArray(fallback) ? fallback : [];
+}
+
+function normalizeProjectCountry(country) {
+  const resolvedCountry =
+    getAfricanCountryByCode(country?.country_code) ||
+    getAfricanCountryByName(country?.country);
+
+  return {
+    ...country,
+    country: country?.country || resolvedCountry?.name || "",
+    country_code: resolvedCountry?.code || country?.country_code || null,
+  };
+}
+
+function normalizeProjectFootprintHub(hub) {
+  const resolvedCountry =
+    getAfricanCountryByCode(hub?.country_code) ||
+    getAfricanCountryByName(hub?.country);
+
+  return {
+    ...hub,
+    country: resolvedCountry?.name || hub?.country || "",
+    country_code: resolvedCountry?.code || hub?.country_code || null,
+    latitude: hub?.latitude ?? null,
+    longitude: hub?.longitude ?? null,
+  };
+}
+
+async function attachProjectFootprintHubs({ supabase, projects }) {
+  if (!projects?.length) {
+    return projects || [];
+  }
+
+  const projectIds = projects.map((project) => project.id).filter(Boolean);
+  if (!projectIds.length) {
+    return projects;
+  }
+
+  const { data, error } = await supabase
+    .from("project_footprint_hubs")
+    .select("*")
+    .in("project_id", projectIds)
+    .order("sort_order");
+
+  if (error) {
+    return projects;
+  }
+
+  const hubsByProjectId = new Map();
+  for (const hub of data || []) {
+    if (!hubsByProjectId.has(hub.project_id)) {
+      hubsByProjectId.set(hub.project_id, []);
+    }
+
+    hubsByProjectId.get(hub.project_id).push(hub);
+  }
+
+  return projects.map((project) =>
+    normalizeProjectRecord({
+      ...project,
+      project_footprint_hubs: hubsByProjectId.get(project.id) || project.project_footprint_hubs,
+    })
+  );
+}
+
+async function replaceProjectCountries({
+  adminClient,
+  countries,
+  projectId,
+  replace = false,
+}) {
+  if (replace) {
+    await adminClient.from("project_countries").delete().eq("project_id", projectId);
+  }
+
+  if (!countries.length) {
+    return;
+  }
+
+  const rowsWithCountryCode = countries.map((country, index) => ({
+    project_id: projectId,
+    country: country.country,
+    country_code: country.country_code || null,
+    phase_label: country.phase_label || null,
+    sort_order: Number.isInteger(country.sort_order) ? country.sort_order : index,
+  }));
+
+  const { error } = await adminClient.from("project_countries").insert(rowsWithCountryCode);
+
+  if (!error) {
+    return;
+  }
+
+  const fallbackRows = rowsWithCountryCode.map(({ country_code, ...country }) => country);
+  await adminClient.from("project_countries").insert(fallbackRows);
+}
+
+async function replaceProjectFootprintHubs({
+  adminClient,
+  hubs,
+  projectId,
+  replace = false,
+}) {
+  if (replace) {
+    const { error } = await adminClient.from("project_footprint_hubs").delete().eq("project_id", projectId);
+    if (error) {
+      return;
+    }
+  }
+
+  if (!hubs.length) {
+    return;
+  }
+
+  await adminClient.from("project_footprint_hubs").insert(
+    hubs.map((hub, index) => ({
+      city: hub.city || null,
+      country_code: hub.country_code || null,
+      description: hub.description || null,
+      hub_type: hub.hub_type,
+      label: hub.label,
+      latitude: hub.latitude,
+      longitude: hub.longitude,
+      phase_label: hub.phase_label || null,
+      project_id: projectId,
+      related_url: hub.related_url || null,
+      sort_order: Number.isInteger(hub.sort_order) ? hub.sort_order : index,
+    }))
+  );
 }

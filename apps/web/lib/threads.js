@@ -137,7 +137,8 @@ export async function fetchRecentThreadsBySpaces(supabase, spaceIds, { perSpace 
 
 /**
  * Normalise prose HTML from the TipTap editor before rendering.
- * - Ensures all external links open in a new tab with noopener.
+ * - Preserves root-relative internal links.
+ * - Ensures external links open in a new tab with noopener.
  * - Adds https:// to bare URLs so they don't resolve as relative paths.
  */
 export function sanitizeProseHtml(html) {
@@ -148,8 +149,15 @@ export function sanitizeProseHtml(html) {
 
     let href = hrefMatch[1];
 
-    // Leave anchor-only links unchanged (e.g. #section)
+    // Leave anchor-only and root-relative links unchanged
     if (href.startsWith("#")) return match;
+    if (href.startsWith("/")) {
+      const cleanedInternal = attrs
+        .replace(/target="[^"]*"\s*/gi, "")
+        .replace(/rel="[^"]*"\s*/gi, "")
+        .trim();
+      return `<a ${cleanedInternal}>`;
+    }
 
     // Normalise bare domains / paths without a protocol
     if (!/^https?:\/\/|^mailto:|^tel:/i.test(href)) {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getProjectHref } from "@/lib/projects";
 
 const STATUS_CHIP = {
   Active:    "chip-success",
@@ -71,9 +72,9 @@ export function ProjectCard({ project }) {
     status_label,
     period_label,
     partner_line,
-    external_url,
     slug,
     icon_type,
+    highlights = [],
     tags = [],
     linked_space,
   } = project;
@@ -103,6 +104,17 @@ export function ProjectCard({ project }) {
       {/* Summary */}
       {summary && <p className="project-card-rich-summary">{summary}</p>}
 
+      {highlights.length > 0 && (
+        <div className="project-card-rich-highlights">
+          {highlights.slice(0, 2).map((item, index) => (
+            <div className="project-card-rich-highlight" key={`${item.label}-${index}`}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Tags */}
       {tags.length > 0 && (
         <div className="project-card-rich-tags">
@@ -128,18 +140,8 @@ export function ProjectCard({ project }) {
             {linked_space.name}
           </Link>
         )}
-        {external_url && (
-          <a
-            className="project-card-rich-link"
-            href={external_url}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Read more →
-          </a>
-        )}
-        {!external_url && slug && (
-          <Link className="project-card-rich-link" href={`/projects/${slug}`}>
+        {slug && (
+          <Link className="project-card-rich-link" href={getProjectHref(slug)}>
             View project →
           </Link>
         )}

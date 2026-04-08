@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatProjectType } from "@/lib/projects";
+import { formatProjectType, getProjectHref } from "@/lib/projects";
 
 const STATUS_CHIP = {
   Active:    "chip-success",
@@ -16,9 +16,9 @@ export function FlagshipProjectCard({ project }) {
     status_label,
     period_label,
     partner_line,
-    external_url,
     slug,
     deliverables = [],
+    highlights = [],
     tags = [],
     linked_space,
   } = project;
@@ -49,6 +49,17 @@ export function FlagshipProjectCard({ project }) {
 
         {/* Summary */}
         {summary && <p className="flagship-project-summary">{summary}</p>}
+
+        {highlights.length > 0 && (
+          <div className="flagship-project-highlights">
+            {highlights.slice(0, 4).map((item, index) => (
+              <div className="flagship-project-highlight" key={`${item.label}-${index}`}>
+                <strong>{item.value}</strong>
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Deliverables */}
         {deliverables.length > 0 && (
@@ -87,20 +98,9 @@ export function FlagshipProjectCard({ project }) {
             )}
           </div>
           <div className="flagship-project-footer-right">
-            {external_url ? (
-              <a
-                className="flagship-project-link"
-                href={external_url}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Read project page →
-              </a>
-            ) : (
-              <Link className="flagship-project-link" href={`/projects/${slug}`}>
-                View project →
-              </Link>
-            )}
+            <Link className="flagship-project-link" href={getProjectHref(slug)}>
+              View project →
+            </Link>
           </div>
         </div>
       </div>

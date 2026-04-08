@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  getAfricanCountryNameByCode,
+} from "@/lib/africa-countries";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { createProject, updateProject, deleteProject, generateProjectSlug } from "@/lib/projects";
 
@@ -22,6 +25,104 @@ function parseIntField(formData, key, fallback = 0) {
 function parseJsonbArray(formData, key) {
   const values = formData.getAll(key);
   return values.map((v) => String(v).trim()).filter(Boolean);
+}
+
+function parseStructuredRows(formData, keys = []) {
+  const valuesByKey = Object.fromEntries(
+    keys.map((key) => [key, formData.getAll(key).map((value) => String(value).trim())])
+  );
+  const rowCount = Math.max(0, ...keys.map((key) => valuesByKey[key].length));
+
+  return Array.from({ length: rowCount }, (_, index) =>
+    Object.fromEntries(keys.map((key) => [key, valuesByKey[key][index] || ""]))
+  );
+}
+
+function parseHighlights(formData) {
+  return parseStructuredRows(formData, ["highlight_value", "highlight_label"])
+    .filter((row) => row.highlight_value || row.highlight_label)
+    .map((row) => ({
+      value: row.highlight_value,
+      label: row.highlight_label,
+    }))
+    .filter((row) => row.value && row.label);
+}
+
+function parseResources(formData) {
+  return parseStructuredRows(formData, [
+    "resource_title",
+    "resource_url",
+    "resource_type",
+  ])
+    .filter((row) => row.resource_title || row.resource_url || row.resource_type)
+    .map((row) => ({
+      resource_title: row.resource_title,
+      resource_url: row.resource_url || null,
+      resource_type: row.resource_type || null,
+    }))
+    .filter((row) => row.resource_title);
+}
+
+function parseCountries(formData) {
+  return parseStructuredRows(formData, [
+    "country_name",
+    "country_code",
+    "country_phase_label",
+    "country_sort_order",
+  ])
+    .filter((row) => row.country_name || row.country_code || row.country_phase_label)
+    .map((row, index) => ({
+      country: row.country_name || getAfricanCountryNameByCode(row.country_code),
+      country_code: row.country_code || null,
+      phase_label: row.country_phase_label || null,
+      sort_order: Number.isNaN(Number.parseInt(row.country_sort_order, 10))
+        ? index
+        : Number.parseInt(row.country_sort_order, 10),
+    }))
+    .filter((row) => row.country);
+}
+
+function parseFootprintHubs(formData) {
+  return parseStructuredRows(formData, [
+    "hub_type",
+    "hub_label",
+    "hub_city",
+    "hub_country_code",
+    "hub_latitude",
+    "hub_longitude",
+    "hub_phase_label",
+    "hub_description",
+    "hub_related_url",
+    "hub_sort_order",
+  ])
+    .filter((row) =>
+      row.hub_type ||
+      row.hub_label ||
+      row.hub_city ||
+      row.hub_country_code ||
+      row.hub_description
+    )
+    .map((row, index) => ({
+      city: row.hub_city || null,
+      country_code: row.hub_country_code || null,
+      description: row.hub_description || null,
+      hub_type: row.hub_type || "convening",
+      label: row.hub_label,
+      latitude: Number.parseFloat(row.hub_latitude),
+      longitude: Number.parseFloat(row.hub_longitude),
+      phase_label: row.hub_phase_label || null,
+      related_url: row.hub_related_url || null,
+      sort_order: Number.isNaN(Number.parseInt(row.hub_sort_order, 10))
+        ? index
+        : Number.parseInt(row.hub_sort_order, 10),
+    }))
+    .filter(
+      (row) =>
+        row.label &&
+        row.country_code &&
+        !Number.isNaN(row.latitude) &&
+        !Number.isNaN(row.longitude)
+    );
 }
 
 function normaliseStatus(value) {
@@ -60,6 +161,10 @@ export async function saveAdminProjectAction(formData) {
   const section     = normaliseSection(formData.get("section"));
   const deliverables = parseJsonbArray(formData, "deliverables");
   const tags         = parseJsonbArray(formData, "tags");
+  const highlights   = parseHighlights(formData);
+  const resources    = parseResources(formData);
+  const countries    = parseCountries(formData);
+  const footprint_hubs = parseFootprintHubs(formData);
 
   const payload = {
     title,
@@ -80,7 +185,11 @@ export async function saveAdminProjectAction(formData) {
     featured:         formData.get("featured") === "true",
     sort_order:       parseIntField(formData, "sort_order", 0),
     deliverables,
+    highlights,
     tags,
+    resources,
+    countries,
+    footprint_hubs,
   };
 
   let savedId = projectId;

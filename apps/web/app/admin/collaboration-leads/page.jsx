@@ -108,7 +108,7 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
                  className={statusFilter === f.key ? "filter-tab active-filter" : "filter-tab"}
                  href={buildCollaborationLeadsPath({ status: f.key, collabType: collabTypeFilter, search })}
                >
-                 {t(`admin.collaborationLeads.filters.status.${f.key}`)}
+                 {f.label}
                </Link>
              ))}
              <div className="filter-tab-divider" />
@@ -118,7 +118,7 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
                  className={collabTypeFilter === f.key ? "filter-tab filter-tab-secondary active-filter" : "filter-tab filter-tab-secondary"}
                  href={buildCollaborationLeadsPath({ status: statusFilter, collabType: f.key, search })}
                >
-                 {t(`admin.collaborationLeads.filters.collabType.${f.key}`)}
+                 {f.label}
                </Link>
              ))}
            </div>
@@ -164,7 +164,7 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
       </article>
 
        {/* Collaboration Leads List */}
-       <AdminCollaborationLeadsList collaborationLeads={filteredCollaborationLeads} t={t} />
+       <AdminCollaborationLeadsList collaborationLeads={filteredCollaborationLeads} />
     </DashboardShell>
   );
 }

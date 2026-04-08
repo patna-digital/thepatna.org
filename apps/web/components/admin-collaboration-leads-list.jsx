@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { getTranslations } from "next-intl";
 
-export default function AdminCollaborationLeadsList({ collaborationLeads, t }) {
+export function AdminCollaborationLeadsList({ collaborationLeads }) {
   if (collaborationLeads.length === 0) {
     return (
       <p className="empty-state">
-        {t("admin.collaborationLeads.messages.emptyState")}
+        No collaboration leads found.
       </p>
     );
   }
@@ -16,13 +15,13 @@ export default function AdminCollaborationLeadsList({ collaborationLeads, t }) {
     <table className="data-table">
       <thead>
         <tr>
-          <th>{t("admin.collaborationLeads.table.headers.organisation")}</th>
-          <th>{t("admin.collaborationLeads.table.headers.contact")}</th>
-          <th>{t("admin.collaborationLeads.table.headers.type")}</th>
-          <th>{t("admin.collaborationLeads.table.headers.proposal")}</th>
-          <th>{t("admin.collaborationLeads.table.headers.status")}</th>
-          <th>{t("admin.collaborationLeads.table.headers.assigned")}</th>
-          <th>{t("admin.collaborationLeads.table.headers.actions")}</th>
+          <th>Organisation</th>
+          <th>Contact</th>
+          <th>Type</th>
+          <th>Proposal</th>
+          <th>Status</th>
+          <th>Assigned To</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -71,14 +70,14 @@ export default function AdminCollaborationLeadsList({ collaborationLeads, t }) {
                 <Link
                   href={`/admin/collaboration-leads/${lead.id}`}
                   className="icon-button"
-                  title={t("admin.collaborationLeads.actions.viewDetails")}
+                  title="View details"
                 >
                   👁️
                 </Link>
                 <Link
                   href={`/admin/collaboration-leads/${lead.id}/edit`}
                   className="icon-button"
-                  title={t("admin.collaborationLeads.actions.editLead")}
+                  title="Edit lead"
                 >
                   ✏️
                 </Link>
@@ -88,11 +87,10 @@ export default function AdminCollaborationLeadsList({ collaborationLeads, t }) {
                   style={{ display: "inline" }}
                   onSubmit={(e) => {
                     e.preventDefault();
-                    // This would trigger delete action in a real implementation
                   }}
                 >
                   <input type="hidden" name="lead_id" value={lead.id} />
-                  <button type="submit" className="icon-button" title={t("admin.collaborationLeads.actions.deleteLead")}>
+                  <button type="submit" className="icon-button" title="Delete lead">
                     🗑️
                   </button>
                 </form>

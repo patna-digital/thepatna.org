@@ -83,7 +83,7 @@ export const featuredProjects = [
       "PATNA's active 2026 programme with UCL, coordinating six working groups across evidence, diplomacy, port readiness, and implementation.",
     type: "Active Programme",
     outcomes: ["6 working groups", "UCL partnership", "2028 horizon"],
-    sourceUrl: "/projects",
+    sourceUrl: "/projects/patna-phase-iii-2026",
     featured: true,
   },
   {
@@ -93,8 +93,7 @@ export const featuredProjects = [
       "Expanded African technical and diplomatic capacity across 19 nations, culminating in Dakar and 15 resolutions guiding engagement at MEPC 84.",
     type: "Flagship Programme",
     outcomes: ["19 nations", "Dakar workshop", "15 resolutions"],
-    sourceUrl:
-      "https://thepatna.org/projects/leading-effective-afrocentric-participation-leap-phase-ii/",
+    sourceUrl: "/projects/leap-phase-ii",
   },
   {
     slug: "leap-phase-i",
@@ -103,8 +102,7 @@ export const featuredProjects = [
       "Established the evidence base through emissions inventories, country case studies, and regional workshops that strengthened African participation at the IMO.",
     type: "Flagship Programme",
     outcomes: ["Emissions inventories", "6 case studies", "Regional workshops"],
-    sourceUrl:
-      "https://thepatna.org/projects/leading-effective-afrocentric-participation-leap-project-phase-i/",
+    sourceUrl: "/projects/leap-phase-i",
   },
 ];
 

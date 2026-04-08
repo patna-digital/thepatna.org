@@ -1,5 +1,5 @@
 import Link from "next/link";
-import AdminServiceRequestsList from "@/components/admin-service-requests-list";
+import { AdminServiceRequestsList } from "@/components/admin-service-requests-list";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
 import { buildServiceRequestSummary, fetchAdminServiceRequests, filterAdminServiceRequests } from "@/lib/service-requests";
@@ -106,7 +106,7 @@ export default async function AdminServiceRequestsPage({ searchParams }) {
                  className={statusFilter === f.key ? "filter-tab active-filter" : "filter-tab"}
                  href={buildServiceRequestsPath({ status: f.key, requestType: requestTypeFilter, search })}
                >
-                 {t(`admin.serviceRequests.filters.status.${f.key}`)}
+                 {f.label}
                </Link>
              ))}
              <div className="filter-tab-divider" />
@@ -116,7 +116,7 @@ export default async function AdminServiceRequestsPage({ searchParams }) {
                  className={requestTypeFilter === f.key ? "filter-tab filter-tab-secondary active-filter" : "filter-tab filter-tab-secondary"}
                  href={buildServiceRequestsPath({ status: statusFilter, requestType: f.key, search })}
                >
-                 {t(`admin.serviceRequests.filters.type.${f.key}`)}
+                 {f.label}
                </Link>
              ))}
            </div>
@@ -162,7 +162,7 @@ export default async function AdminServiceRequestsPage({ searchParams }) {
       </article>
 
        {/* Service Requests List */}
-       <AdminServiceRequestsList serviceRequests={filteredServiceRequests} t={t} />
+       <AdminServiceRequestsList serviceRequests={filteredServiceRequests} />
     </DashboardShell>
   );
 }

@@ -1,26 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { getTranslations } from "next-intl";
 
-function formatCurrency(value) {
-  if (!value) return "";
-  
-  // Simple currency formatting - in a real app, you'd use a proper currency library
-  const numValue = parseFloat(value.replace(/[^0-9.-]+/g, ""));
-  if (isNaN(numValue)) return value;
-  
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(numValue);
-}
-
-export default function AdminPartnershipLeadsList({ partnershipLeads, t }) {
+export function AdminPartnershipLeadsList({ partnershipLeads }) {
   if (partnershipLeads.length === 0) {
     return (
       <p className="empty-state">
-        {t("admin.partnershipLeads.messages.emptyState")}
+        No partnership leads found.
       </p>
     );
   }
@@ -29,14 +15,14 @@ export default function AdminPartnershipLeadsList({ partnershipLeads, t }) {
     <table className="data-table">
       <thead>
         <tr>
-          <th>{t("admin.partnershipLeads.table.headers.organisation")}</th>
-          <th>{t("admin.partnershipLeads.table.headers.contact")}</th>
-          <th>{t("admin.partnershipLeads.table.headers.type")}</th>
-          <th>{t("admin.partnershipLeads.table.headers.focusAreas")}</th>
-          <th>{t("admin.partnershipLeads.table.headers.status")}</th>
-          <th>{t("admin.partnershipLeads.table.headers.assigned")}</th>
-          <th>{t("admin.partnershipLeads.table.headers.value")}</th>
-          <th>{t("admin.partnershipLeads.table.headers.actions")}</th>
+          <th>Organisation</th>
+          <th>Contact</th>
+          <th>Type</th>
+          <th>Focus Areas</th>
+          <th>Status</th>
+          <th>Assigned To</th>
+          <th>Value</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -74,7 +60,7 @@ export default function AdminPartnershipLeadsList({ partnershipLeads, t }) {
             </td>
             <td>
               {lead.budget_range ? (
-                <span className="budget-range">{formatCurrency(lead.budget_range)}</span>
+                <span className="budget-range">{lead.budget_range}</span>
               ) : (
                 "-"
               )}
@@ -84,14 +70,14 @@ export default function AdminPartnershipLeadsList({ partnershipLeads, t }) {
                 <Link
                   href={`/admin/partnership-leads/${lead.id}`}
                   className="icon-button"
-                  title={t("admin.partnershipLeads.actions.viewDetails")}
+                  title="View details"
                 >
                   👁️
                 </Link>
                 <Link
                   href={`/admin/partnership-leads/${lead.id}/edit`}
                   className="icon-button"
-                  title={t("admin.partnershipLeads.actions.editLead")}
+                  title="Edit lead"
                 >
                   ✏️
                 </Link>
@@ -101,11 +87,10 @@ export default function AdminPartnershipLeadsList({ partnershipLeads, t }) {
                   style={{ display: "inline" }}
                   onSubmit={(e) => {
                     e.preventDefault();
-                    // This would trigger delete action in a real implementation
                   }}
                 >
                   <input type="hidden" name="lead_id" value={lead.id} />
-                  <button type="submit" className="icon-button" title={t("admin.partnershipLeads.actions.deleteLead")}>
+                  <button type="submit" className="icon-button" title="Delete lead">
                     🗑️
                   </button>
                 </form>

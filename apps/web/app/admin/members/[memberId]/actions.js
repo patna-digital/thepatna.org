@@ -78,6 +78,42 @@ export async function replaceMemberResumeAction(formData) {
   redirect(buildReturnPath(memberId, "resume-updated"));
 }
 
+export async function updateMemberRoleAction(formData) {
+  const { supabase } = await requireAdminContext();
+  const adminClient = createSupabaseAdminClient();
+  const memberId = String(formData.get("member_id") || "").trim();
+  const role = String(formData.get("role") || "").trim();
+  const action = String(formData.get("action") || "").trim();
+
+  const ALLOWED_ROLES = ["member", "administrator"];
+
+  if (!memberId || !ALLOWED_ROLES.includes(role) || !["grant", "revoke"].includes(action)) {
+    redirect(buildReturnPath(memberId || "", "role-error"));
+  }
+
+  if (action === "grant") {
+    const { error } = await adminClient
+      .from("user_roles")
+      .upsert({ user_id: memberId, role }, { onConflict: "user_id,role" });
+
+    if (error) {
+      redirect(buildReturnPath(memberId, "role-error"));
+    }
+  } else {
+    const { error } = await adminClient
+      .from("user_roles")
+      .delete()
+      .eq("user_id", memberId)
+      .eq("role", role);
+
+    if (error) {
+      redirect(buildReturnPath(memberId, "role-error"));
+    }
+  }
+
+  redirect(buildReturnPath(memberId, `role-${action}ed`));
+}
+
 export async function updateMemberProfileStatusAction(formData) {
   const { supabase } = await requireAdminContext();
   const memberId = String(formData.get("member_id") || "").trim();
