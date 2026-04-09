@@ -39,3 +39,7 @@ export function isSupabaseConfigured() {
 export function isSupabaseAdminConfigured() {
   return Boolean(isSupabaseConfigured() && getSupabaseServiceRoleKey());
 }
+
+export function getAnthropicApiKey() {
+  return readEnv("ANTHROPIC_API_KEY");
+}
