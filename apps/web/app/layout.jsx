@@ -30,9 +30,9 @@ export const metadata = {
   description:
     "African-centred climate action, maritime decarbonisation, and energy transition coordination through evidence, convenings, and institutional collaboration.",
   icons: {
-    icon: "/brand/patna-mark.png",
-    shortcut: "/brand/patna-mark.png",
-    apple: "/brand/patna-mark.png",
+    icon: "/brand/patna-icon.png",
+    shortcut: "/brand/patna-icon.png",
+    apple: "/brand/patna-icon.png",
   },
 };
 

@@ -189,9 +189,25 @@ export async function finalizeMemberAccessAfterPasswordUpdate(supabase, userId) 
     .select("role")
     .eq("user_id", userId);
 
-  const isMember = (roleRows || []).some((row) => row.role === "member");
+  let isMember = (roleRows || []).some((row) => row.role === "member");
   let resolvedProfile = profile;
   let wasActivated = false;
+
+  if (!isMember && canUseSupabaseAdmin() && profile?.email) {
+    try {
+      const adminClient = createSupabaseAdminClient();
+      await provisionMemberFromApplication({
+        adminClient,
+        email: profile.email,
+        userId,
+        defaultOnboardingStatus: "active",
+      });
+      const { data: refreshedRoles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      isMember = (refreshedRoles || []).some((row) => row.role === "member");
+    } catch {
+      // Non-fatal: no approved application found or provisioning failed
+    }
+  }
 
   if (isMember && ["invited", "profile_pending"].includes(profile.onboarding_status)) {
     const { data: updatedProfile } = await supabase

@@ -191,6 +191,7 @@ export async function repairSelectedMemberProfilesAction(formData) {
         adminClient,
         email: profile.email,
         userId: profile.id,
+        defaultOnboardingStatus: "active",
       });
 
       if (result.status === "repaired") {

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { AdminEventSubmissionsList } from "@/components/admin-event-submissions-list";
 import { AdminEventsList } from "@/components/admin-events-list";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { fetchAdminEventSubmissions } from "@/lib/event-submissions";
 import { adminNav } from "@/lib/patna-data";
 import { buildAdminEventSummary, fetchAdminEvents, filterAdminEvents } from "@/lib/events";
 import { requireAdminContext } from "@/lib/supabase/access";
@@ -46,7 +48,10 @@ export default async function AdminEventsPage({ searchParams }) {
   const visibility = typeof resolvedSearchParams?.visibility === "string" ? resolvedSearchParams.visibility : "all";
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
 
-  const { events, error } = await fetchAdminEvents({ supabase });
+  const [{ events, error }, submissionsResult] = await Promise.all([
+    fetchAdminEvents({ supabase }),
+    fetchAdminEventSubmissions({ supabase }),
+  ]);
   const summary = buildAdminEventSummary(events);
   const filteredEvents = filterAdminEvents(events, { publishStatus, scheduleStatus, visibility });
 
@@ -147,6 +152,7 @@ export default async function AdminEventsPage({ searchParams }) {
       </article>
 
       <AdminEventsList events={filteredEvents} />
+      <AdminEventSubmissionsList submissions={submissionsResult.submissions} />
     </DashboardShell>
   );
 }

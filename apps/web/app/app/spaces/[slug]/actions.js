@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  buildSpaceJoinRequestContext,
+  buildSpaceJoinRequestDetails,
+} from "@/lib/space-join-requests";
 
 // ── Join request ──────────────────────────────────────────────────────────────
 
@@ -18,37 +22,83 @@ export async function requestJoinAction(formData) {
   }
 
   const spaceSlug = formData.get("spaceSlug");
-  const spaceName = formData.get("spaceName");
   const message   = String(formData.get("message") || "").trim();
+  const resolvedSpaceSlug = String(spaceSlug || "").trim();
+
+  if (!resolvedSpaceSlug) {
+    redirect("/app/spaces?notice=error");
+  }
+
+  const client = canUseSupabaseAdmin() ? createSupabaseAdminClient() : supabase;
+  const { data: space } = await client
+    .from("spaces")
+    .select("id, name, slug, visibility")
+    .eq("slug", resolvedSpaceSlug)
+    .maybeSingle();
+
+  if (!space) {
+    redirect(`/app/spaces/${resolvedSpaceSlug}/join?notice=error`);
+  }
+
+  if (space.visibility === "public_members") {
+    redirect(`/app/spaces/${resolvedSpaceSlug}`);
+  }
+
+  const { data: existingMembership } = await client
+    .from("space_memberships")
+    .select("space_id")
+    .eq("space_id", space.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingMembership) {
+    redirect(`/app/spaces/${resolvedSpaceSlug}`);
+  }
+
+  const existingRequestContext = buildSpaceJoinRequestContext(space.id);
+  const { data: openRequests } = await client
+    .from("service_requests")
+    .select("id, status")
+    .eq("request_type", "coordination")
+    .eq("decision_context", existingRequestContext)
+    .eq("requester_email", user.email)
+    .neq("status", "closed");
+
+  if ((openRequests || []).length > 0) {
+    redirect(`/app/spaces/${resolvedSpaceSlug}/join?notice=sent`);
+  }
 
   const firstName = profile?.first_name || "";
-  const surname   = profile?.surname    || "";
-  const fullName  = [firstName, surname].filter(Boolean).join(" ") || user.email;
-
-  const details = [
-    `Join request for space: "${spaceName}" (${spaceSlug})`,
-    message ? `Member message: ${message}` : "",
-    `User ID: ${user.id}`,
-  ].filter(Boolean).join("\n");
-
-  // Use admin client to bypass RLS on service_requests
-  const client = canUseSupabaseAdmin() ? createSupabaseAdminClient() : supabase;
+  const surname = profile?.surname || "";
+  const fullName = [firstName, surname].filter(Boolean).join(" ") || user.email;
+  const details = buildSpaceJoinRequestDetails({
+    message,
+    requesterUserId: user.id,
+    spaceId: space.id,
+    spaceName: space.name,
+    spaceSlug: space.slug,
+  });
 
   const { error } = await client.from("service_requests").insert({
-    requester_name:    fullName,
-    requester_email:   user.email,
-    request_type:      "coordination",
+    country: profile?.country_of_residence || null,
+    decision_context: existingRequestContext,
     details,
-    status:            "new",
-    created_by_user_id: user.id,
+    organisation: profile?.organisation_name || null,
+    requester_email: user.email,
+    requester_name: fullName,
+    request_type: "coordination",
+    status: "new",
+    timeline: null,
   });
 
   if (error) {
     console.error("requestJoinAction error:", error);
-    redirect(`/app/spaces/${spaceSlug}/join?notice=error`);
+    redirect(`/app/spaces/${resolvedSpaceSlug}/join?notice=error`);
   }
 
-  redirect(`/app/spaces/${spaceSlug}/join?notice=sent`);
+  revalidatePath("/app");
+  revalidatePath("/app/spaces");
+  redirect(`/app/spaces/${resolvedSpaceSlug}/join?notice=sent`);
 }
 
 // ── Thread actions ────────────────────────────────────────────────────────────

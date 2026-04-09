@@ -1,6 +1,16 @@
 import { getCohortOnboardingConfig } from "@/lib/cohort-onboarding";
+import {
+  resolveCodeOfConductAsset,
+  resolveNdaAsset,
+  uploadCodeOfConductFile,
+  uploadNdaFile,
+} from "@/lib/member-compliance-documents";
 import { resolveHeadshotAsset, uploadHeadshotFile } from "@/lib/member-headshots";
 import { resolveResumeAsset, uploadResumeFile } from "@/lib/member-resumes";
+import {
+  isValidProfileAvailabilityStatus,
+  isValidProfileVisibilitySetting,
+} from "@/lib/profile-form-options";
 import { buildProfileProgress } from "@/lib/profile-onboarding";
 import {
   normaliseLanguages,
@@ -22,9 +32,29 @@ function parseOptionalTextarea(formData, field, maxLength = null) {
   return maxLength ? value.slice(0, maxLength) : value;
 }
 
+function resolveStoredDocumentOriginalUrl(previousAsset, nextAsset) {
+  return (
+    nextAsset?.original_url ||
+    previousAsset?.original_url ||
+    (previousAsset?.source_kind === "external" ? previousAsset.display_url : "")
+  );
+}
+
+function getPersistFailureReason(error) {
+  const message = error instanceof Error ? error.message : String(error || "");
+
+  if (message.includes("maximum allowed size") || message.includes("object type is not supported")) {
+    return "invalid-selection";
+  }
+
+  return "save-error";
+}
+
 export function parseMemberProfileFormData(formData) {
   const headshotFile = formData.get("headshot_file");
   const cvFile = formData.get("cv_file");
+  const ndaFile = formData.get("nda_file");
+  const codeOfConductFile = formData.get("code_of_conduct_file");
   const sectionId = String(formData.get("section_id") || "").trim();
   const relevantProjectTitles = formData.getAll("relevant_project_title");
   const relevantProjectLinks = formData.getAll("relevant_project_link");
@@ -74,7 +104,10 @@ export function parseMemberProfileFormData(formData) {
     headshotFile: typeof headshotFile?.arrayBuffer === "function" ? headshotFile : null,
     currentCvUrl: parseOptionalText(formData, "current_cv_url") || "",
     cvFile: typeof cvFile?.arrayBuffer === "function" ? cvFile : null,
+    ndaFile: typeof ndaFile?.arrayBuffer === "function" ? ndaFile : null,
     ndaUrl: parseOptionalText(formData, "nda_url"),
+    codeOfConductFile:
+      typeof codeOfConductFile?.arrayBuffer === "function" ? codeOfConductFile : null,
     codeOfConductUrl: parseOptionalText(formData, "code_of_conduct_url"),
     tagSlugs:
       sectionId === "organisation-cohort"
@@ -142,13 +175,47 @@ export async function persistMemberProfile({
     };
   }
 
+  if (
+    (values.visibilitySetting !== undefined && !isValidProfileVisibilitySetting(values.visibilitySetting)) ||
+    (values.availabilityStatus !== undefined && !isValidProfileAvailabilityStatus(values.availabilityStatus))
+  ) {
+    return {
+      ok: false,
+      reason: "invalid-selection",
+    };
+  }
+
   let headshotUrl =
     values.currentHeadshotUrl || existingCohortProfile?.headshot_url || "";
-  let headshotAsset = resolveHeadshotAsset(headshotUrl, existingCohortProfile?.raw_responses);
+  const previousHeadshotAsset = resolveHeadshotAsset(headshotUrl, existingCohortProfile?.raw_responses);
+  let headshotAsset = previousHeadshotAsset;
   let cvUrl = values.currentCvUrl || existingCohortProfile?.cv_url || "";
-  let resumeAsset = resolveResumeAsset(cvUrl, existingCohortProfile?.raw_responses);
+  const previousResumeAsset = resolveResumeAsset(cvUrl, existingCohortProfile?.raw_responses);
+  let resumeAsset = previousResumeAsset;
+  let ndaUrl = existingCohortProfile?.nda_url || "";
+  const previousNdaAsset = resolveNdaAsset(ndaUrl, existingCohortProfile?.raw_responses);
+  let ndaAsset = previousNdaAsset;
+  let codeOfConductUrl = existingCohortProfile?.code_of_conduct_url || "";
+  const previousCodeOfConductAsset = resolveCodeOfConductAsset(
+    codeOfConductUrl,
+    existingCohortProfile?.raw_responses,
+  );
+  let codeOfConductAsset = previousCodeOfConductAsset;
 
   try {
+    if (values.ndaUrl !== undefined && (values.ndaUrl || ndaAsset.source_kind !== "storage")) {
+      ndaUrl = values.ndaUrl || "";
+      ndaAsset = resolveNdaAsset(ndaUrl);
+    }
+
+    if (
+      values.codeOfConductUrl !== undefined &&
+      (values.codeOfConductUrl || codeOfConductAsset.source_kind !== "storage")
+    ) {
+      codeOfConductUrl = values.codeOfConductUrl || "";
+      codeOfConductAsset = resolveCodeOfConductAsset(codeOfConductUrl);
+    }
+
     const uploadedHeadshot = await uploadHeadshotFile({
       adminSupabase,
       currentHeadshotUrl: headshotUrl,
@@ -165,10 +232,26 @@ export async function persistMemberProfile({
     });
     cvUrl = uploadedResume.cvUrl;
     resumeAsset = uploadedResume.asset;
-  } catch {
+    const uploadedNda = await uploadNdaFile({
+      adminSupabase,
+      currentNdaUrl: ndaUrl,
+      file: values.ndaFile,
+      userId,
+    });
+    ndaUrl = uploadedNda.ndaUrl;
+    ndaAsset = uploadedNda.asset;
+    const uploadedCodeOfConduct = await uploadCodeOfConductFile({
+      adminSupabase,
+      currentCodeOfConductUrl: codeOfConductUrl,
+      file: values.codeOfConductFile,
+      userId,
+    });
+    codeOfConductUrl = uploadedCodeOfConduct.codeOfConductUrl;
+    codeOfConductAsset = uploadedCodeOfConduct.asset;
+  } catch (error) {
     return {
       ok: false,
-      reason: "save-error",
+      reason: getPersistFailureReason(error),
     };
   }
 
@@ -239,11 +322,8 @@ export async function persistMemberProfile({
         : existingCohortProfile?.additional_comments || null,
     headshot_url: headshotUrl || null,
     cv_url: cvUrl || null,
-    nda_url: values.ndaUrl !== undefined ? values.ndaUrl || null : existingCohortProfile?.nda_url || null,
-    code_of_conduct_url:
-      values.codeOfConductUrl !== undefined
-        ? values.codeOfConductUrl || null
-        : existingCohortProfile?.code_of_conduct_url || null,
+    nda_url: ndaUrl || null,
+    code_of_conduct_url: codeOfConductUrl || null,
   };
   const progress = buildProfileProgress({
     cohortProfile: mergedCohortProfile,
@@ -368,13 +448,20 @@ export async function persistMemberProfile({
     headshot_url: headshotUrl || null,
     headshot_source_kind: headshotAsset.source_kind,
     headshot_storage_path: headshotAsset.storage_path || null,
-    headshot_original_url: headshotAsset.original_url || null,
+    headshot_original_url: resolveStoredDocumentOriginalUrl(previousHeadshotAsset, headshotAsset) || null,
     cv_url: cvUrl || null,
     cv_source_kind: resumeAsset.source_kind,
     cv_storage_path: resumeAsset.storage_path || null,
-    cv_original_url: resumeAsset.original_url || null,
+    cv_original_url: resolveStoredDocumentOriginalUrl(previousResumeAsset, resumeAsset) || null,
     nda_url: mergedCohortProfile.nda_url,
+    nda_source_kind: ndaAsset.source_kind,
+    nda_storage_path: ndaAsset.storage_path || null,
+    nda_original_url: resolveStoredDocumentOriginalUrl(previousNdaAsset, ndaAsset) || null,
     code_of_conduct_url: mergedCohortProfile.code_of_conduct_url,
+    code_of_conduct_source_kind: codeOfConductAsset.source_kind,
+    code_of_conduct_storage_path: codeOfConductAsset.storage_path || null,
+    code_of_conduct_original_url:
+      resolveStoredDocumentOriginalUrl(previousCodeOfConductAsset, codeOfConductAsset) || null,
   };
   const { error: cohortProfileError } = await adminSupabase.from("cohort_member_profiles").upsert(
     {

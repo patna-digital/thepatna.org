@@ -476,7 +476,7 @@ export function buildEventFormValues(event) {
   }
 
   return {
-    id: event.id,
+    id: event.id || "",
     title: event.title || "",
     event_type: event.event_type || "",
     organising_institutions: (event.organising_institutions || []).join(";\n"),

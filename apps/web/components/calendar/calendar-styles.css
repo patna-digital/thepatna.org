@@ -1388,6 +1388,11 @@
   background: rgba(107, 33, 168, 0.12);
 }
 
+.cal-source-badge.member_local {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.12);
+}
+
 .cal-event-row-date {
   flex-shrink: 0;
   font-size: var(--text-xs);
@@ -1495,6 +1500,7 @@
 }
 
 .cal-event-detail-status.confirmed { color: #166534; }
+.cal-event-detail-status.local     { color: #7c3aed; }
 .cal-event-detail-status.external  { color: #6b21a8; }
 
 /* ── Day event modal ─────────────────────────────────────────────────────── */
@@ -1589,6 +1595,133 @@
   margin: 0;
 }
 
+.cal-day-composer {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(3, 82, 157, 0.12);
+  background: #ffffff;
+}
+
+.cal-day-composer-head h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.cal-day-composer-head p {
+  margin: 0.35rem 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.cal-day-composer-switcher {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+}
+
+.cal-day-composer-chip {
+  appearance: none;
+  border: 1px solid rgba(3, 82, 157, 0.16);
+  border-radius: 999px;
+  background: #f8fbff;
+  color: #5f7a97;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.42rem 0.8rem;
+  transition: all 0.16s;
+}
+
+.cal-day-composer-chip.active {
+  background: #0f2f53;
+  border-color: #0f2f53;
+  color: #ffffff;
+}
+
+.cal-day-composer-feedback {
+  margin: 0.9rem 0 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.cal-day-composer-feedback.success {
+  color: #166534;
+}
+
+.cal-day-composer-feedback.error {
+  color: #b42318;
+}
+
+.cal-day-composer-cta,
+.cal-day-composer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.95rem;
+}
+
+.cal-day-composer-cta p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.cal-day-composer-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cal-day-composer-form input,
+.cal-day-composer-form textarea {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  border-radius: var(--radius-control);
+  background: #ffffff;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  color: var(--ink);
+}
+
+.cal-day-composer-form textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.cal-day-composer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.cal-day-composer-checkbox {
+  display: inline-flex !important;
+  align-items: center;
+  flex-direction: row !important;
+  gap: 0.55rem;
+  color: var(--ink-soft) !important;
+}
+
+.cal-day-composer-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.cal-day-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .cal-year-grid {
@@ -1634,10 +1767,13 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .cal-day-modal-overlay {
-    padding: 0.75rem;
+    align-items: end;
+    padding: 0;
   }
   .cal-day-modal {
-    max-height: calc(100vh - 1.5rem);
+    width: 100%;
+    max-height: calc(100vh - 56px);
+    border-radius: 1.35rem 1.35rem 0 0;
   }
   .cal-day-modal-header {
     padding: 1rem 1rem 0.9rem;
@@ -1647,5 +1783,13 @@
   }
   .cal-day-modal-body {
     padding: 0.9rem;
+  }
+  .cal-day-composer-grid {
+    grid-template-columns: 1fr;
+  }
+  .cal-day-composer-actions .primary-button,
+  .cal-day-composer-cta .primary-button {
+    width: 100%;
+    justify-content: center;
   }
 }

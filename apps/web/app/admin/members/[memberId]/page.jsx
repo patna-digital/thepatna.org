@@ -452,11 +452,43 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
           </div>
           <div>
             <strong>NDA</strong>
-            <p>{member.cohortProfile?.nda_url ? <a href={member.cohortProfile.nda_url} rel="noreferrer" target="_blank">Open file</a> : "Not provided"}</p>
+            <p>{member.ndaAsset?.source_kind !== "none" ? <a href={`/admin/members/${member.id}/nda`}>Open file</a> : "Not provided"}</p>
+          </div>
+          <div>
+            <strong>NDA source</strong>
+            <p>{renderValue(member.ndaAsset?.source_kind)}</p>
+          </div>
+          <div>
+            <strong>Original NDA source</strong>
+            <p>
+              {member.ndaAsset?.original_url ? (
+                <a href={member.ndaAsset.original_url} rel="noreferrer" target="_blank">
+                  Open original source
+                </a>
+              ) : (
+                "Not recorded"
+              )}
+            </p>
           </div>
           <div>
             <strong>Code of Conduct</strong>
-            <p>{member.cohortProfile?.code_of_conduct_url ? <a href={member.cohortProfile.code_of_conduct_url} rel="noreferrer" target="_blank">Open file</a> : "Not provided"}</p>
+            <p>{member.codeOfConductAsset?.source_kind !== "none" ? <a href={`/admin/members/${member.id}/code-of-conduct`}>Open file</a> : "Not provided"}</p>
+          </div>
+          <div>
+            <strong>Code of Conduct source</strong>
+            <p>{renderValue(member.codeOfConductAsset?.source_kind)}</p>
+          </div>
+          <div>
+            <strong>Original Code of Conduct source</strong>
+            <p>
+              {member.codeOfConductAsset?.original_url ? (
+                <a href={member.codeOfConductAsset.original_url} rel="noreferrer" target="_blank">
+                  Open original source
+                </a>
+              ) : (
+                "Not recorded"
+              )}
+            </p>
           </div>
           <div>
             <strong>Submitted at</strong>

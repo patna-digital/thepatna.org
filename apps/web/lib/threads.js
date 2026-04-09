@@ -133,6 +133,43 @@ export async function fetchRecentThreadsBySpaces(supabase, spaceIds, { perSpace 
   return bySpaceId;
 }
 
+/**
+ * Fetch the latest threads across a set of spaces for dashboard/feed views.
+ */
+export async function fetchRecentThreadFeedBySpaces(supabase, spaceIds, { limit = 4 } = {}) {
+  if (!spaceIds?.length) {
+    return { threads: [], error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("threads")
+    .select(
+      `id, title, space_id, created_at,
+       author:author_id(id, first_name, surname),
+       comments(count)`,
+    )
+    .in("space_id", spaceIds)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("fetchRecentThreadFeedBySpaces error:", error);
+    return { threads: [], error };
+  }
+
+  return {
+    threads: (data || []).map((row) => ({
+      author: normaliseProfile(row.author),
+      commentCount: Number(row.comments?.[0]?.count ?? 0),
+      createdAt: row.created_at,
+      id: row.id,
+      spaceId: row.space_id,
+      title: row.title,
+    })),
+    error: null,
+  };
+}
+
 // ── Prose HTML sanitization ──────────────────────────────────────────────────
 
 /**

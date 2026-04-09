@@ -2,6 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LanguageSelector } from "@/components/language-selector";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
+import {
+  formatProfileAvailabilityStatus,
+  formatProfileVisibilitySetting,
+  PROFILE_AVAILABILITY_OPTIONS,
+  PROFILE_VISIBILITY_OPTIONS,
+} from "@/lib/profile-form-options";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { SettingsCard } from "./components/settings-card";
@@ -34,24 +40,6 @@ const TIMEZONE_OPTIONS = [
   { value: "America/Denver", label: "Denver (MST)" },
   { value: "America/Los_Angeles", label: "Los Angeles (PST)" },
 ];
-
-function formatVisibility(value) {
-  const map = {
-    members_only: "Members only",
-    public: "Public",
-    private: "Private (hidden)",
-  };
-  return map[value] || "Members only";
-}
-
-function formatAvailability(value) {
-  const map = {
-    available: "Available",
-    limited: "Limited availability",
-    unavailable: "Unavailable",
-  };
-  return map[value] || "Available";
-}
 
 function formatDate(value) {
   if (!value) return "Not available";
@@ -120,15 +108,11 @@ export default async function SettingsPage({ searchParams }) {
               action={updateVisibilitySettingAction}
               currentValue={member.visibility_setting || "members_only"}
               name="visibility_setting"
-              options={[
-                { value: "members_only", label: "Members only", description: "Only logged-in PATNA members" },
-                { value: "public", label: "Public", description: "Visible to anyone on the web" },
-                { value: "private", label: "Private", description: "Hidden from directory" },
-              ]}
+              options={PROFILE_VISIBILITY_OPTIONS}
             />
             <div className="settings-card-footer">
-              <span className={`status-chip ${member.visibility_setting === "public" ? "chip-success" : "chip-neutral"}`}>
-                {formatVisibility(member.visibility_setting)}
+              <span className={`status-chip ${member.visibility_setting === "hidden" ? "chip-muted" : "chip-neutral"}`}>
+                {formatProfileVisibilitySetting(member.visibility_setting)}
               </span>
             </div>
           </SettingsCard>
@@ -142,18 +126,14 @@ export default async function SettingsPage({ searchParams }) {
               action={updateAvailabilityStatusAction}
               currentValue={member.availability_status || "available"}
               name="availability_status"
-              options={[
-                { value: "available", label: "Available", description: "Open to new opportunities" },
-                { value: "limited", label: "Limited", description: "Selective about new projects" },
-                { value: "unavailable", label: "Unavailable", description: "Not taking on new work" },
-              ]}
+              options={PROFILE_AVAILABILITY_OPTIONS}
             />
             <div className="settings-card-footer">
               <span className={`status-chip ${
                 member.availability_status === "available" ? "chip-success" : 
-                member.availability_status === "limited" ? "chip-warning" : "chip-muted"
+                "chip-muted"
               }`}>
-                {formatAvailability(member.availability_status)}
+                {formatProfileAvailabilityStatus(member.availability_status)}
               </span>
             </div>
           </SettingsCard>

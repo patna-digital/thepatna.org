@@ -179,13 +179,12 @@ export async function provisionMemberFromApplication({
     ) || profileChanged;
   profileChanged =
     setFillValue(profilePatch, "profile_status", existingProfile?.profile_status, "active") || profileChanged;
-  profileChanged =
-    setFillValue(
-      profilePatch,
-      "onboarding_status",
-      existingProfile?.onboarding_status,
-      defaultOnboardingStatus,
-    ) || profileChanged;
+  const currentOnboardingStatus = existingProfile?.onboarding_status || "";
+  const isPromotableStatus = !currentOnboardingStatus || currentOnboardingStatus === "invited";
+  if (isPromotableStatus && hasText(defaultOnboardingStatus)) {
+    profilePatch.onboarding_status = defaultOnboardingStatus;
+    profileChanged = true;
+  }
 
   let resolvedProfile = existingProfile || null;
 

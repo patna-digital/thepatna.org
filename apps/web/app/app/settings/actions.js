@@ -5,9 +5,10 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { getSiteUrl } from "@/lib/env";
 import { revalidatePath } from "next/cache";
-
-const VALID_VISIBILITY_SETTINGS = ["members_only", "public", "private"];
-const VALID_AVAILABILITY_STATUSES = ["available", "limited", "unavailable"];
+import {
+  VALID_PROFILE_AVAILABILITY_STATUSES,
+  VALID_PROFILE_VISIBILITY_SETTINGS,
+} from "@/lib/profile-form-options";
 
 export async function updateVisibilitySettingAction(formData) {
   const { user, supabase } = await getCurrentUserContext();
@@ -18,7 +19,7 @@ export async function updateVisibilitySettingAction(formData) {
 
   const visibility = String(formData.get("visibility_setting") || "").trim();
 
-  if (!VALID_VISIBILITY_SETTINGS.includes(visibility)) {
+  if (!VALID_PROFILE_VISIBILITY_SETTINGS.includes(visibility)) {
     return { ok: false, error: "Invalid visibility setting" };
   }
 
@@ -48,7 +49,7 @@ export async function updateAvailabilityStatusAction(formData) {
 
   const availability = String(formData.get("availability_status") || "").trim();
 
-  if (!VALID_AVAILABILITY_STATUSES.includes(availability)) {
+  if (!VALID_PROFILE_AVAILABILITY_STATUSES.includes(availability)) {
     return { ok: false, error: "Invalid availability status" };
   }
 

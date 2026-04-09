@@ -8,8 +8,10 @@ import {
   fetchPublicBookingPageData,
   normalizeBookingSettingsRecord,
 } from "@/lib/calendar/booking";
+import { buildCalendarFeedEvents } from "@/lib/calendar/aggregate-events";
 import { findConferenceLink } from "@/lib/calendar/conference";
 import { isMissingDatabaseFeatureError, normalizeError } from "@/lib/error-utils";
+import { fetchMemberCalendarItems } from "@/lib/member-calendar-items";
 
 const CALENDAR_CONNECTION_SELECT = `
   id,
@@ -599,6 +601,25 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
     return { events: [], error: bookingsError };
   }
 
+  let memberCalendarItems = [];
+  try {
+    const { items, error: itemsError } = await fetchMemberCalendarItems({
+      memberId,
+      startDate,
+      endDate,
+      supabase,
+    });
+
+    if (itemsError) {
+      console.error("Member calendar items fetch error:", normalizeError(itemsError));
+    } else {
+      memberCalendarItems = items;
+    }
+  } catch (error) {
+    console.error("Member calendar items fetch failed:", normalizeError(error));
+    memberCalendarItems = [];
+  }
+
   // Fetch external calendar events (wrapped in try-catch in case table doesn't exist yet)
   let externalEvents = [];
   let warning = null;
@@ -652,47 +673,13 @@ export async function fetchCalendarEvents({ memberId, startDate, endDate, supaba
   }
 
   // Transform and combine events
-  const bookingExternalIds = new Set(
-    (hostBookings || [])
-      .map((booking) => booking.host_calendar_event_id)
-      .filter(Boolean),
-  );
-
-  const events = [
-    ...(communityEvents || []).map(e => ({
-      ...e,
-      event_source: 'community',
-      event_type_label: e.event_type || 'Community Event',
-      source_label: 'PATNA Event',
-      source_detail: null,
-      is_rsvped: rsvpedEventIds.has(e.id),
-    })),
-    ...(hostBookings || []).map(b => ({
-      ...b,
-      ...getMeetingMetadata({
-        locationDetails: b.location_details,
-        locationType: b.location_type,
-      }),
-      event_source: 'personal',
-      event_type_label: 'Meeting',
-      source_label: 'PATNA Booking',
-      source_detail: null,
-      title: b.title,
-      is_rsvped: true,
-    })),
-    ...transformExternalCalendarEvents(externalEvents)
-      .filter((event) => !bookingExternalIds.has(event.external_event_id))
-      .map((event) => ({
-        ...event,
-        event_type_label:
-          event.connection?.provider
-            ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
-            : "Connected Calendar Event",
-      })),
-  ];
-
-  // Sort by start time
-  events.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  const events = buildCalendarFeedEvents({
+    communityEvents: communityEvents || [],
+    hostBookings: hostBookings || [],
+    memberCalendarItems,
+    externalEvents,
+    rsvpedEventIds,
+  });
 
   return { events, error: null, warning };
 }

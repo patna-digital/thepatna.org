@@ -2,8 +2,24 @@
 
 import { redirect } from "next/navigation";
 import { parseMemberProfileFormData, persistMemberProfile } from "@/lib/member-profile-updates";
+import { getNextProfileSectionId, normaliseProfileSectionId } from "@/lib/profile-onboarding";
 import { getCurrentUserContext } from "@/lib/supabase/access";
-import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+function buildOnboardingRedirect({ notice = "", step = "" }) {
+  const params = new URLSearchParams();
+
+  if (step) {
+    params.set("step", step);
+  }
+
+  if (notice) {
+    params.set("notice", notice);
+  }
+
+  const query = params.toString();
+  return query ? `/app/onboarding?${query}` : "/app/onboarding";
+}
 
 export async function saveOnboardingProfileAction(formData) {
   const { supabase, user } = await getCurrentUserContext({
@@ -11,12 +27,13 @@ export async function saveOnboardingProfileAction(formData) {
     includeRoles: false,
   });
 
-  if (!user || !supabase || !canUseSupabaseAdmin()) {
-    redirect("/auth/login?next=/app/profile");
+  if (!user || !supabase) {
+    redirect("/auth/login?next=/app/onboarding");
   }
 
   const values = parseMemberProfileFormData(formData);
   const adminSupabase = createSupabaseAdminClient();
+  const activeStep = normaliseProfileSectionId(values.sectionId) || "identity-contact";
   const result = await persistMemberProfile({
     adminSupabase,
     supabase,
@@ -25,16 +42,28 @@ export async function saveOnboardingProfileAction(formData) {
   });
 
   if (!result.ok) {
-    if (result.reason === "missing-fields") {
-      redirect("/app/profile?notice=missing-fields");
-    }
-
     if (result.reason === "invalid-selection") {
-      redirect("/app/profile?notice=invalid-selection");
+      redirect(buildOnboardingRedirect({ notice: "invalid-selection", step: activeStep }));
     }
 
-    redirect("/app/profile?notice=save-error");
+    redirect(buildOnboardingRedirect({ notice: "save-error", step: activeStep }));
   }
 
-  redirect("/app/profile?notice=saved");
+  if (values.intent === "continue") {
+    const targetStep =
+      normaliseProfileSectionId(values.nextStepId) ||
+      getNextProfileSectionId(activeStep) ||
+      result.firstIncompleteSection;
+    redirect(buildOnboardingRedirect({ notice: "saved", step: targetStep }));
+  }
+
+  if (values.intent === "finish") {
+    if (result.isComplete) {
+      redirect("/app/onboarding/complete?notice=completed");
+    }
+
+    redirect(buildOnboardingRedirect({ notice: "saved", step: "review-confirm" }));
+  }
+
+  redirect(buildOnboardingRedirect({ notice: "saved", step: activeStep }));
 }

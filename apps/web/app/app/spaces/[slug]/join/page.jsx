@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
@@ -25,14 +25,18 @@ export default async function JoinSpacePage({ params, searchParams }) {
     fetchSpaceBySlug({ supabase, slug, userId: user.id }),
   ]);
 
+  if (error || !space) {
+    notFound();
+  }
+
   // If user is already a member, send them to the space
-  if (space?.isMember) {
+  if (space.isMember) {
     redirect(`/app/spaces/${slug}`);
   }
 
   const sidebarUser = frameData.sidebarUser || null;
-  const spaceName   = space?.name || slug;
-  const spaceType   = space ? formatSpaceType(space.space_type) : "";
+  const spaceName   = space.name;
+  const spaceType   = formatSpaceType(space.space_type);
   const alreadySent = notice === "sent";
 
   return (
@@ -72,7 +76,6 @@ export default async function JoinSpacePage({ params, searchParams }) {
 
             <form action={requestJoinAction} className="join-gate-form">
               <input name="spaceSlug" type="hidden" value={slug} />
-              <input name="spaceName" type="hidden" value={spaceName} />
 
               <label className="form-label" htmlFor="join-message">
                 Why do you want to join this space? <span style={{ fontWeight: 400, color: "var(--ink-soft)" }}>(optional)</span>

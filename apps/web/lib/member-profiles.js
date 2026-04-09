@@ -1,5 +1,9 @@
 import { listSupabaseAuthUsers } from "@/lib/supabase/admin";
 import { buildPublicBookingUrl } from "@/lib/calendar/booking";
+import {
+  resolveCodeOfConductAsset,
+  resolveNdaAsset,
+} from "@/lib/member-compliance-documents";
 import { resolveHeadshotAsset } from "@/lib/member-headshots";
 import { resolveResumeAsset } from "@/lib/member-resumes";
 import { buildProfileProgress } from "@/lib/profile-onboarding";
@@ -258,6 +262,11 @@ export function buildMemberProfileView({
   const primaryCohort = normaliseCohort(primaryCohortRow?.cohorts);
   const headshotAsset = resolveHeadshotAsset(cohortProfile?.headshot_url, cohortProfile?.raw_responses);
   const resumeAsset = resolveResumeAsset(cohortProfile?.cv_url, cohortProfile?.raw_responses);
+  const ndaAsset = resolveNdaAsset(cohortProfile?.nda_url, cohortProfile?.raw_responses);
+  const codeOfConductAsset = resolveCodeOfConductAsset(
+    cohortProfile?.code_of_conduct_url,
+    cohortProfile?.raw_responses,
+  );
   const needsHeadshotRecovery = headshotAsset.source_kind === "external";
   const needsResumeRecovery = resumeAsset.source_kind === "external";
   const progress = buildProfileProgress({
@@ -299,6 +308,8 @@ export function buildMemberProfileView({
     hasHeadshot: Boolean(headshotAsset.display_url),
     needsHeadshotRecovery,
     resumeAsset,
+    ndaAsset,
+    codeOfConductAsset,
     resumeDownloadUrl: "",
     needsResumeRecovery,
     completionPercent: progress.completionPercent,

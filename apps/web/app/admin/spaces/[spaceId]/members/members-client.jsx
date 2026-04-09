@@ -14,9 +14,11 @@ export function SpaceMembersClient({
   spaceId,
   spaceName,
   members,
+  joinRequests,
   roles,
   eligibleProfiles,
   handleAdd,
+  handleApproveJoinRequest,
   handleUpdateRole,
   handleRemove,
 }) {
@@ -24,6 +26,7 @@ export function SpaceMembersClient({
   const [isPending, startTransition] = useTransition();
   const [addError, setAddError] = useState(null);
   const [addSuccess, setAddSuccess] = useState(false);
+  const [approveErrors, setApproveErrors] = useState({});
   const [roleErrors, setRoleErrors] = useState({});
 
   async function onAdd(e) {
@@ -72,8 +75,106 @@ export function SpaceMembersClient({
     });
   }
 
+  async function onApprove(requestId, e) {
+    e.preventDefault();
+    setApproveErrors((prev) => ({ ...prev, [requestId]: null }));
+    const formData = new FormData(e.target);
+
+    startTransition(async () => {
+      const result = await handleApproveJoinRequest(formData);
+      if (!result.ok) {
+        setApproveErrors((prev) => ({
+          ...prev,
+          [requestId]: result.error || "Failed to approve join request",
+        }));
+      } else {
+        router.refresh();
+      }
+    });
+  }
+
   return (
     <div className="member-dashboard-stack">
+      {joinRequests.length > 0 && (
+        <article className="dashboard-card app-list-card">
+          <div className="member-section-heading" style={{ marginBottom: "0.75rem" }}>
+            <div>
+              <h3>Pending join requests</h3>
+              <p className="member-section-copy">
+                {joinRequests.length} {joinRequests.length === 1 ? "request" : "requests"} awaiting admin approval
+              </p>
+            </div>
+          </div>
+
+          <div className="app-list">
+            {joinRequests.map((request) => {
+              const requesterUserId = request.joinRequest?.requesterUserId || "";
+
+              return (
+                <div className="app-row" key={request.id}>
+                  <div className="app-row-summary" style={{ cursor: "default" }}>
+                    <div className="app-row-primary">
+                      <div className="app-row-identity">
+                        <strong>{request.requester_name}</strong>
+                        <span>
+                          {request.requester_email}
+                          {request.organisation ? ` · ${request.organisation}` : ""}
+                        </span>
+                      </div>
+                      <div className="app-row-signals">
+                        <span className="status-chip chip-warning">{request.status}</span>
+                        <span className="status-chip chip-neutral">
+                          Requested {formatDate(request.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="app-row-detail" style={{ display: "grid", gap: "0.75rem" }}>
+                    {request.joinRequest?.requesterMessage ? (
+                      <p className="member-section-copy">
+                        {request.joinRequest.requesterMessage}
+                      </p>
+                    ) : (
+                      <p className="muted-note">No additional message was included.</p>
+                    )}
+
+                    {!requesterUserId ? (
+                      <p className="form-error">
+                        This request cannot be approved automatically because the requester account could not be linked.
+                      </p>
+                    ) : (
+                      <form
+                        onSubmit={(e) => onApprove(request.id, e)}
+                        style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}
+                      >
+                        <input name="request_id" type="hidden" value={request.id} />
+                        <input name="user_id" type="hidden" value={requesterUserId} />
+                        <select defaultValue="member" name="role" style={{ minWidth: "9rem" }}>
+                          {roles.map((role) => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
+                        </select>
+                        <button className="primary-button" disabled={isPending} type="submit">
+                          Approve and add member
+                        </button>
+                        {approveErrors[request.id] && (
+                          <p className="form-error" style={{ margin: 0 }}>
+                            {approveErrors[request.id]}
+                          </p>
+                        )}
+                      </form>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+      )}
+
       {/* Add member panel */}
       <article className="dashboard-card">
         <h3>Add member</h3>

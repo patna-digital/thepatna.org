@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -7,7 +8,6 @@ import { useTranslations } from "next-intl";
 import {
   LayoutDashboard, Layers, Users, CalendarCheck, BookOpen, CalendarDays, Settings, Menu, X,
 } from "lucide-react";
-import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
@@ -120,17 +120,16 @@ export function MemberWorkspaceShell({
         </button>
 
         <div className="member-workspace-brand">
-          <BrandLogo
-            href="/app"
-            label="PATNA Initiative"
-            showCopy={false}
-            theme="sidebar"
-            variant="mark"
-          />
-          <div>
-            <strong>PATNA</strong>
-            <span>Initiative</span>
-          </div>
+          <Link aria-label="PATNA Initiative" className="member-workspace-brand-logo" href="/app">
+            <Image
+              alt="PATNA Initiative"
+              className="member-workspace-brand-logo-image"
+              height={675}
+              priority
+              src="/brand/patna-mark.png"
+              width={1200}
+            />
+          </Link>
         </div>
 
         {sidebarUser ? (
