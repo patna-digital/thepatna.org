@@ -10,6 +10,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.53.0
+        version: 0.53.0
       '@azure/msal-node':
         specifier: ^5.1.1
         version: 5.1.1
@@ -78,6 +81,10 @@ importers:
         version: 2.0.2
 
 packages:
+
+  '@anthropic-ai/sdk@0.53.0':
+    resolution: {integrity: sha512-bl2frVo0cgHCXTzQEIHXPH329uQXC4YKBaLBkZmUc59tNiR3GgcGpBZU7mwfyv5tPuU/yT7tGHyoe5AnjN02QA==}
+    hasBin: true
 
   '@azure/msal-common@16.4.0':
     resolution: {integrity: sha512-twXt09PYtj1PffNNIAzQlrBd0DS91cdA6i1gAfzJ6BnPM4xNk5k9q/5xna7jLIjU3Jnp0slKYtucshGM8OGNAw==}
@@ -1262,6 +1269,8 @@ packages:
         optional: true
 
 snapshots:
+
+  '@anthropic-ai/sdk@0.53.0': {}
 
   '@azure/msal-common@16.4.0': {}
 
