@@ -19,6 +19,18 @@ function buildEventPath({ eventId = "", notice = "" }) {
   return query ? `${basePath}?${query}` : basePath;
 }
 
+function buildSubmissionReviewPath({ submissionId = "", notice = "" }) {
+  const basePath = submissionId ? `/admin/events/submissions/${submissionId}` : "/admin/events";
+  const params = new URLSearchParams();
+
+  if (notice) {
+    params.set("notice", notice);
+  }
+
+  const query = params.toString();
+  return query ? `${basePath}?${query}` : basePath;
+}
+
 function parseOptionalText(formData, key) {
   const value = String(formData.get(key) || "").trim();
   return value || "";
@@ -57,6 +69,22 @@ function normaliseVisibility(value) {
 function normaliseScheduleStatus(value) {
   const normalized = String(value || "").trim().toLowerCase();
   return ["past", "upcoming", "tbc"].includes(normalized) ? normalized : "upcoming";
+}
+
+function inferScheduleStatus({ startsAt, displayDate, requestedStatus }) {
+  if (requestedStatus) {
+    return normaliseScheduleStatus(requestedStatus);
+  }
+
+  if (startsAt) {
+    return new Date(startsAt).getTime() < Date.now() ? "past" : "upcoming";
+  }
+
+  if (displayDate) {
+    return "tbc";
+  }
+
+  return "upcoming";
 }
 
 async function ensureUniqueSlug({ currentEventId = "", initialSlug, supabase }) {
@@ -175,4 +203,135 @@ export async function saveAdminEventAction(formData) {
   }
 
   redirect(buildEventPath({ eventId: data.id, notice: "saved" }));
+}
+
+export async function approveEventSubmissionAction(formData) {
+  const { supabase, user } = await requireAdminContext();
+  const submissionId = parseOptionalText(formData, "submission_id");
+  const title = parseOptionalText(formData, "title");
+  const displayDate = parseOptionalText(formData, "display_date");
+  const startsOn = parseOptionalText(formData, "starts_on");
+
+  if (!submissionId) {
+    redirect("/admin/events");
+  }
+
+  if (!title || (!displayDate && !startsOn)) {
+    redirect(buildSubmissionReviewPath({ submissionId, notice: "missing-fields" }));
+  }
+
+  const { data: submission } = await supabase
+    .from("event_submissions")
+    .select("id, approved_event_id, submitted_by_user_id")
+    .eq("id", submissionId)
+    .maybeSingle();
+
+  if (!submission) {
+    redirect("/admin/events");
+  }
+
+  const startsAt = parseDateInput(startsOn);
+  const endsAt = parseDateInput(parseOptionalText(formData, "ends_on"), { endOfDay: true });
+  const computedDisplayDate =
+    displayDate ||
+    (startsOn && parseOptionalText(formData, "ends_on") && startsOn !== parseOptionalText(formData, "ends_on")
+      ? `${startsOn} to ${parseOptionalText(formData, "ends_on")}`
+      : startsOn);
+
+  let existingEvent = null;
+
+  if (submission.approved_event_id) {
+    const { data } = await supabase
+      .from("events")
+      .select("id, slug, created_by_user_id")
+      .eq("id", submission.approved_event_id)
+      .maybeSingle();
+
+    existingEvent = data || null;
+  }
+
+  const slug = await ensureUniqueSlug({
+    currentEventId: existingEvent?.id || "",
+    initialSlug: existingEvent?.slug || createEventSlug(title),
+    supabase,
+  });
+
+  const payload = {
+    title,
+    slug,
+    event_type: parseOptionalText(formData, "event_type") || null,
+    organising_institutions: splitEventList(formData.get("organising_institutions")),
+    starts_at: startsAt,
+    ends_at: endsAt,
+    display_date: computedDisplayDate || null,
+    location: parseOptionalText(formData, "location") || null,
+    summary: parseOptionalText(formData, "summary") || null,
+    body: parseOptionalText(formData, "body") || null,
+    patna_involvement: parseOptionalText(formData, "patna_involvement") || null,
+    themes: splitEventList(formData.get("themes")),
+    official_link: parseOptionalText(formData, "official_link") || null,
+    visibility: normaliseVisibility(formData.get("visibility") || "members"),
+    status: normaliseEventStatus(formData.get("status") || "published"),
+    schedule_status: inferScheduleStatus({
+      startsAt,
+      displayDate: computedDisplayDate,
+      requestedStatus: formData.get("schedule_status") || "upcoming",
+    }),
+    created_by_user_id: existingEvent?.created_by_user_id || submission.submitted_by_user_id || user.id,
+    updated_by_user_id: user.id,
+  };
+
+  const query = existingEvent?.id
+    ? supabase.from("events").update(payload).eq("id", existingEvent.id)
+    : supabase.from("events").insert(payload);
+
+  const { data, error } = await query.select("id").single();
+
+  if (error || !data?.id) {
+    redirect(buildSubmissionReviewPath({ submissionId, notice: "error" }));
+  }
+
+  const reviewNotes = parseOptionalText(formData, "review_notes");
+
+  const { error: reviewError } = await supabase
+    .from("event_submissions")
+    .update({
+      submission_status: "approved",
+      approved_event_id: data.id,
+      review_notes: reviewNotes || null,
+      reviewed_by_user_id: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", submissionId);
+
+  if (reviewError) {
+    redirect(buildSubmissionReviewPath({ submissionId, notice: "error" }));
+  }
+
+  redirect(buildSubmissionReviewPath({ submissionId, notice: "approved" }));
+}
+
+export async function rejectEventSubmissionAction(formData) {
+  const { supabase, user } = await requireAdminContext();
+  const submissionId = parseOptionalText(formData, "submission_id");
+
+  if (!submissionId) {
+    redirect("/admin/events");
+  }
+
+  const { error } = await supabase
+    .from("event_submissions")
+    .update({
+      submission_status: "rejected",
+      review_notes: parseOptionalText(formData, "review_notes") || null,
+      reviewed_by_user_id: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", submissionId);
+
+  if (error) {
+    redirect(buildSubmissionReviewPath({ submissionId, notice: "error" }));
+  }
+
+  redirect(buildSubmissionReviewPath({ submissionId, notice: "rejected" }));
 }

@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData, buildMemberSpaceGroups } from "@/lib/member-workspace";
-import { fetchMemberSpaces } from "@/lib/spaces";
+import { fetchWorkspaceSpaces } from "@/lib/spaces";
 import { fetchLinkedProjectsBySpaceIds } from "@/lib/projects";
 import { fetchRecentThreadsBySpaces } from "@/lib/threads";
 
@@ -19,12 +19,15 @@ export default async function SpacesPage() {
     redirect("/auth/login?next=/app/spaces");
   }
 
-  const [frameData, { spaces, error }] = await Promise.all([
+  const [frameData, workspaceSpacesResult] = await Promise.all([
     fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
-    fetchMemberSpaces({ supabase, userId: user.id }),
+    fetchWorkspaceSpaces({ supabase, userId: user.id }),
   ]);
 
   const sidebarUser = frameData.sidebarUser || null;
+  const spaces = workspaceSpacesResult.memberSpaces || [];
+  const availableSpaces = workspaceSpacesResult.availableSpaces || [];
+  const error = workspaceSpacesResult.error;
 
   const spaceIds = (spaces || []).map((s) => s.id).filter(Boolean);
 
@@ -85,7 +88,11 @@ export default async function SpacesPage() {
           <article className="dashboard-card">
             <div className="app-row-empty">
               <strong>{t("spaces.emptyTitle")}</strong>
-              <p>{t("spaces.emptyText")}</p>
+              <p>
+                {availableSpaces.length > 0
+                  ? "You are not in any spaces yet, but you can request access to the available spaces below."
+                  : t("spaces.emptyText")}
+              </p>
             </div>
           </article>
         )}
@@ -135,6 +142,48 @@ export default async function SpacesPage() {
             </div>
           </section>
         ))}
+
+        {availableSpaces.length > 0 && (
+          <section className="spaces-group">
+            <div className="spaces-group-header">
+              <h2>Available spaces</h2>
+              <p>Real PATNA spaces you can open immediately or request access to.</p>
+            </div>
+            <div className="spaces-card-grid">
+              {availableSpaces.map((space) => {
+                const href = space.requiresRequest
+                  ? `/app/spaces/${space.slug}/join`
+                  : `/app/spaces/${space.slug}`;
+
+                return (
+                  <Link className="space-feed-card" href={href} key={space.slug}>
+                    <div className="space-feed-card-top">
+                      <div className="space-feed-card-info">
+                        <span className="space-feed-type-badge">{formatSpaceType(space.space_type, t)}</span>
+                        <strong className="space-feed-card-name">{space.name}</strong>
+                      </div>
+                      <span className="space-role-pill">
+                        {space.requiresRequest ? "Request access" : "Open"}
+                      </span>
+                    </div>
+
+                    {space.description && (
+                      <p className="space-feed-card-desc">{space.description}</p>
+                    )}
+
+                    <div className="space-feed-card-foot">
+                      <span>{space.member_count ?? 0} {(space.member_count ?? 0) === 1 ? "member" : "members"}</span>
+                      <span>{space.threads ?? 0} {(space.threads ?? 0) === 1 ? "thread" : "threads"}</span>
+                      <span className="space-feed-unread">
+                        {space.requiresRequest ? "Admin approval required" : "Available now"}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
     </MemberWorkspaceShell>
   );

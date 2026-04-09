@@ -1,3 +1,9 @@
+import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  buildSpaceJoinRequestContext,
+  isClosedSpaceJoinRequestStatus,
+  parseSpaceJoinRequestDetails,
+} from "@/lib/space-join-requests";
 import { getRequestLocale, translateContentItems } from "@/lib/translation";
 import {
   SPACE_MEMBER_ROLES,
@@ -83,6 +89,39 @@ async function translateSpacesForDisplay(spaces, locale) {
   }));
 }
 
+function getPrivilegedSpacesClient(fallbackSupabase) {
+  return canUseSupabaseAdmin() ? createSupabaseAdminClient() : fallbackSupabase;
+}
+
+async function enrichWorkspaceSpace({
+  role = "",
+  space,
+  supabase,
+}) {
+  const [threadsResult, membersResult, tags] = await Promise.all([
+    supabase
+      .from("threads")
+      .select("id", { count: "exact", head: true })
+      .eq("space_id", space.id),
+    supabase
+      .from("space_memberships")
+      .select("user_id", { count: "exact", head: true })
+      .eq("space_id", space.id),
+    fetchSpaceTagsSafe(supabase, space.id),
+  ]);
+
+  return {
+    ...space,
+    isMember: Boolean(role) || space.visibility === "public_members",
+    member_count: membersResult.count ?? 0,
+    requiresRequest: !role && space.visibility !== "public_members",
+    role: role || (space.visibility === "public_members" ? "member" : ""),
+    threads: threadsResult.count ?? 0,
+    unread: 0,
+    tags,
+  };
+}
+
 /**
  * Fetch all spaces for the admin interface, with member counts and tags.
  */
@@ -137,37 +176,51 @@ export async function fetchAdminSpaces({ supabase, filters = {} }) {
  * Returns null when the space doesn't exist or the user can't access it.
  */
 export async function fetchSpaceBySlug({ supabase, slug, userId }) {
-  const { data, error } = await supabase
+  const privilegedSupabase = getPrivilegedSpacesClient(supabase);
+  const { data, error } = await privilegedSupabase
     .from("spaces")
     .select("id, name, slug, space_type, description, visibility")
     .eq("slug", slug)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     return { space: null, error: error || new Error("Space not found") };
   }
 
-  const [tags, membersResult] = await Promise.all([
-    fetchSpaceTagsSafe(supabase, data.id),
-    supabase
+  const [tags, currentMembershipResult] = await Promise.all([
+    fetchSpaceTagsSafe(privilegedSupabase, data.id),
+    userId
+      ? privilegedSupabase
+          .from("space_memberships")
+          .select("role, user_id")
+          .eq("space_id", data.id)
+          .eq("user_id", userId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const currentMembership = currentMembershipResult.data || null;
+  const isMember = Boolean(currentMembership) || data.visibility === "public_members";
+
+  let members = [];
+
+  if (isMember) {
+    const { data: membersData } = await privilegedSupabase
       .from("space_memberships")
       .select("role, user_id, profile:user_id(id, first_name, surname, organisation_name)")
       .eq("space_id", data.id)
-      .order("joined_at", { ascending: false }),
-  ]);
+      .order("joined_at", { ascending: false });
 
-  const members = membersResult.data || [];
-  const currentMembership = userId
-    ? members.find((m) => m.user_id === userId)
-    : null;
+    members = membersData || [];
+  }
 
   return {
     space: {
       ...data,
       tags,
       members,
-      currentUserRole: currentMembership?.role || null,
-      isMember: Boolean(currentMembership) || data.visibility === "public_members",
+      currentUserRole: currentMembership?.role || (data.visibility === "public_members" ? "member" : null),
+      isMember,
     },
     error: null,
   };
@@ -419,6 +472,8 @@ export async function removeSpaceMember({ adminSupabase, spaceId, userId }) {
  * Fetch spaces a user belongs to (for the member workspace).
  */
 export async function fetchMemberSpaces({ supabase, userId }) {
+  const privilegedSupabase = getPrivilegedSpacesClient(supabase);
+
   // First get memberships (avoid nested query to prevent RLS recursion)
   const { data: memberships, error: membershipError } = await supabase
     .from("space_memberships")
@@ -452,23 +507,13 @@ export async function fetchMemberSpaces({ supabase, userId }) {
 
   // Enrich with thread counts and tags
   const enriched = await Promise.all(
-    spaces.map(async (space) => {
-      const [threadsResult, tags] = await Promise.all([
-        supabase
-          .from("threads")
-          .select("id", { count: "exact" })
-          .eq("space_id", space.id),
-        fetchSpaceTagsSafe(supabase, space.id),
-      ]);
-
-      return {
-        ...space,
-        role:     roleMap.get(space.id) || "member",
-        threads:  threadsResult.count ?? 0,
-        unread:   0, // placeholder — extend with read-tracking later
-        tags,
-      };
-    })
+    spaces.map((space) =>
+      enrichWorkspaceSpace({
+        role: roleMap.get(space.id) || "member",
+        space,
+        supabase: privilegedSupabase,
+      }),
+    )
   );
 
   // Also include public_members spaces the user isn't explicitly a member of
@@ -483,23 +528,13 @@ export async function fetchMemberSpaces({ supabase, userId }) {
   );
 
   const publicEnriched = await Promise.all(
-    publicExtra.map(async (space) => {
-      const [threadsResult, tags] = await Promise.all([
-        supabase
-          .from("threads")
-          .select("id", { count: "exact" })
-          .eq("space_id", space.id),
-        fetchSpaceTagsSafe(supabase, space.id),
-      ]);
-
-      return {
-        ...space,
-        role:    "member",
-        threads: threadsResult.count ?? 0,
-        unread:  0,
-        tags,
-      };
-    })
+    publicExtra.map((space) =>
+      enrichWorkspaceSpace({
+        role: "member",
+        space,
+        supabase: privilegedSupabase,
+      }),
+    )
   );
 
   return {
@@ -507,6 +542,85 @@ export async function fetchMemberSpaces({ supabase, userId }) {
       [...enriched, ...publicEnriched],
       await getRequestLocale(),
     ),
+    error: null,
+  };
+}
+
+export async function fetchWorkspaceSpaces({ supabase, userId }) {
+  const memberSpacesResult = await fetchMemberSpaces({ supabase, userId });
+  const memberSpaces = memberSpacesResult.spaces || [];
+
+  if (!canUseSupabaseAdmin()) {
+    return {
+      availableSpaces: [],
+      error: memberSpacesResult.error,
+      memberSpaces,
+    };
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: allSpaces, error: allSpacesError } = await adminSupabase
+    .from("spaces")
+    .select("id, name, slug, space_type, description, visibility")
+    .order("name", { ascending: true });
+
+  if (allSpacesError) {
+    console.error("Failed to fetch discoverable spaces:", allSpacesError);
+    return {
+      availableSpaces: [],
+      error: memberSpacesResult.error || allSpacesError,
+      memberSpaces,
+    };
+  }
+
+  const joinedSpaceIds = new Set(memberSpaces.map((space) => space.id));
+  const discoverableSpaces = (allSpaces || []).filter((space) => !joinedSpaceIds.has(space.id));
+
+  const enrichedAvailableSpaces = await Promise.all(
+    discoverableSpaces.map((space) =>
+      enrichWorkspaceSpace({
+        role: "",
+        space,
+        supabase: adminSupabase,
+      }),
+    ),
+  );
+
+  return {
+    availableSpaces: await translateSpacesForDisplay(
+      enrichedAvailableSpaces,
+      await getRequestLocale(),
+    ),
+    error: memberSpacesResult.error || null,
+    memberSpaces,
+  };
+}
+
+export async function fetchPendingSpaceJoinRequests({ adminSupabase, spaceId }) {
+  const context = buildSpaceJoinRequestContext(spaceId);
+  const { data, error } = await adminSupabase
+    .from("service_requests")
+    .select("id, requester_name, requester_email, organisation, country, details, status, created_at")
+    .eq("request_type", "coordination")
+    .eq("decision_context", context)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to fetch pending space join requests:", error);
+    return { requests: [], error };
+  }
+
+  return {
+    requests: (data || [])
+      .map((request) => ({
+        ...request,
+        joinRequest: parseSpaceJoinRequestDetails(request.details),
+      }))
+      .filter(
+        (request) =>
+          request.joinRequest.category === "space_join" &&
+          !isClosedSpaceJoinRequestStatus(request.status),
+      ),
     error: null,
   };
 }

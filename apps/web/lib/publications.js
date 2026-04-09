@@ -3,12 +3,19 @@ import {
   createSupabaseAdminClient,
 } from "@/lib/supabase/admin";
 import { formatContentType } from "@/lib/content-types";
+import {
+  isMissingContentGalleryRelation,
+  serialisePublicationError,
+} from "@/lib/publication-query-fallback";
 import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
 const PUBLICATION_SELECT = `
   *,
   content_attachments(*),
-  content_tag_map(domain_tags(id, name, slug)),
+  content_tag_map(domain_tags(id, name, slug))
+`;
+const PUBLICATION_SELECT_WITH_GALLERY = `
+  ${PUBLICATION_SELECT},
   content_gallery(id, image_url, alt_text, caption, sort_order)
 `;
 
@@ -85,27 +92,62 @@ async function translatePublicationsForDisplay(publications, locale) {
   }));
 }
 
+async function runPublicationsQuery({
+  supabase,
+  filters = {},
+  expectSingle = false,
+}) {
+  const { limit = 0, slug = "" } = filters;
+
+  const buildQuery = (selectClause) => {
+    let query = supabase
+      .from("content_items")
+      .select(selectClause)
+      .eq("publish_status", "published")
+      .eq("visibility", "public");
+
+    if (slug) {
+      query = query.eq("slug", slug);
+    }
+
+    if (expectSingle) {
+      return query.maybeSingle();
+    }
+
+    query = query.order("published_at", { ascending: false });
+
+    if (limit > 0) {
+      query = query.limit(limit);
+    }
+
+    return query;
+  };
+
+  let result = await buildQuery(PUBLICATION_SELECT_WITH_GALLERY);
+
+  if (result.error && isMissingContentGalleryRelation(result.error)) {
+    console.warn("Publications query is falling back because content_gallery is unavailable.", {
+      error: serialisePublicationError(result.error),
+    });
+    result = await buildQuery(PUBLICATION_SELECT);
+  }
+
+  return result;
+}
+
 export async function fetchPublicPublications({ limit = 0 } = {}) {
   if (!canUseSupabaseAdmin()) {
     return [];
   }
 
   const supabase = createSupabaseAdminClient();
-  let query = supabase
-    .from("content_items")
-    .select(PUBLICATION_SELECT)
-    .eq("publish_status", "published")
-    .eq("visibility", "public")
-    .order("published_at", { ascending: false });
-
-  if (limit > 0) {
-    query = query.limit(limit);
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await runPublicationsQuery({
+    filters: { limit },
+    supabase,
+  });
 
   if (error) {
-    console.error("Failed to fetch public publications:", error);
+    console.error("Failed to fetch public publications:", serialisePublicationError(error));
     return [];
   }
 
@@ -121,15 +163,16 @@ export async function fetchPublicPublicationBySlug(slug) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("content_items")
-    .select(PUBLICATION_SELECT)
-    .eq("slug", slug)
-    .eq("publish_status", "published")
-    .eq("visibility", "public")
-    .maybeSingle();
+  const { data, error } = await runPublicationsQuery({
+    expectSingle: true,
+    filters: { slug },
+    supabase,
+  });
 
   if (error || !data) {
+    if (error) {
+      console.error("Failed to fetch public publication by slug:", serialisePublicationError(error));
+    }
     return null;
   }
 

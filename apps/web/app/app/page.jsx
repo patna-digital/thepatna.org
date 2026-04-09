@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchMemberDashboardMainData, fetchMemberDashboardRailData, fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUserContext } from "@/lib/supabase/access";
@@ -15,6 +15,22 @@ function formatToday() {
     month: "long",
     year: "numeric",
   }).format(new Date());
+}
+
+function formatDashboardRole(value) {
+  const text = String(value || "").trim();
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : "Member";
+}
+
+function formatDashboardSpaceType(value) {
+  const labels = {
+    cohort: "Cohort Space",
+    constituency: "Constituency",
+    geography: "Geography",
+    working_group: "Working Group",
+  };
+
+  return labels[value] || "Space";
 }
 
 
@@ -32,12 +48,14 @@ function DashboardShellFallback() {
   );
 }
 
-async function MemberDashboardMain({ member }) {
+async function MemberDashboardMain({ member, supabase, userId }) {
   const t = await getTranslations();
-  const adminClient = createSupabaseAdminClient();
-  const { error, stats, mySpaces, recentDiscussions } = await fetchMemberDashboardMainData({
+  const adminClient = canUseSupabaseAdmin() ? createSupabaseAdminClient() : null;
+  const { availableSpaces, error, stats, mySpaces, recentDiscussions } = await fetchMemberDashboardMainData({
     adminClient,
     member,
+    supabase,
+    userId,
   });
 
   if (error) {
@@ -68,62 +86,118 @@ async function MemberDashboardMain({ member }) {
             {t("dashboard.viewAll")}
           </Link>
         </div>
-        <div className="member-space-grid">
-          {mySpaces.map((space) => (
-            <div className="member-space-card" key={space.slug}>
-              <div className="member-space-card-header">
-                <div>
-                  <strong>{space.name}</strong>
-                  <p>{space.type}</p>
+        {mySpaces.length > 0 ? (
+          <div className="member-space-grid">
+            {mySpaces.map((space) => (
+              <Link className="member-space-card" href={`/app/spaces/${space.slug}`} key={space.slug}>
+                <div className="member-space-card-header">
+                  <div>
+                    <strong>{space.name}</strong>
+                    <p>{formatDashboardSpaceType(space.space_type)}</p>
+                  </div>
+                  <span className="status-chip chip-neutral">{formatDashboardRole(space.role)}</span>
                 </div>
-                <span className="status-chip chip-neutral">{space.role}</span>
-              </div>
-              <p className="member-space-card-summary">{space.summary}</p>
-              <div className="member-space-card-meta">
-                <span>{space.members} {t("dashboard.membersLabel")}</span>
-                <span>{space.threads} {t("dashboard.threadsLabel")}</span>
-                <span className={space.unread ? "member-meta-emphasis" : undefined}>
-                  {space.unread} {t("dashboard.newLabel")}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+                <p className="member-space-card-summary">{space.summary}</p>
+                <div className="member-space-card-meta">
+                  <span>{space.members} {t("dashboard.membersLabel")}</span>
+                  <span>{space.threads} {t("dashboard.threadsLabel")}</span>
+                  <span className={space.unread ? "member-meta-emphasis" : undefined}>
+                    {space.unread} {t("dashboard.newLabel")}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="app-row-empty">
+            <strong>No spaces yet</strong>
+            <p>You are not in any PATNA spaces yet. Browse the available spaces below to request access.</p>
+          </div>
+        )}
       </article>
+
+      {availableSpaces.length > 0 && (
+        <article className="dashboard-card member-module-card">
+          <div className="member-section-heading">
+            <h3>Available spaces</h3>
+            <span className="member-section-note">Real spaces you can open or request access to.</span>
+          </div>
+          <div className="member-space-grid">
+            {availableSpaces.map((space) => {
+              const href = space.requiresRequest
+                ? `/app/spaces/${space.slug}/join`
+                : `/app/spaces/${space.slug}`;
+
+              return (
+                <Link className="member-space-card" href={href} key={space.slug}>
+                  <div className="member-space-card-header">
+                    <div>
+                      <strong>{space.name}</strong>
+                      <p>{formatDashboardSpaceType(space.space_type)}</p>
+                    </div>
+                    <span className="status-chip chip-neutral">
+                      {space.requiresRequest ? "Request access" : "Open"}
+                    </span>
+                  </div>
+                  <p className="member-space-card-summary">{space.summary}</p>
+                  <div className="member-space-card-meta">
+                    <span>{space.members} {t("dashboard.membersLabel")}</span>
+                    <span>{space.threads} {t("dashboard.threadsLabel")}</span>
+                    <span className="member-meta-emphasis">
+                      {space.requiresRequest ? "Admin approval required" : "Available now"}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </article>
+      )}
 
       <article className="dashboard-card member-module-card">
         <div className="member-section-heading">
           <h3>{t("dashboard.recentDiscussions")}</h3>
           <span className="member-section-note">{t("dashboard.recentDiscussionsNote")}</span>
         </div>
-        <div className="member-feed-list">
-          {recentDiscussions.map((item) => (
-            <div className="member-feed-item" key={item.title}>
-              <div className="member-feed-bullet" aria-hidden="true" />
-              <div className="member-feed-copy">
-                <strong>{item.title}</strong>
-                <div className="member-feed-meta">
-                  <span className="status-chip chip-neutral">{item.space}</span>
-                  <span>{item.author}</span>
-                  <span>{item.timeAgo || item.time}</span>
-                  <span>{item.replies} {t("dashboard.repliesLabel")}</span>
+        {recentDiscussions.length > 0 ? (
+          <div className="member-feed-list">
+            {recentDiscussions.map((item) => (
+              <Link
+                className="member-feed-item"
+                href={item.spaceSlug ? `/app/spaces/${item.spaceSlug}/threads/${item.id}` : "/app/spaces"}
+                key={item.id}
+              >
+                <div className="member-feed-bullet" aria-hidden="true" />
+                <div className="member-feed-copy">
+                  <strong>{item.title}</strong>
+                  <div className="member-feed-meta">
+                    <span className="status-chip chip-neutral">{item.space}</span>
+                    <span>{item.author}</span>
+                    <span>{item.timeAgo}</span>
+                    <span>{item.replies} {t("dashboard.repliesLabel")}</span>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="app-row-empty">
+            <strong>No recent discussions yet</strong>
+            <p>When threads are active in your current spaces, they will show up here.</p>
+          </div>
+        )}
       </article>
-
     </div>
   );
 }
 
-async function MemberDashboardProfileCard({ member, sidebarUser }) {
+async function MemberDashboardProfileCard({ member, sidebarUser, userId }) {
   const t = await getTranslations();
   const supabase = await createSupabaseServerClient();
   const { profileSnapshot, recentInsights } = await fetchMemberDashboardRailData({
     supabase,
     member,
+    userId,
   });
 
   return (
@@ -177,12 +251,13 @@ async function MemberDashboardProfileCard({ member, sidebarUser }) {
   );
 }
 
-async function MemberDashboardRightRail({ member }) {
+async function MemberDashboardRightRail({ member, userId }) {
   const t = await getTranslations();
   const supabase = await createSupabaseServerClient();
   const { error, upcomingEvents, recentInsights } = await fetchMemberDashboardRailData({
     supabase,
     member,
+    userId,
   });
 
   return (
@@ -222,12 +297,12 @@ async function MemberDashboardRightRail({ member }) {
         </div>
         <div className="member-rail-link-list">
           {recentInsights.slice(0, 3).map((item) => (
-            <div className="member-rail-link-item" key={item.slug}>
+            <Link className="member-rail-link-item" href={`/app/insights/${item.slug}`} key={item.slug}>
               <span className="member-rail-link-meta">
                 {item.type} · {item.date}
               </span>
               <strong>{item.title}</strong>
-            </div>
+            </Link>
           ))}
         </div>
         <Link className="text-link" href="/app/insights">
@@ -291,7 +366,7 @@ export default async function MemberDashboardPage() {
       headerActions={headerActions}
       rightRail={
         <Suspense fallback={<DashboardShellFallback />}>
-          <MemberDashboardRightRail member={member} />
+          <MemberDashboardRightRail member={member} userId={user.id} />
         </Suspense>
       }
       sidebarUser={sidebarUser}
@@ -300,10 +375,10 @@ export default async function MemberDashboardPage() {
     >
       <div className="member-dashboard-home-stack">
         <Suspense fallback={<DashboardShellFallback />}>
-          <MemberDashboardProfileCard member={member} sidebarUser={sidebarUser} />
+          <MemberDashboardProfileCard member={member} sidebarUser={sidebarUser} userId={user.id} />
         </Suspense>
         <Suspense fallback={<DashboardShellFallback />}>
-          <MemberDashboardMain member={member} />
+          <MemberDashboardMain member={member} supabase={supabase} userId={user.id} />
         </Suspense>
       </div>
     </MemberWorkspaceShell>

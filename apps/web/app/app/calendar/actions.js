@@ -7,11 +7,33 @@ import {
   normalizeBookingSettingsRecord,
 } from "@/lib/calendar/booking";
 import {
+  MEMBER_CALENDAR_ITEM_SELECT,
+  normaliseMemberCalendarItemType,
+  transformMemberCalendarItems,
+} from "@/lib/member-calendar-items";
+import {
   isKnownReadOnlyGoogleCalendar,
   isUnknownGoogleCalendarAccess,
 } from "@/lib/calendar/google-access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
+
+function combineDateAndTime(dateKey, timeValue, { endOfDay = false } = {}) {
+  const normalizedDate = String(dateKey || "").trim();
+  const normalizedTime = String(timeValue || "").trim();
+
+  if (!normalizedDate) {
+    return null;
+  }
+
+  if (!normalizedTime) {
+    return endOfDay
+      ? new Date(`${normalizedDate}T23:59:59.000Z`).toISOString()
+      : new Date(`${normalizedDate}T00:00:00.000Z`).toISOString();
+  }
+
+  return new Date(`${normalizedDate}T${normalizedTime}:00.000Z`).toISOString();
+}
 
 /**
  * Create a new calendar connection
@@ -200,6 +222,71 @@ export async function setEventRsvp(eventId) {
   revalidatePath("/app/calendar");
   revalidatePath("/app/events");
   return { success: true };
+}
+
+export async function createMemberCalendarItemAction(formData) {
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: true,
+  });
+
+  if (!user || !supabase) {
+    return { success: false, error: "Please sign in again to save this calendar item." };
+  }
+
+  const itemType = normaliseMemberCalendarItemType(formData.get("item_type"));
+  const dateKey = String(formData.get("date_key") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const notes = String(formData.get("notes") || "").trim();
+  const location = String(formData.get("location") || "").trim();
+  const meetingUrl = String(formData.get("meeting_url") || "").trim();
+  const isAllDay = String(formData.get("is_all_day") || "") === "true";
+  const defaultStartTime = itemType === "meeting" ? "10:00" : "09:00";
+  const defaultEndTime = itemType === "meeting" ? "10:30" : "09:30";
+  const startsAt = combineDateAndTime(
+    dateKey,
+    isAllDay ? "" : String(formData.get("start_time") || "").trim() || defaultStartTime,
+  );
+  const endsAt = combineDateAndTime(
+    dateKey,
+    isAllDay ? "" : String(formData.get("end_time") || "").trim() || defaultEndTime,
+    { endOfDay: isAllDay },
+  );
+
+  if (!title || !dateKey || !startsAt || !endsAt) {
+    return { success: false, error: "Title and date are required to save this item." };
+  }
+
+  if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
+    return { success: false, error: "End time must be after the start time." };
+  }
+
+  const { data, error } = await supabase
+    .from("member_calendar_items")
+    .insert({
+      member_id: user.id,
+      item_type: itemType,
+      title,
+      notes: notes || null,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      is_all_day: isAllDay,
+      location: location || null,
+      meeting_url: meetingUrl || null,
+    })
+    .select(MEMBER_CALENDAR_ITEM_SELECT)
+    .single();
+
+  if (error || !data) {
+    return { success: false, error: error?.message || "Could not save this calendar item." };
+  }
+
+  revalidatePath("/app/calendar");
+
+  return {
+    success: true,
+    item: transformMemberCalendarItems([data])[0],
+  };
 }
 
 /**
