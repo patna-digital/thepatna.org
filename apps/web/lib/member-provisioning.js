@@ -1,3 +1,5 @@
+import { syncProfileAssistantDocument } from "@/lib/assistant-indexing";
+
 function normaliseEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
@@ -317,6 +319,15 @@ export async function provisionMemberFromApplication({
     if (cohortProfileUpsertError) {
       throw cohortProfileUpsertError;
     }
+  }
+
+  try {
+    await syncProfileAssistantDocument({
+      adminSupabase: adminClient,
+      profileId: userId,
+    });
+  } catch (assistantError) {
+    console.error("provisionMemberFromApplication assistant sync error:", assistantError);
   }
 
   return {

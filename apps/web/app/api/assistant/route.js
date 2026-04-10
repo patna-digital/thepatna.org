@@ -7,11 +7,12 @@
 
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { getAnthropicApiKey } from "@/lib/env";
 import {
-  embedQuery,
-  retrieveRelevantChunks,
+  resolveAssistantAccessScope,
+  retrieveAssistantEvidence,
   buildSystemPrompt,
   buildContextBlock,
 } from "@/lib/assistant";
@@ -42,42 +43,37 @@ export async function POST(request) {
   // Cap history to last 10 turns to keep prompt size manageable
   const recentHistory = history.slice(-10);
 
-  // ── 3. Fetch user's space memberships ─────────────────────────────────────
-  const { data: memberships, error: membershipError } = await supabase
-    .from("space_memberships")
-    .select("space_id, spaces(id, name, space_type)")
-    .eq("user_id", user.id);
+  // ── 3. Resolve assistant access + gather evidence ─────────────────────────
+  const accessScope = await resolveAssistantAccessScope({
+    isAdmin,
+    supabase,
+    userId: user.id,
+  });
 
-  if (membershipError) {
-    console.error("space_memberships fetch error:", membershipError);
+  let adminSupabase = null;
+  try {
+    adminSupabase = createSupabaseAdminClient();
+  } catch (error) {
+    console.error("Assistant admin client unavailable:", error);
   }
 
-  const spaces = (memberships ?? [])
-    .map((m) => m.spaces)
-    .filter(Boolean);
-
-  const spaceIds = spaces.map((s) => s.id);
-
-  // ── 4. Embed query + retrieve relevant chunks ─────────────────────────────
-  let chunks = [];
+  let evidence = [];
   try {
-    const queryEmbedding = await embedQuery(message);
-    chunks = await retrieveRelevantChunks(supabase, {
-      embedding: queryEmbedding,
-      spaceIds,
-      isAdmin,
-      limit: 8,
+    evidence = await retrieveAssistantEvidence({
+      accessScope,
+      message,
+      semanticSupabase: adminSupabase,
+      supabase: adminSupabase || supabase,
     });
   } catch (err) {
-    // Non-fatal: answer without RAG context rather than failing entirely
-    console.error("RAG retrieval error:", err);
+    console.error("Assistant evidence retrieval error:", err);
   }
 
-  // ── 5. Build Claude prompt ────────────────────────────────────────────────
-  const systemPrompt = buildSystemPrompt({ profile, spaces, isAdmin });
-  const contextBlock = buildContextBlock(chunks);
+  // ── 4. Build Claude prompt ────────────────────────────────────────────────
+  const systemPrompt = buildSystemPrompt({ accessScope, profile });
+  const contextBlock = buildContextBlock(evidence);
 
-  // ── 6. Stream Claude response ─────────────────────────────────────────────
+  // ── 5. Stream Claude response ─────────────────────────────────────────────
   const anthropic = new Anthropic({ apiKey: getAnthropicApiKey() });
 
   const stream = new ReadableStream({

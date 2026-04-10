@@ -9,6 +9,7 @@ import {
   applicationEngagementOptions,
   applicationExpertiseOptions,
 } from "../lib/patna-data.js";
+import { syncCommunityApplicationAssistantDocument } from "../lib/assistant-indexing.js";
 
 const LEGACY_JOIN_FORM_FIELDS = [
   "first_name",
@@ -511,17 +512,34 @@ async function main() {
     }
 
     if (existingApplication) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("community_applications")
         .update(payload)
-        .eq("id", existingApplication.id);
+        .eq("id", existingApplication.id)
+        .select("id")
+        .single();
 
-      if (error) {
+      if (error || !data?.id) {
         report.results.push({
           email: row.email,
           rowNumber: row.rowNumber,
           result: "failed",
           reason: error.message,
+        });
+        continue;
+      }
+
+      try {
+        await syncCommunityApplicationAssistantDocument({
+          adminSupabase: supabase,
+          applicationId: data.id,
+        });
+      } catch (assistantError) {
+        report.results.push({
+          email: row.email,
+          rowNumber: row.rowNumber,
+          result: "failed",
+          reason: assistantError.message,
         });
         continue;
       }
@@ -536,14 +554,33 @@ async function main() {
       continue;
     }
 
-    const { error } = await supabase.from("community_applications").insert(payload);
+    const { data, error } = await supabase
+      .from("community_applications")
+      .insert(payload)
+      .select("id")
+      .single();
 
-    if (error) {
+    if (error || !data?.id) {
       report.results.push({
         email: row.email,
         rowNumber: row.rowNumber,
         result: "failed",
         reason: error.message,
+      });
+      continue;
+    }
+
+    try {
+      await syncCommunityApplicationAssistantDocument({
+        adminSupabase: supabase,
+        applicationId: data.id,
+      });
+    } catch (assistantError) {
+      report.results.push({
+        email: row.email,
+        rowNumber: row.rowNumber,
+        result: "failed",
+        reason: assistantError.message,
       });
       continue;
     }

@@ -2,6 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import {
+  deleteAssistantDocuments,
+  deleteThreadAssistantDocuments,
+  syncCommentAssistantDocument,
+  syncThreadAssistantDocument,
+  syncThreadCommentAssistantDocumentsByThreadId,
+} from "@/lib/assistant-indexing";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -133,6 +140,12 @@ export async function createThreadAction(formData) {
     redirect(`/app/spaces/${slug}/threads/new?notice=save-error`);
   }
 
+  try {
+    await syncThreadAssistantDocument({ threadId: data.id });
+  } catch (assistantError) {
+    console.error("createThreadAction assistant sync error:", assistantError);
+  }
+
   revalidatePath(`/app/spaces/${slug}`);
   redirect(`/app/spaces/${slug}/threads/${data.id}`);
 }
@@ -167,6 +180,13 @@ export async function updateThreadAction(formData) {
     redirect(`/app/spaces/${spaceSlug}/threads/${threadId}?notice=save-error`);
   }
 
+  try {
+    await syncThreadAssistantDocument({ threadId });
+    await syncThreadCommentAssistantDocumentsByThreadId({ threadId });
+  } catch (assistantError) {
+    console.error("updateThreadAction assistant sync error:", assistantError);
+  }
+
   revalidatePath(`/app/spaces/${spaceSlug}/threads/${threadId}`);
   redirect(`/app/spaces/${spaceSlug}/threads/${threadId}?notice=updated`);
 }
@@ -183,6 +203,17 @@ export async function deleteThreadAction(formData) {
 
   const threadId  = formData.get("threadId");
   const spaceSlug = formData.get("spaceSlug");
+  const resolvedThreadId = String(threadId || "").trim();
+
+  let commentIds = [];
+  if (resolvedThreadId) {
+    const { data: comments } = await supabase
+      .from("comments")
+      .select("id")
+      .eq("thread_id", resolvedThreadId);
+
+    commentIds = (comments || []).map((comment) => comment.id).filter(Boolean);
+  }
 
   const { error } = await supabase
     .from("threads")
@@ -193,6 +224,12 @@ export async function deleteThreadAction(formData) {
   if (error) {
     console.error("deleteThreadAction error:", error);
     redirect(`/app/spaces/${spaceSlug}/threads/${threadId}?notice=delete-error`);
+  }
+
+  try {
+    await deleteThreadAssistantDocuments({ commentIds, threadId: resolvedThreadId });
+  } catch (assistantError) {
+    console.error("deleteThreadAction assistant sync error:", assistantError);
   }
 
   revalidatePath(`/app/spaces/${spaceSlug}`);
@@ -219,13 +256,21 @@ export async function createCommentAction(formData) {
     redirect(`/app/spaces/${spaceSlug}/threads/${threadId}?notice=missing-body`);
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("comments")
-    .insert({ thread_id: threadId, author_id: user.id, body });
+    .insert({ thread_id: threadId, author_id: user.id, body })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !data?.id) {
     console.error("createCommentAction error:", error);
     redirect(`/app/spaces/${spaceSlug}/threads/${threadId}?notice=reply-error`);
+  }
+
+  try {
+    await syncCommentAssistantDocument({ commentId: data.id });
+  } catch (assistantError) {
+    console.error("createCommentAction assistant sync error:", assistantError);
   }
 
   revalidatePath(`/app/spaces/${spaceSlug}/threads/${threadId}`);
@@ -262,6 +307,12 @@ export async function updateCommentAction(formData) {
     redirect(`/app/spaces/${spaceSlug}/threads/${threadId}?notice=edit-error`);
   }
 
+  try {
+    await syncCommentAssistantDocument({ commentId });
+  } catch (assistantError) {
+    console.error("updateCommentAction assistant sync error:", assistantError);
+  }
+
   revalidatePath(`/app/spaces/${spaceSlug}/threads/${threadId}`);
   redirect(`/app/spaces/${spaceSlug}/threads/${threadId}#replies`);
 }
@@ -289,6 +340,15 @@ export async function deleteCommentAction(formData) {
   if (error) {
     console.error("deleteCommentAction error:", error);
     redirect(`/app/spaces/${spaceSlug}/threads/${threadId}?notice=delete-error`);
+  }
+
+  try {
+    await deleteAssistantDocuments({
+      sourceIds: [String(commentId || "").trim()],
+      sourceType: "comment",
+    });
+  } catch (assistantError) {
+    console.error("deleteCommentAction assistant sync error:", assistantError);
   }
 
   revalidatePath(`/app/spaces/${spaceSlug}/threads/${threadId}`);

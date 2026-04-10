@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  deleteAssistantDocument,
+  syncContentItemAssistantDocument,
+} from "@/lib/assistant-indexing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
 import {
@@ -13,7 +17,7 @@ import {
 import { uploadContentImage } from "@/lib/content-images";
 
 export async function createInsightAction(formData) {
-  const { user, supabase } = await requireAdminContext();
+  const { user } = await requireAdminContext();
   const adminClient = createSupabaseAdminClient();
 
   const title = String(formData.get("title") || "").trim();
@@ -77,6 +81,15 @@ export async function createInsightAction(formData) {
     return { ok: false, error: error.message || "Failed to create insight" };
   }
 
+  try {
+    await syncContentItemAssistantDocument({
+      adminSupabase: adminClient,
+      contentItemId: insight.id,
+    });
+  } catch (assistantError) {
+    console.error("createInsightAction assistant sync error:", assistantError);
+  }
+
   revalidatePath("/admin/insights");
   revalidatePath("/app/publications");
   revalidatePath("/publications");
@@ -84,7 +97,7 @@ export async function createInsightAction(formData) {
 }
 
 export async function updateInsightAction(insightId, formData) {
-  const { user, supabase } = await requireAdminContext();
+  const { user } = await requireAdminContext();
   const adminClient = createSupabaseAdminClient();
 
   const title = String(formData.get("title") || "").trim();
@@ -147,6 +160,15 @@ export async function updateInsightAction(insightId, formData) {
     return { ok: false, error: error.message || "Failed to update insight" };
   }
 
+  try {
+    await syncContentItemAssistantDocument({
+      adminSupabase: adminClient,
+      contentItemId: insight.id,
+    });
+  } catch (assistantError) {
+    console.error("updateInsightAction assistant sync error:", assistantError);
+  }
+
   revalidatePath("/admin/insights");
   revalidatePath("/app/publications");
   revalidatePath(`/app/publications/${insight.slug}`);
@@ -167,6 +189,16 @@ export async function deleteInsightAction(insightId) {
 
   if (error) {
     return { ok: false, error: error.message || "Failed to delete insight" };
+  }
+
+  try {
+    await deleteAssistantDocument({
+      adminSupabase: adminClient,
+      sourceId: insightId,
+      sourceType: "content_item",
+    });
+  } catch (assistantError) {
+    console.error("deleteInsightAction assistant sync error:", assistantError);
   }
 
   revalidatePath("/admin/insights");

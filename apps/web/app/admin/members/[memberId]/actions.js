@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { syncProfileAssistantDocument } from "@/lib/assistant-indexing";
 import { replaceMemberHeadshot, replaceMemberResume } from "@/lib/member-profile-updates";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
@@ -79,7 +80,7 @@ export async function replaceMemberResumeAction(formData) {
 }
 
 export async function updateMemberRoleAction(formData) {
-  const { supabase } = await requireAdminContext();
+  await requireAdminContext();
   const adminClient = createSupabaseAdminClient();
   const memberId = String(formData.get("member_id") || "").trim();
   const role = String(formData.get("role") || "").trim();
@@ -111,6 +112,12 @@ export async function updateMemberRoleAction(formData) {
     }
   }
 
+  try {
+    await syncProfileAssistantDocument({ adminSupabase: adminClient, profileId: memberId });
+  } catch (assistantError) {
+    console.error("updateMemberRoleAction assistant sync error:", assistantError);
+  }
+
   redirect(buildReturnPath(memberId, `role-${action}ed`));
 }
 
@@ -130,6 +137,12 @@ export async function updateMemberProfileStatusAction(formData) {
 
   if (error) {
     redirect(buildReturnPath(memberId, "profile-status-error"));
+  }
+
+  try {
+    await syncProfileAssistantDocument({ profileId: memberId });
+  } catch (assistantError) {
+    console.error("updateMemberProfileStatusAction assistant sync error:", assistantError);
   }
 
   redirect(buildReturnPath(memberId, "profile-status-updated"));

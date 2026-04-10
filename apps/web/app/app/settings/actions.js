@@ -1,7 +1,7 @@
 "use server";
 
 import { getAuthCallbackUrl } from "@/lib/auth";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { syncProfileAssistantDocument } from "@/lib/assistant-indexing";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { getSiteUrl } from "@/lib/env";
 import { revalidatePath } from "next/cache";
@@ -36,6 +36,12 @@ export async function updateVisibilitySettingAction(formData) {
     return { ok: false, error: "Failed to update visibility setting" };
   }
 
+  try {
+    await syncProfileAssistantDocument({ profileId: user.id });
+  } catch (assistantError) {
+    console.error("Failed to sync assistant profile after visibility update:", assistantError);
+  }
+
   revalidatePath("/app/settings");
   return { ok: true };
 }
@@ -64,6 +70,12 @@ export async function updateAvailabilityStatusAction(formData) {
   if (error) {
     console.error("Failed to update availability:", error);
     return { ok: false, error: "Failed to update availability status" };
+  }
+
+  try {
+    await syncProfileAssistantDocument({ profileId: user.id });
+  } catch (assistantError) {
+    console.error("Failed to sync assistant profile after availability update:", assistantError);
   }
 
   revalidatePath("/app/settings");
@@ -95,6 +107,12 @@ export async function updateTimezoneAction(formData) {
   if (error) {
     console.error("Failed to update timezone:", error);
     return { ok: false, error: "Failed to update timezone" };
+  }
+
+  try {
+    await syncProfileAssistantDocument({ profileId: user.id });
+  } catch (assistantError) {
+    console.error("Failed to sync assistant profile after timezone update:", assistantError);
   }
 
   revalidatePath("/app/settings");

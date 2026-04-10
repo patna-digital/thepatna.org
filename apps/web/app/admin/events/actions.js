@@ -2,6 +2,7 @@
 
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
+import { syncEventAssistantDocument } from "@/lib/assistant-indexing";
 import { createEventSlug, splitEventList } from "@/lib/events";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -202,6 +203,12 @@ export async function saveAdminEventAction(formData) {
     redirect(buildEventPath({ eventId, notice: "error" }));
   }
 
+  try {
+    await syncEventAssistantDocument({ adminSupabase: adminClient, eventId: data.id });
+  } catch (assistantError) {
+    console.error("saveAdminEventAction assistant sync error:", assistantError);
+  }
+
   redirect(buildEventPath({ eventId: data.id, notice: "saved" }));
 }
 
@@ -289,6 +296,12 @@ export async function approveEventSubmissionAction(formData) {
 
   if (error || !data?.id) {
     redirect(buildSubmissionReviewPath({ submissionId, notice: "error" }));
+  }
+
+  try {
+    await syncEventAssistantDocument({ adminSupabase: supabase, eventId: data.id });
+  } catch (assistantError) {
+    console.error("approveEventSubmissionAction assistant sync error:", assistantError);
   }
 
   const reviewNotes = parseOptionalText(formData, "review_notes");

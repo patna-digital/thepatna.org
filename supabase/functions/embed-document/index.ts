@@ -8,11 +8,11 @@
 //
 // Expected request body:
 // {
-//   source_type:  'thread' | 'comment' | 'content_item' | 'event' | 'profile'
+//   source_type:  'thread' | 'comment' | 'content_item' | 'event' | 'profile' | 'community_application'
 //   source_id:    uuid string
 //   content_text: string (the text to embed)
 //   space_id?:    uuid string | null
-//   visibility?:  'space_members' | 'members' | 'public'
+//   visibility?:  'space_members' | 'members' | 'public' | 'admin_only'
 //   metadata?:    object (title, url, author, etc.)
 // }
 
@@ -25,6 +25,22 @@ const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
   auth: { persistSession: false },
 });
+
+const ALLOWED_SOURCE_TYPES = new Set([
+  "thread",
+  "comment",
+  "content_item",
+  "event",
+  "profile",
+  "community_application",
+]);
+
+const ALLOWED_VISIBILITIES = new Set([
+  "space_members",
+  "members",
+  "public",
+  "admin_only",
+]);
 
 serve(async (req: Request) => {
   if (req.method !== "POST") {
@@ -56,6 +72,20 @@ serve(async (req: Request) => {
       JSON.stringify({ error: "source_type, source_id, and content_text are required" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
+  }
+
+  if (!ALLOWED_SOURCE_TYPES.has(source_type)) {
+    return new Response(JSON.stringify({ error: "Unsupported source_type" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (visibility && !ALLOWED_VISIBILITIES.has(visibility)) {
+    return new Response(JSON.stringify({ error: "Unsupported visibility" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   // Truncate to avoid exceeding model's token limit (~512 tokens ≈ ~2000 chars)
