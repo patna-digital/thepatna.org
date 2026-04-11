@@ -1,4 +1,3 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   INSIGHT_CONTENT_TYPES,
   INSIGHT_STATUSES,
@@ -8,6 +7,11 @@ import {
   generateInsightSlug,
 } from "@/lib/content-types";
 import { getRequestLocale, translateContentItems } from "@/lib/translation";
+import {
+  getNextPrimaryAttachment,
+  normalisePublicationAttachment,
+  orderPublicationAttachments,
+} from "@/lib/publication-attachments";
 
 export {
   INSIGHT_CONTENT_TYPES,
@@ -17,6 +21,14 @@ export {
   formatPublishStatus,
   generateInsightSlug,
 } from "@/lib/content-types";
+
+function normaliseInsight(item) {
+  return {
+    ...item,
+    attachments: orderPublicationAttachments(item.content_attachments || item.attachments || []),
+    tags: item.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || item.tags || [],
+  };
+}
 
 async function translateInsightsForDisplay(insights, locale) {
   if (!insights.length) {
@@ -135,9 +147,11 @@ export async function fetchAdminInsights({ supabase, filters = {} }) {
       ]);
 
       return {
-        ...insight,
-        tags: tagsResult.data?.map((t) => t.domain_tags).filter(Boolean) || [],
-        attachments: attachmentsResult.data || [],
+        ...normaliseInsight({
+          ...insight,
+          content_attachments: attachmentsResult.data || [],
+          content_tag_map: tagsResult.data || [],
+        }),
       };
     })
   );
@@ -189,11 +203,7 @@ export async function fetchMemberInsights({ supabase, filters = {} }) {
   }
 
   // Transform data
-  const insights = (data || []).map((item) => ({
-    ...item,
-    tags: item.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || [],
-    attachments: item.content_attachments || [],
-  }));
+  const insights = (data || []).map(normaliseInsight);
 
   return {
     insights: await translateInsightsForDisplay(insights, await getRequestLocale()),
@@ -228,11 +238,7 @@ export async function fetchInsightBySlug({ supabase, slug, includeUnpublished = 
     return { insight: null, error: { message: "Insight not found" } };
   }
 
-  const insight = {
-    ...data,
-    tags: data.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || [],
-    attachments: data.content_attachments || [],
-  };
+  const insight = normaliseInsight(data);
 
   const [translatedInsight] = await translateInsightsForDisplay([insight], await getRequestLocale());
 
@@ -425,7 +431,44 @@ export async function deleteInsight({ adminSupabase, id }) {
 /**
  * Add attachment to insight
  */
-export async function addInsightAttachment({ adminSupabase, content_id, file_url, title, file_type }) {
+export async function addInsightAttachment({
+  adminSupabase,
+  content_id,
+  file_url,
+  title,
+  file_type,
+  source_kind,
+  storage_path,
+  original_url,
+  is_primary = false,
+}) {
+  const { data: existingAttachments, error: existingError } = await adminSupabase
+    .from("content_attachments")
+    .select("*")
+    .eq("content_id", content_id);
+
+  if (existingError) {
+    console.error("Failed to load existing attachments:", existingError);
+    return { attachment: null, error: existingError };
+  }
+
+  const orderedExistingAttachments = orderPublicationAttachments(existingAttachments || []);
+  const nextSortOrder = orderedExistingAttachments.length;
+  const shouldBePrimary = Boolean(is_primary) || orderedExistingAttachments.length === 0;
+
+  if (shouldBePrimary && orderedExistingAttachments.length > 0) {
+    const { error: resetPrimaryError } = await adminSupabase
+      .from("content_attachments")
+      .update({ is_primary: false })
+      .eq("content_id", content_id)
+      .eq("is_primary", true);
+
+    if (resetPrimaryError) {
+      console.error("Failed to clear previous primary attachment:", resetPrimaryError);
+      return { attachment: null, error: resetPrimaryError };
+    }
+  }
+
   const { data, error } = await adminSupabase
     .from("content_attachments")
     .insert({
@@ -433,6 +476,11 @@ export async function addInsightAttachment({ adminSupabase, content_id, file_url
       file_url,
       title: title || "Attachment",
       file_type: file_type || "application/pdf",
+      source_kind: source_kind || null,
+      storage_path: storage_path || null,
+      original_url: original_url || null,
+      is_primary: shouldBePrimary,
+      sort_order: nextSortOrder,
     })
     .select()
     .single();
@@ -442,13 +490,87 @@ export async function addInsightAttachment({ adminSupabase, content_id, file_url
     return { attachment: null, error };
   }
 
-  return { attachment: data, error: null };
+  return { attachment: normalisePublicationAttachment(data), error: null };
+}
+
+export async function setPrimaryInsightAttachment({ adminSupabase, attachment_id, content_id }) {
+  const { data: attachment, error: attachmentError } = await adminSupabase
+    .from("content_attachments")
+    .select("*")
+    .eq("id", attachment_id)
+    .eq("content_id", content_id)
+    .single();
+
+  if (attachmentError) {
+    console.error("Failed to load attachment to promote:", attachmentError);
+    return { attachment: null, error: attachmentError };
+  }
+
+  const { error: resetError } = await adminSupabase
+    .from("content_attachments")
+    .update({ is_primary: false })
+    .eq("content_id", content_id)
+    .eq("is_primary", true);
+
+  if (resetError) {
+    console.error("Failed to clear previous primary attachment:", resetError);
+    return { attachment: null, error: resetError };
+  }
+
+  const { data, error } = await adminSupabase
+    .from("content_attachments")
+    .update({ is_primary: true })
+    .eq("id", attachment_id)
+    .eq("content_id", content_id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Failed to set primary attachment:", error);
+    return { attachment: null, error };
+  }
+
+  return { attachment: normalisePublicationAttachment(data), error: null };
 }
 
 /**
  * Remove attachment from insight
  */
 export async function removeInsightAttachment({ adminSupabase, attachment_id }) {
+  const { data: attachment, error: attachmentError } = await adminSupabase
+    .from("content_attachments")
+    .select("*")
+    .eq("id", attachment_id)
+    .single();
+
+  if (attachmentError) {
+    console.error("Failed to load attachment for removal:", attachmentError);
+    return { error: attachmentError };
+  }
+
+  const normalisedAttachment = normalisePublicationAttachment(attachment);
+
+  if (normalisedAttachment.source_kind === "storage" && normalisedAttachment.storage_path) {
+    const { error: storageError } = await adminSupabase.storage
+      .from("publications")
+      .remove([normalisedAttachment.storage_path]);
+
+    if (storageError) {
+      console.error("Failed to remove attachment storage object:", storageError);
+      return { error: storageError };
+    }
+  }
+
+  const { data: siblingAttachments, error: siblingsError } = await adminSupabase
+    .from("content_attachments")
+    .select("*")
+    .eq("content_id", normalisedAttachment.content_id);
+
+  if (siblingsError) {
+    console.error("Failed to load attachment siblings:", siblingsError);
+    return { error: siblingsError };
+  }
+
   const { error } = await adminSupabase
     .from("content_attachments")
     .delete()
@@ -457,6 +579,22 @@ export async function removeInsightAttachment({ adminSupabase, attachment_id }) 
   if (error) {
     console.error("Failed to remove attachment:", error);
     return { error };
+  }
+
+  if (normalisedAttachment.is_primary) {
+    const nextPrimaryAttachment = getNextPrimaryAttachment(siblingAttachments || [], attachment_id);
+
+    if (nextPrimaryAttachment) {
+      const { error: promoteError } = await adminSupabase
+        .from("content_attachments")
+        .update({ is_primary: true })
+        .eq("id", nextPrimaryAttachment.id);
+
+      if (promoteError) {
+        console.error("Failed to promote replacement primary attachment:", promoteError);
+        return { error: promoteError };
+      }
+    }
   }
 
   return { error: null };

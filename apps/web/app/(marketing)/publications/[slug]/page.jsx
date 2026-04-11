@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
+import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
 import { fetchPublicPublicationBySlug } from "@/lib/publications";
 
 export async function generateMetadata({ params }) {
@@ -24,9 +25,7 @@ export default async function PublicationDetailPage({ params }) {
 
   if (!pub) notFound();
 
-  const pdfAttachment = pub.attachments.find(
-    (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-  );
+  const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
   const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { formatContentType } from "@/lib/content-types";
+import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
 
 const TYPE_CHIP_CLASSES = {
   report: "chip-neutral",
@@ -24,9 +25,7 @@ export function MemberPublicationsList({ publications }) {
   return (
     <div className="publications-list-grid">
       {publications.map((pub) => {
-        const pdfAttachment = pub.attachments?.find(
-          (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-        );
+        const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
 
         return (
           <article key={pub.id} className="publication-list-card">

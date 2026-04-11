@@ -7,6 +7,7 @@ import {
   isMissingContentGalleryRelation,
   serialisePublicationError,
 } from "@/lib/publication-query-fallback";
+import { orderPublicationAttachments } from "@/lib/publication-attachments";
 import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
 const PUBLICATION_SELECT = `
@@ -22,7 +23,7 @@ const PUBLICATION_SELECT_WITH_GALLERY = `
 function normalisePublication(item) {
   return {
     ...item,
-    attachments: item.content_attachments || [],
+    attachments: orderPublicationAttachments(item.content_attachments || []),
     tags: item.content_tag_map?.map((tagRow) => tagRow.domain_tags).filter(Boolean) || [],
     gallery: (item.content_gallery || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
   };

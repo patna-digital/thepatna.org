@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
+import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { fetchInsightBySlug } from "@/lib/insights";
@@ -29,9 +30,7 @@ export default async function MemberPublicationDetailPage({ params }) {
   if (!pub) notFound();
 
   const sidebarUser = frameData.sidebarUser || null;
-  const pdfAttachment = pub.attachments?.find(
-    (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-  );
+  const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
   const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (

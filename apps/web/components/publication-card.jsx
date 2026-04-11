@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
+import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
 
 /**
  * PublicationCard — reusable card for publications across the marketing and community apps.
@@ -30,9 +31,7 @@ export async function PublicationCard({
   } = publication;
 
   const cardHref = href || `/publications/${slug}`;
-  const pdfAttachment = attachments.find(
-    (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-  );
+  const pdfAttachment = findPrimaryPublicationAttachment(attachments);
   const typeLabel = publication.contentTypeLabel || CONTENT_TYPE_LABELS[content_type] || content_type;
 
   return (
@@ -111,9 +110,7 @@ export async function FeaturedPublicationCard({ publication, href }) {
   } = publication;
 
   const cardHref = href || `/publications/${slug}`;
-  const pdfAttachment = attachments.find(
-    (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-  );
+  const pdfAttachment = findPrimaryPublicationAttachment(attachments);
   const typeLabel = publication.contentTypeLabel || CONTENT_TYPE_LABELS[content_type] || content_type;
 
   return (
