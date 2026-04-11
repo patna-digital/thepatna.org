@@ -1,39 +1,47 @@
 /**
- * PATNA Assistant — Embedding Backfill Script
+ * PATNA Assistant — Full reindex / reconcile script
  *
- * One-time script to embed all existing community content into the
- * document_embeddings table for RAG retrieval.
+ * Rebuilds the assistant document index from platform data:
+ *   - threads
+ *   - comments
+ *   - published content items
+ *   - published events
+ *   - active visible member profiles
+ *   - community applications (admin-only)
  *
- * Content embedded:
- *   - threads       → space-scoped (visibility: space_members)
- *   - content_items → globally scoped (visibility: members)
- *   - events        → globally scoped (visibility: members or public)
- *
- * SETUP:
- *   1. Ensure NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
- *      and SUPABASE_PROJECT_ID are in .env.local
- *   2. Deploy the embed-document Edge Function first:
- *      supabase functions deploy embed-document
- *   3. Run: node scripts/backfill-embeddings.mjs
- *
- * The script is idempotent — re-running it upserts rather than duplicates.
+ * Usage:
+ *   node scripts/backfill-embeddings.mjs
  */
 
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
-import { resolve, dirname } from "path";
+import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import {
+  syncCommentAssistantDocument,
+  syncCommunityApplicationAssistantDocument,
+  syncContentItemAssistantDocument,
+  syncEventAssistantDocument,
+  syncProfileAssistantDocument,
+  syncThreadAssistantDocument,
+} from "../lib/assistant-indexing.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, "../../.env.local") });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SOURCE_TYPES = [
+  "thread",
+  "comment",
+  "content_item",
+  "event",
+  "profile",
+  "community_application",
+];
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  console.error(
-    "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local"
-  );
+  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
   process.exit(1);
 }
 
@@ -41,142 +49,124 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
-const EMBED_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/embed-document`;
-const BATCH_DELAY_MS = 200; // polite delay between calls
-
+const BATCH_DELAY_MS = 60;
 let successCount = 0;
 let errorCount = 0;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function embedDocument(payload) {
-  const res = await fetch(EMBED_FUNCTION_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err);
-  }
+function sleep(ms) {
+  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
 }
 
-async function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+async function processCollection({ label, rows, sync }) {
+  console.log(`\n▶ ${label}: ${rows.length} records`);
 
-function truncate(text, maxLen = 1500) {
-  if (!text) return "";
-  return text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
-}
-
-async function processItems(label, items, buildPayload) {
-  console.log(`\n▶ ${label}: ${items.length} items`);
-  for (const item of items) {
-    const payload = buildPayload(item);
-    if (!payload.content_text?.trim()) continue;
+  for (const row of rows) {
     try {
-      await embedDocument(payload);
-      successCount++;
+      await sync(row.id);
+      successCount += 1;
       process.stdout.write(".");
-    } catch (err) {
-      errorCount++;
+    } catch (error) {
+      errorCount += 1;
       process.stdout.write("✗");
-      console.error(`\n  Error embedding ${payload.source_type} ${payload.source_id}:`, err.message);
+      console.error(`\n  ${label} ${row.id}:`, error.message);
     }
+
     await sleep(BATCH_DELAY_MS);
   }
-  console.log(""); // newline after dots
+
+  console.log("");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main
-// ─────────────────────────────────────────────────────────────────────────────
-
 async function main() {
-  console.log("PATNA Assistant — Embedding Backfill");
-  console.log("=====================================");
-  console.log(`Target: ${EMBED_FUNCTION_URL}\n`);
+  console.log("PATNA Assistant — Full reindex");
+  console.log("================================");
 
-  // ── 1. Threads ─────────────────────────────────────────────────────────────
-  const { data: threads, error: threadsError } = await supabase
-    .from("threads")
-    .select("id, title, body, space_id");
+  const { error: clearError } = await supabase
+    .from("document_embeddings")
+    .delete()
+    .in("source_type", SOURCE_TYPES);
 
-  if (threadsError) {
-    console.error("Failed to fetch threads:", threadsError.message);
-  } else {
-    await processItems("Threads", threads ?? [], (thread) => ({
-      source_type: "thread",
-      source_id: thread.id,
-      content_text: truncate(`${thread.title}\n\n${thread.body ?? ""}`),
-      space_id: thread.space_id,
-      visibility: "space_members",
-      metadata: { title: thread.title },
-    }));
+  if (clearError) {
+    throw clearError;
   }
 
-  // ── 2. Published content items (insights/publications) ─────────────────────
-  const { data: contentItems, error: contentError } = await supabase
-    .from("content_items")
-    .select("id, title, summary, body, visibility, content_type")
-    .eq("publish_status", "published");
+  console.log("Cleared existing assistant documents.");
 
-  if (contentError) {
-    console.error("Failed to fetch content_items:", contentError.message);
-  } else {
-    await processItems("Content Items", contentItems ?? [], (item) => ({
-      source_type: "content_item",
-      source_id: item.id,
-      content_text: truncate(`${item.title}\n\n${item.summary ?? ""}\n\n${item.body ?? ""}`),
-      space_id: null,
-      visibility: item.visibility === "public" ? "public" : "members",
-      metadata: { title: item.title, content_type: item.content_type },
-    }));
+  const [
+    threadsResult,
+    commentsResult,
+    contentItemsResult,
+    eventsResult,
+    profilesResult,
+    applicationsResult,
+  ] = await Promise.all([
+    supabase.from("threads").select("id"),
+    supabase.from("comments").select("id"),
+    supabase.from("content_items").select("id"),
+    supabase.from("events").select("id"),
+    supabase.from("profiles").select("id"),
+    supabase.from("community_applications").select("id"),
+  ]);
+
+  const firstError =
+    threadsResult.error ||
+    commentsResult.error ||
+    contentItemsResult.error ||
+    eventsResult.error ||
+    profilesResult.error ||
+    applicationsResult.error;
+
+  if (firstError) {
+    throw firstError;
   }
 
-  // ── 3. Published events ────────────────────────────────────────────────────
-  const { data: events, error: eventsError } = await supabase
-    .from("events")
-    .select("id, title, summary, body, visibility, event_type, location")
-    .eq("status", "published");
+  await processCollection({
+    label: "Threads",
+    rows: threadsResult.data || [],
+    sync: (id) => syncThreadAssistantDocument({ adminSupabase: supabase, threadId: id }),
+  });
 
-  if (eventsError) {
-    console.error("Failed to fetch events:", eventsError.message);
-  } else {
-    await processItems("Events", events ?? [], (event) => ({
-      source_type: "event",
-      source_id: event.id,
-      content_text: truncate(
-        `${event.title}\n${event.location ? `Location: ${event.location}` : ""}\n\n${event.summary ?? ""}\n\n${event.body ?? ""}`
-      ),
-      space_id: null,
-      visibility: event.visibility === "public" ? "public" : "members",
-      metadata: {
-        title: event.title,
-        event_type: event.event_type,
-        location: event.location,
-      },
-    }));
-  }
+  await processCollection({
+    label: "Comments",
+    rows: commentsResult.data || [],
+    sync: (id) => syncCommentAssistantDocument({ adminSupabase: supabase, commentId: id }),
+  });
 
-  // ── Summary ────────────────────────────────────────────────────────────────
-  console.log("\n=====================================");
-  console.log(`Done. Embedded: ${successCount} | Errors: ${errorCount}`);
+  await processCollection({
+    label: "Content items",
+    rows: contentItemsResult.data || [],
+    sync: (id) =>
+      syncContentItemAssistantDocument({ adminSupabase: supabase, contentItemId: id }),
+  });
+
+  await processCollection({
+    label: "Events",
+    rows: eventsResult.data || [],
+    sync: (id) => syncEventAssistantDocument({ adminSupabase: supabase, eventId: id }),
+  });
+
+  await processCollection({
+    label: "Profiles",
+    rows: profilesResult.data || [],
+    sync: (id) => syncProfileAssistantDocument({ adminSupabase: supabase, profileId: id }),
+  });
+
+  await processCollection({
+    label: "Applications",
+    rows: applicationsResult.data || [],
+    sync: (id) =>
+      syncCommunityApplicationAssistantDocument({ adminSupabase: supabase, applicationId: id }),
+  });
+
+  console.log("\n================================");
+  console.log(`Done. Synced: ${successCount} | Errors: ${errorCount}`);
 
   if (errorCount > 0) {
-    console.log("Re-run the script to retry failed items (upsert is idempotent).");
     process.exit(1);
   }
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
+main().catch((error) => {
+  console.error("Fatal reindex error:", error);
   process.exit(1);
 });

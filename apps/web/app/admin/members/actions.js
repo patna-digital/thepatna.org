@@ -2,6 +2,7 @@
 
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
+import { syncProfileAssistantDocument } from "@/lib/assistant-indexing";
 import { sendAccessSetupEmail } from "@/lib/access-emails";
 import { provisionMemberFromApplication } from "@/lib/member-provisioning";
 import { createSupabaseAdminClient, listSupabaseAuthUsers } from "@/lib/supabase/admin";
@@ -228,6 +229,12 @@ export async function updateMemberProfileStatusAction(formData) {
 
   if (error) {
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}notice=profile-status-error`);
+  }
+
+  try {
+    await syncProfileAssistantDocument({ profileId });
+  } catch (assistantError) {
+    console.error("updateMemberProfileStatusAction assistant sync error:", assistantError);
   }
 
   redirect(

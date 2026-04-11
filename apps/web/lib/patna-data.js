@@ -532,6 +532,12 @@ export const adminNav = [
       { href: "/admin/collaboration-leads", label: "Collaboration Leads", icon: "Network" },
     ],
   },
+  {
+    label: "AI",
+    items: [
+      { href: "/admin/assistant", label: "Assistant", icon: "Sparkles" },
+    ],
+  },
 ];
 
 export const memberSpaces = [

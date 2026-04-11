@@ -2,6 +2,7 @@
 
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
+import { syncCommunityApplicationAssistantDocument } from "@/lib/assistant-indexing";
 import { sendAccessSetupEmail } from "@/lib/access-emails";
 import { getAuthCallbackUrl } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
@@ -45,10 +46,19 @@ export async function reviewApplicationAction(formData) {
     .eq("id", applicationId);
 
   if (error) {
-    redirect(`/admin/applications?notice=error`);
+    redirect("/admin/applications?notice=error");
   }
 
-  redirect(`/admin/applications?notice=saved`);
+  try {
+    await syncCommunityApplicationAssistantDocument({
+      adminSupabase: supabase,
+      applicationId,
+    });
+  } catch (assistantError) {
+    console.error("reviewApplicationAction assistant sync error:", assistantError);
+  }
+
+  redirect("/admin/applications?notice=saved");
 }
 
 export async function approveAndInviteApplicationAction(formData) {
@@ -77,7 +87,6 @@ export async function approveAndInviteApplicationAction(formData) {
     redirect("/admin/applications?notice=error");
   }
 
-  // Check if a profile already exists for this email
   const { data: existingProfile } = await adminClient
     .from("profiles")
     .select("id")
@@ -134,7 +143,6 @@ export async function approveAndInviteApplicationAction(formData) {
     redirect("/admin/applications?notice=error");
   }
 
-  // Audit invite record
   const { error: inviteAuditError } = await adminClient
     .from("invites")
     .insert(createAuditInviteRow({ createdByUserId: adminUser.id, email, method: deliveryMethod, userId }));
@@ -143,7 +151,6 @@ export async function approveAndInviteApplicationAction(formData) {
     redirect("/admin/applications?notice=error");
   }
 
-  // Mark application approved and record who actioned it
   const { error: applicationUpdateError } = await adminClient
     .from("community_applications")
     .update({ status: "approved", reviewed_by_user_id: adminUser.id })
@@ -151,6 +158,15 @@ export async function approveAndInviteApplicationAction(formData) {
 
   if (applicationUpdateError) {
     redirect("/admin/applications?notice=error");
+  }
+
+  try {
+    await syncCommunityApplicationAssistantDocument({
+      adminSupabase: adminClient,
+      applicationId,
+    });
+  } catch (assistantError) {
+    console.error("approveAndInviteApplicationAction assistant sync error:", assistantError);
   }
 
   redirect("/admin/applications?notice=invited");
@@ -182,7 +198,6 @@ export async function resendApplicationInviteAction(formData) {
     redirect("/admin/applications?notice=error");
   }
 
-  // Look up profile by email to get the user ID
   const { data: profile } = await adminClient
     .from("profiles")
     .select("id")

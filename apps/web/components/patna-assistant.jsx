@@ -2,9 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Lock, Send, Sparkles, CheckSquare, Ban } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { isSupabaseConfigured } from "@/lib/env";
-import { buildSuggestedPrompts, buildAccessContext } from "@/lib/assistant";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PatnaAssistant
@@ -20,45 +17,61 @@ export function PatnaAssistant() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [spaces, setSpaces] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [accessContext, setAccessContext] = useState({ permitted: [], blocked: [] });
-  const [suggestedPrompts, setSuggestedPrompts] = useState([]);
+  const [suggestedPrompts, setSuggestedPrompts] = useState([
+    "Summarise recent PATNA discussions",
+    "What events are coming up?",
+    "What are the latest PATNA publications?",
+    "Who in the member directory works on SIDS issues?",
+  ]);
+  const [welcomeMessage, setWelcomeMessage] = useState(
+    "Hello. I'm PATNA Assistant. I can search your PATNA discussions, published events, publications, and the member directory within your access scope.",
+  );
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const abortControllerRef = useRef(null);
 
-  // ── Load user's space context on mount ─────────────────────────────────────
+  // ── Load assistant access context from the server on mount ─────────────────
   useEffect(() => {
-    async function loadSpaceContext() {
-      if (!isSupabaseConfigured()) return;
-      const supabase = createSupabaseBrowserClient();
+    let isMounted = true;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    async function loadAssistantContext() {
+      try {
+        const response = await fetch("/api/assistant/access", {
+          cache: "no-store",
+        });
 
-      const [{ data: memberships }, { data: roles }] = await Promise.all([
-        supabase
-          .from("space_memberships")
-          .select("space_id, spaces(id, name, space_type)")
-          .eq("user_id", user.id),
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id),
-      ]);
+        if (!response.ok) {
+          return;
+        }
 
-      const userSpaces = (memberships ?? []).map((m) => m.spaces).filter(Boolean);
-      const userIsAdmin = (roles ?? []).some((r) => r.role === "administrator");
+        const payload = await response.json();
+        if (!isMounted) {
+          return;
+        }
 
-      setSpaces(userSpaces);
-      setIsAdmin(userIsAdmin);
-      setAccessContext(buildAccessContext({ spaces: userSpaces, isAdmin: userIsAdmin }));
-      setSuggestedPrompts(buildSuggestedPrompts(userSpaces, userIsAdmin));
+        if (payload?.accessContext) {
+          setAccessContext(payload.accessContext);
+        }
+
+        if (Array.isArray(payload?.suggestedPrompts) && payload.suggestedPrompts.length > 0) {
+          setSuggestedPrompts(payload.suggestedPrompts);
+        }
+
+        if (typeof payload?.welcomeMessage === "string" && payload.welcomeMessage.trim()) {
+          setWelcomeMessage(payload.welcomeMessage.trim());
+        }
+      } catch (error) {
+        console.error("Failed to load assistant access context:", error);
+      }
     }
 
-    loadSpaceContext();
+    loadAssistantContext();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // ── Auto-scroll on new messages ────────────────────────────────────────────
@@ -295,13 +308,9 @@ export function PatnaAssistant() {
                       </div>
                       <div className="patna-assistant-bubble patna-assistant-bubble-assistant">
                         <p className="patna-assistant-bubble-copy">
-                          Hello. I&apos;m PATNA Assistant — I have access to community
-                          discussions, member profiles, events, insights, and working group
-                          activity that you&apos;re permitted to view.
+                          {welcomeMessage}
                         </p>
-                        <p className="patna-assistant-bubble-copy">
-                          What would you like to explore today?
-                        </p>
+                        <p className="patna-assistant-bubble-copy">What would you like to explore today?</p>
                       </div>
                     </div>
 
@@ -368,7 +377,7 @@ export function PatnaAssistant() {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask about discussions, members, insights…"
+                    placeholder="Ask about PATNA discussions, members, events, publications…"
                     rows={1}
                     disabled={isStreaming}
                     className="patna-assistant-input"

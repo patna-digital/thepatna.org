@@ -2,6 +2,7 @@
   "name": "@patna/web",
   "private": true,
   "scripts": {
+    "assistant:reindex": "node scripts/backfill-embeddings.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

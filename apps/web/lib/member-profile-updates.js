@@ -16,6 +16,7 @@ import {
   normaliseLanguages,
   normaliseRelevantProjects,
 } from "@/lib/profile-structured-fields";
+import { syncProfileAssistantDocument } from "@/lib/assistant-indexing";
 
 const PROFILE_BIO_MAX_LENGTH = 1200;
 
@@ -494,6 +495,15 @@ export async function persistMemberProfile({
       ok: false,
       reason: "save-error",
     };
+  }
+
+  try {
+    await syncProfileAssistantDocument({
+      adminSupabase,
+      profileId: userId,
+    });
+  } catch (assistantError) {
+    console.error("persistMemberProfile assistant sync error:", assistantError);
   }
 
   return {
