@@ -265,8 +265,20 @@ export function buildLeapSeriesFootprint(projects = []) {
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const hubs = relevantProjects
-    .flatMap((project) => resolveProjectHubs(project).map((hub, index) => normalizeHub(project, hub, index)))
+  const projectsBySlug = Object.fromEntries(relevantProjects.map((p) => [p.slug, p]));
+
+  // Build hubs from all override entries regardless of whether the project exists in the DB.
+  // When a project IS in the DB and has its own hub rows, those take priority; otherwise fall
+  // back to the hardcoded overrides so the map renders even before projects are published.
+  const hubs = Object.entries(PROJECT_FOOTPRINT_HUB_OVERRIDES)
+    .flatMap(([slug, overrideHubs]) => {
+      const project = projectsBySlug[slug] || { slug, title: slug, summary: "" };
+      const hubList =
+        Array.isArray(project.project_footprint_hubs) && project.project_footprint_hubs.length > 0
+          ? project.project_footprint_hubs
+          : overrideHubs;
+      return hubList.map((hub, index) => normalizeHub(project, hub, index));
+    })
     .filter(Boolean)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
 

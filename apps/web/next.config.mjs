@@ -4,6 +4,11 @@ const withNextIntl = createNextIntlPlugin("./i18n.js");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
   reactStrictMode: true,
 };
 

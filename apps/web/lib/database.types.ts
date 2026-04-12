@@ -419,6 +419,11 @@ export type Database = {
           file_type: string | null
           file_url: string
           id: string
+          is_primary: boolean
+          original_url: string | null
+          sort_order: number
+          source_kind: string | null
+          storage_path: string | null
           title: string
         }
         Insert: {
@@ -427,6 +432,11 @@ export type Database = {
           file_type?: string | null
           file_url: string
           id?: string
+          is_primary?: boolean
+          original_url?: string | null
+          sort_order?: number
+          source_kind?: string | null
+          storage_path?: string | null
           title: string
         }
         Update: {
@@ -435,6 +445,11 @@ export type Database = {
           file_type?: string | null
           file_url?: string
           id?: string
+          is_primary?: boolean
+          original_url?: string | null
+          sort_order?: number
+          source_kind?: string | null
+          storage_path?: string | null
           title?: string
         }
         Relationships: [
