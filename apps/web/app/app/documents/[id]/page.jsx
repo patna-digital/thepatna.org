@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { requireMemberContext } from "@/lib/supabase/access";
+import { getCurrentUserContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { memberNav } from "@/lib/patna-data";
 
@@ -22,8 +22,15 @@ function formatDate(value) {
 }
 
 export default async function ExternalDocumentPage({ params }) {
-  await requireMemberContext();
   const { id } = await params;
+  const { user, isAdmin } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: true,
+  });
+
+  if (!user) {
+    redirect(`/auth/login?next=/app/documents/${id}`);
+  }
 
   const adminSupabase = createSupabaseAdminClient();
   const { data: doc } = await adminSupabase
@@ -37,6 +44,11 @@ export default async function ExternalDocumentPage({ params }) {
   }
 
   const source = doc.assistant_external_sources;
+
+  if (source?.visibility === "admin_only" && !isAdmin) {
+    notFound();
+  }
+
   const modifiedLabel = formatDate(doc.modified_at);
   const indexedLabel = formatDate(doc.last_indexed_at);
   const visibilityLabel = VISIBILITY_LABELS[source?.visibility] || source?.visibility || "—";
