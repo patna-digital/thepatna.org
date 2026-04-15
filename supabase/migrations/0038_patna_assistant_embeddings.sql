@@ -113,7 +113,7 @@ as $$
     de.source_id,
     de.content_text,
     de.metadata,
-    1 - (de.embedding <=> query_embedding) as similarity
+    1 - (de.embedding OPERATOR(extensions.<=>) query_embedding) as similarity
   from public.document_embeddings de
   where
     -- include space-scoped content the user belongs to, or globally scoped content
@@ -122,7 +122,7 @@ as $$
       or de.space_id = any(filter_space_ids)
       or de.space_id is null
     )
-  order by de.embedding <=> query_embedding
+  order by de.embedding OPERATOR(extensions.<=>) query_embedding
   limit match_count;
 $$;
 

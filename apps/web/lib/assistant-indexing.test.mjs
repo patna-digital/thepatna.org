@@ -8,6 +8,8 @@ import {
   buildEventAssistantPayload,
   buildProfileAssistantPayload,
   buildThreadAssistantPayload,
+  shouldSyncExternalFile,
+  summarizeExternalSyncErrors,
 } from "./assistant-indexing.js";
 
 test("buildEventAssistantPayload maps restricted events to admin-only visibility", () => {
@@ -148,4 +150,42 @@ test("buildCommunityApplicationAssistantPayload stays admin-only", () => {
   assert.equal(payload.visibility, "admin_only");
   assert.equal(payload.metadata.path, "/admin/applications");
   assert.match(payload.content_text, /Policy Cohort/);
+});
+
+test("summarizeExternalSyncErrors groups repeated root causes for drive syncs", () => {
+  const summary = summarizeExternalSyncErrors([
+    { title: "A.pdf", reason: 'embed-document failed: {"code":"NOT_FOUND","message":"Requested function was not found"}' },
+    { title: "B.pdf", reason: 'embed-document failed: {"code":"NOT_FOUND","message":"Requested function was not found"}' },
+    { title: "C.pdf", reason: "PDF produced no extractable text." },
+    { title: "D.pdf", reason: 'embed-document failed: {"error":"Unsupported source_type"}' },
+  ]);
+
+  assert.deepEqual(
+    summary.map(({ kind, count }) => ({ kind, count })),
+    [
+      { kind: "embedding_function_missing", count: 2 },
+      { kind: "text_extraction_failed", count: 1 },
+      { kind: "embedding_payload_rejected", count: 1 },
+    ],
+  );
+});
+
+test("shouldSyncExternalFile retries unchanged files that previously failed", () => {
+  const driveFile = { md5Checksum: "abc", modifiedTime: "2026-04-12T00:00:00.000Z" };
+
+  assert.equal(
+    shouldSyncExternalFile(driveFile, {
+      checksum_or_version: "abc",
+      status: "error",
+    }),
+    true,
+  );
+
+  assert.equal(
+    shouldSyncExternalFile(driveFile, {
+      checksum_or_version: "abc",
+      status: "indexed",
+    }),
+    false,
+  );
 });

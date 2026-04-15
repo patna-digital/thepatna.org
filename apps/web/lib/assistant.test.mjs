@@ -19,11 +19,11 @@ test("buildAccessContext exposes member and blocked scopes consistently", () => 
 
   assert.equal(accessContext.permitted[0].name, "Policy Cohort");
   assert.equal(
-    accessContext.permitted.some((item) => item.name === "Events"),
+    accessContext.permitted.some((item) => item.name === "Events & Calendar"),
     true,
   );
   assert.equal(
-    accessContext.blocked.some((item) => item.name === "Admin-only PATNA records"),
+    accessContext.blocked.some((item) => item.name === "Admin / Applications"),
     true,
   );
 });
@@ -43,7 +43,7 @@ test("buildSuggestedPrompts adds admin prompt only for admin sessions", () => {
     false,
   );
   assert.equal(
-    adminPrompts.includes("Show me applications awaiting review"),
+    adminPrompts.includes("Show me applications awaiting my review"),
     true,
   );
 });
@@ -87,8 +87,8 @@ test("buildContextBlock groups structured and semantic evidence with paths", () 
 
   assert.match(block, /STRUCTURED EVIDENCE/);
   assert.match(block, /SEMANTIC EVIDENCE/);
-  assert.match(block, /Go to: \/app\/events/);
-  assert.match(block, /Go to: \/app\/spaces\/policy\/threads\/2/);
+  assert.match(block, /Link: \[Open event\]\(\/app\/events\)/);
+  assert.match(block, /Link: \[Open discussion\]\(\/app\/spaces\/policy\/threads\/2\)/);
 });
 
 test("system prompt and welcome message reflect admin scope", () => {
@@ -106,5 +106,6 @@ test("system prompt and welcome message reflect admin scope", () => {
 
   assert.match(prompt, /Admin PATNA data/);
   assert.match(prompt, /Policy Cohort/);
-  assert.match(welcome, /admin application queues/i);
+  assert.match(prompt, /Always use markdown links for PATNA destinations/);
+  assert.match(welcome, /community discussions, member profiles, events, and insights/i);
 });

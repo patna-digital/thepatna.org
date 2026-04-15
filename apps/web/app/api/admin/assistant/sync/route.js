@@ -4,6 +4,7 @@
 // source to stay within the API route timeout budget.
 
 import { NextResponse } from "next/server";
+import { getAssistantIndexHealth } from "@/lib/assistant-index-health";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -20,6 +21,7 @@ const SYNC_LIMIT = 20;
 async function syncSource({ label, rows, syncFn, adminSupabase }) {
   let synced = 0;
   let errors = 0;
+  const failureReasons = new Map();
 
   for (const row of rows) {
     try {
@@ -27,11 +29,18 @@ async function syncSource({ label, rows, syncFn, adminSupabase }) {
       synced += 1;
     } catch (err) {
       errors += 1;
-      console.error(`[assistant:sync] ${label} ${row.id}:`, err.message);
+      const reason = String(err?.message || "Unknown sync error");
+      failureReasons.set(reason, (failureReasons.get(reason) || 0) + 1);
+      console.error(`[assistant:sync] ${label} ${row.id}:`, reason);
     }
   }
 
-  return { label, synced, errors };
+  return {
+    errors,
+    failureReasons: [...failureReasons.entries()].map(([reason, count]) => ({ count, reason })),
+    label,
+    synced,
+  };
 }
 
 export async function POST() {
@@ -42,6 +51,24 @@ export async function POST() {
   }
 
   const adminSupabase = createSupabaseAdminClient();
+  const health = await getAssistantIndexHealth({ adminSupabase });
+
+  if (!health.isReady) {
+    return NextResponse.json(
+      {
+        error: health.issueSummary,
+        issues: Object.values(health.checks)
+          .filter((check) => !check.ok)
+          .map((check) => ({
+            description: check.description,
+            message: check.error?.message || "Unavailable",
+            status: check.status,
+          })),
+        ok: false,
+      },
+      { status: 503 },
+    );
+  }
 
   const [
     threadsResult,
@@ -101,6 +128,19 @@ export async function POST() {
 
   const totalSynced = results.reduce((sum, r) => sum + r.synced, 0);
   const totalErrors = results.reduce((sum, r) => sum + r.errors, 0);
+  const failureReasons = results.flatMap((result) =>
+    result.failureReasons.map((item) => ({
+      count: item.count,
+      label: result.label,
+      reason: item.reason,
+    })),
+  );
 
-  return NextResponse.json({ ok: true, synced: totalSynced, errors: totalErrors, sources: results });
+  return NextResponse.json({
+    ok: true,
+    synced: totalSynced,
+    errors: totalErrors,
+    failureReasons,
+    sources: results,
+  });
 }

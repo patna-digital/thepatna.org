@@ -73,11 +73,10 @@ export function getProjectHref(slug) {
 
 // ─── Select fragment ──────────────────────────────────────────────────────────
 
-const PROJECT_SELECT = `
+const PROJECT_BASE_SELECT = `
   *,
   project_resources ( id, resource_title, resource_url, resource_type ),
   project_countries ( * ),
-  project_gallery ( id, image_url, alt_text, caption, sort_order ),
   linked_space:linked_space_id ( id, name, slug, space_type, description )
 `.trim();
 
@@ -90,10 +89,17 @@ const PROJECT_SELECT = `
 export async function fetchPublishedProjects({ supabase }) {
   const { data, error } = await supabase
     .from("projects")
-    .select(PROJECT_SELECT)
+    .select(PROJECT_BASE_SELECT)
     .eq("status", "published")
     .order("section")
     .order("sort_order");
+
+  if (error) {
+    console.error("[projects] Failed to fetch published projects", {
+      message: error.message,
+      code: error.code,
+    });
+  }
 
   const projects = (data || []).map(normalizeProjectRecord);
   return { projects: await attachProjectFootprintHubs({ supabase, projects }), error };
@@ -105,7 +111,7 @@ export async function fetchPublishedProjects({ supabase }) {
 export async function fetchProjectBySlug({ supabase, slug, includeUnpublished = false }) {
   let query = supabase
     .from("projects")
-    .select(PROJECT_SELECT)
+    .select(PROJECT_BASE_SELECT)
     .eq("slug", slug);
 
   if (!includeUnpublished) {
@@ -113,12 +119,46 @@ export async function fetchProjectBySlug({ supabase, slug, includeUnpublished = 
   }
 
   const { data, error } = await query.maybeSingle();
+  if (error) {
+    console.error("[projects] Failed to fetch project by slug", {
+      slug,
+      includeUnpublished,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
   const [project] = await attachProjectFootprintHubs({
     supabase,
     projects: [normalizeProjectRecord(data)].filter(Boolean),
   });
 
-  return { project: project || null, error };
+  if (!project) {
+    return { project: null, error };
+  }
+
+  const { gallery, error: galleryError } = await fetchProjectGallery({
+    supabase,
+    projectId: project.id,
+  });
+
+  if (galleryError) {
+    console.error("[projects] Failed to fetch project gallery", {
+      slug,
+      projectId: project.id,
+      message: galleryError.message,
+      code: galleryError.code,
+    });
+  }
+
+  return {
+    project: {
+      ...project,
+      project_gallery: gallery,
+    },
+    error,
+    galleryError,
+  };
 }
 
 /**
@@ -202,6 +242,24 @@ export async function fetchAdminProjectById({ supabase, projectId }) {
   });
 
   return { project: project || null, error };
+}
+
+export async function fetchProjectGallery({ supabase, projectId }) {
+  if (!projectId) {
+    return { gallery: [], error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("project_gallery")
+    .select("id, image_url, alt_text, caption, sort_order")
+    .eq("project_id", projectId)
+    .order("sort_order");
+
+  if (error) {
+    return { gallery: [], error };
+  }
+
+  return { gallery: data || [], error: null };
 }
 
 // ─── Admin mutations ──────────────────────────────────────────────────────────

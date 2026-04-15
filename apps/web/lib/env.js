@@ -43,3 +43,7 @@ export function isSupabaseAdminConfigured() {
 export function getAnthropicApiKey() {
   return readEnv("ANTHROPIC_API_KEY");
 }
+
+export function getGoogleDriveApiKey() {
+  return readEnv("GOOGLE_DRIVE_API_KEY");
+}
