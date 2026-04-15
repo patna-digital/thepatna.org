@@ -1,14 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
-import { EventGalleryStrip } from "@/components/public/event-gallery-strip";
-import { MediaArticleCard } from "@/components/public/media-article-card";
+import { EventArchiveCard } from "@/components/public/event-archive-card";
+import { EventsArchiveClient } from "@/components/public/events-archive-client";
 import { SectionIntro } from "@/components/section-intro";
-import {
-  fetchPublicEvents,
-  isPatnaLedEvent,
-  splitPublicEventCollections,
-} from "@/lib/events";
-import { getEventMedia, publicPageMedia } from "@/lib/public-media";
+import { fetchPublicEvents, isPatnaLedEvent } from "@/lib/events";
 
 export const metadata = {
   title: "Events",
@@ -18,8 +13,22 @@ export const metadata = {
 
 export default async function EventsPage() {
   const t = await getTranslations();
-  const publicEvents = await fetchPublicEvents();
-  const { patnaEvents, externalEvents } = splitPublicEventCollections(publicEvents);
+  const events = await fetchPublicEvents();
+  const upcomingEvents = events.filter((event) => event.schedule_status !== "past");
+  const eventCardLabels = {
+    viewEvent: t("events.viewEvent"),
+    officialPage: t("events.officialPage"),
+    datePending: t("events.datePending"),
+    locationPending: t("events.locationPending"),
+    upcoming: t("events.scheduleUpcoming"),
+    tbc: t("events.scheduleTbc"),
+    past: t("events.schedulePast"),
+  };
+  const metrics = [
+    { value: `${events.length}`, label: t("events.metricsTotal") },
+    { value: `${upcomingEvents.length}`, label: t("events.metricsUpcoming") },
+    { value: `${events.filter((event) => isPatnaLedEvent(event)).length}`, label: t("events.metricsPatna") },
+  ];
 
   return (
     <>
@@ -29,69 +38,63 @@ export default async function EventsPage() {
         title={t("events.title")}
       />
 
-      <EventGalleryStrip section={publicPageMedia.events.gallery} />
+      <div className="projects-hero-stats">
+        <div className="section-inner">
+          <div className="projects-hero-stats-row">
+            {metrics.map((stat) => (
+              <div className="projects-hero-stat" key={stat.label}>
+                <strong className="projects-hero-stat-num">{stat.value}</strong>
+                <span className="projects-hero-stat-label">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <section className="section">
         <div className="section-inner">
           <SectionIntro
-            label={t("events.patnaLabel")}
-            title={t("events.patnaTitle")}
-            subtitle={t("events.patnaSubtitle")}
+            label={t("events.upcomingLabel")}
+            title={t("events.upcomingTitle")}
+            subtitle={t("events.upcomingSubtitle")}
           />
 
-          <div className="media-article-grid">
-            {patnaEvents.length ? (
-              patnaEvents.map((event) => (
-                <MediaArticleCard
-                  key={event.slug}
-                  label={event.eventTypeDisplay || event.event_type || "Event"}
-                  media={getEventMedia(event.slug)}
-                  meta={[event.displayDateDisplay || event.display_date, event.location].filter(Boolean)}
-                  summary={event.summary}
-                  sourceLabel={t("events.coverageLabel")}
-                  title={event.title}
-                />
-              ))
-            ) : (
-              <article className="content-card">
-                <h3>{t("events.emptyTitle")}</h3>
-                <p>{t("events.emptyText")}</p>
-              </article>
-            )}
-          </div>
+          {upcomingEvents.length ? (
+            <div className="publications-grid">
+              {upcomingEvents.map((event) => (
+                <EventArchiveCard event={event} key={event.id || event.slug} labels={eventCardLabels} />
+              ))}
+            </div>
+          ) : (
+            <article className="content-card">
+              <h3>{t("events.emptyTitle")}</h3>
+              <p>{t("events.emptyText")}</p>
+            </article>
+          )}
         </div>
       </section>
 
-      {externalEvents.length ? (
-        <section className="section">
-          <div className="section-inner">
-            <SectionIntro
-              label={t("events.calendarLabel")}
-              title={t("events.calendarTitle")}
-              subtitle={t("events.calendarSubtitle")}
-            />
+      <section className="section">
+        <div className="section-inner">
+          <SectionIntro
+            label={t("events.archiveLabel")}
+            title={t("events.archiveTitle")}
+            subtitle={t("events.archiveSubtitle")}
+          />
 
-            <div className="media-article-grid">
-              {externalEvents.map((event) => (
-                <MediaArticleCard
-                  key={event.slug}
-                  label={event.eventTypeDisplay || event.event_type || "Event"}
-                  media={getEventMedia(event.slug)}
-                  meta={[event.displayDateDisplay || event.display_date, event.location].filter(Boolean)}
-                  summary={event.summary}
-                  sourceLabel={isPatnaLedEvent(event) ? t("events.coverageLabel") : t("events.officialPage")}
-                  sourceUrl={
-                    isPatnaLedEvent(event)
-                      ? undefined
-                      : event.official_link || getEventMedia(event.slug).sourceUrl
-                  }
-                  title={event.title}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
+          <EventsArchiveClient
+            cardLabels={eventCardLabels}
+            clearLabel={t("events.searchClear")}
+            defaultResultsLabel={t.raw("events.searchDefaultResults")}
+            emptyBody={t("events.searchEmptyText")}
+            emptyTitle={t("events.searchEmptyTitle")}
+            events={events}
+            placeholder={t("events.searchPlaceholder")}
+            searchLabel={t("events.searchLabel")}
+            searchResultsLabel={t.raw("events.searchResults")}
+          />
+        </div>
+      </section>
     </>
   );
 }

@@ -19,6 +19,7 @@ const SOURCE_FAMILY_LABELS = {
   event: "Event",
   profile: "Member Directory",
   community_application: "Application Queue",
+  external_document: "Google Drive Document",
 };
 
 const STOP_WORDS = new Set([
@@ -529,7 +530,7 @@ function buildSemanticSourceTypes(intent, accessScope) {
     return ["thread", "comment"];
   }
 
-  const sourceTypes = ["thread", "comment", "content_item", "event", "profile"];
+  const sourceTypes = ["thread", "comment", "content_item", "event", "profile", "external_document"];
 
   if (accessScope.canReadAdminContent) {
     sourceTypes.push("community_application");
@@ -569,6 +570,19 @@ function buildSemanticEvidence(chunk) {
   const sourceType = chunk.source_type;
   const metadata = chunk.metadata || {};
 
+  const detailLines =
+    sourceType === "external_document"
+      ? [
+          metadata.source_title ? `Source: ${metadata.source_title}` : "",
+          metadata.modified_at ? `Updated: ${formatDate(metadata.modified_at)}` : "",
+          metadata.drive_url ? `Drive: ${metadata.drive_url}` : "",
+        ].filter(Boolean)
+      : [
+          metadata.space_name ? `Space: ${metadata.space_name}` : "",
+          metadata.date_label ? `Date: ${metadata.date_label}` : "",
+          metadata.status ? `Status: ${metadata.status}` : "",
+        ].filter(Boolean);
+
   return {
     id: buildEvidenceKey(sourceType, chunk.source_id, "semantic"),
     origin: "semantic",
@@ -578,11 +592,7 @@ function buildSemanticEvidence(chunk) {
     title: metadata.title || buildSourceFamilyLabel(sourceType),
     path: metadata.path || "",
     summary: stripHtml(chunk.content_text || ""),
-    detailLines: [
-      metadata.space_name ? `Space: ${metadata.space_name}` : "",
-      metadata.date_label ? `Date: ${metadata.date_label}` : "",
-      metadata.status ? `Status: ${metadata.status}` : "",
-    ].filter(Boolean),
+    detailLines,
     similarity: chunk.similarity ?? null,
     metadata,
   };
@@ -1058,14 +1068,49 @@ STRICT RULES:
 7. Keep answers concise and easy to scan.
 8. When you cite evidence, include both:
    - Source: <source family>
-   - Go to: <PATNA path>
+   - Link: [Open in PATNA](<PATNA path>)
+   Always use markdown links for PATNA destinations instead of raw paths.
 9. PATNA is your only domain. If asked a general knowledge question unrelated to PATNA platform data, say you are limited to PATNA platform context.`;
+}
+
+function buildEvidenceLinkLabel(evidence) {
+  const path = String(evidence?.path || "");
+
+  if (path.startsWith("/book/")) {
+    return "Open booking page";
+  }
+
+  if (path.startsWith("/app/publications/") || path.startsWith("/publications/")) {
+    return "Open publication";
+  }
+
+  if (path.startsWith("/app/events") || path.startsWith("/events")) {
+    return "Open event";
+  }
+
+  if (path.startsWith("/app/members")) {
+    return "Open member directory";
+  }
+
+  if (path.startsWith("/admin/applications")) {
+    return "Open application queue";
+  }
+
+  if (path.startsWith("/app/spaces/")) {
+    return "Open discussion";
+  }
+
+  if (path.startsWith("/app/documents/")) {
+    return "Open document";
+  }
+
+  return "Open in PATNA";
 }
 
 function formatEvidenceItem(evidence, index) {
   const sections = [
     `${index + 1}. [${evidence.origin.toUpperCase()}] [${evidence.sourceFamily}] ${evidence.title}`,
-    evidence.path ? `Go to: ${evidence.path}` : "",
+    evidence.path ? `Link: [${buildEvidenceLinkLabel(evidence)}](${evidence.path})` : "",
     evidence.summary ? `Summary: ${evidence.summary}` : "",
     evidence.detailLines.length ? `Details:\n- ${evidence.detailLines.join("\n- ")}` : "",
     evidence.similarity != null ? `Similarity: ${Number(evidence.similarity).toFixed(3)}` : "",

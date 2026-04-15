@@ -14,7 +14,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { config } from "dotenv";
+import fs from "node:fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import {
@@ -22,12 +22,43 @@ import {
   syncCommunityApplicationAssistantDocument,
   syncContentItemAssistantDocument,
   syncEventAssistantDocument,
+  syncExternalSource,
   syncProfileAssistantDocument,
   syncThreadAssistantDocument,
 } from "../lib/assistant-indexing.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-config({ path: resolve(__dirname, "../../.env.local") });
+const envPath = resolve(__dirname, "../.env.local");
+
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+
+    if (key && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadEnvFile(envPath);
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -38,6 +69,7 @@ const SOURCE_TYPES = [
   "event",
   "profile",
   "community_application",
+  "external_document",
 ];
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
@@ -157,6 +189,38 @@ async function main() {
     sync: (id) =>
       syncCommunityApplicationAssistantDocument({ adminSupabase: supabase, applicationId: id }),
   });
+
+  // External documents — re-sync each configured Drive source
+  const { data: externalSources, error: sourcesError } = await supabase
+    .from("assistant_external_sources")
+    .select("id, title");
+
+  if (sourcesError) {
+    throw sourcesError;
+  }
+
+  if (externalSources?.length) {
+    console.log(`\n▶ Google Drive sources: ${externalSources.length} configured`);
+    for (const source of externalSources) {
+      console.log(`  Syncing "${source.title}"…`);
+      try {
+        const result = await syncExternalSource({ adminSupabase: supabase, sourceId: source.id });
+        successCount += result.synced;
+        errorCount += result.errors.length;
+        process.stdout.write(`  ✓ ${result.synced} indexed, ${result.skipped} unchanged`);
+        if (result.errors.length) {
+          process.stdout.write(`, ${result.errors.length} error(s)`);
+          for (const e of result.errors) {
+            console.error(`\n    ${e.title}: ${e.reason}`);
+          }
+        }
+        console.log("");
+      } catch (error) {
+        errorCount += 1;
+        console.error(`\n  ✗ ${source.title}: ${error.message}`);
+      }
+    }
+  }
 
   console.log("\n================================");
   console.log(`Done. Synced: ${successCount} | Errors: ${errorCount}`);

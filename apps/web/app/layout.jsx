@@ -1,6 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import localFont from "next/font/local";
+import { PatnaAssistant } from "@/components/patna-assistant";
 import { isRtlLocale } from "@/lib/locales";
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }) {
       <body className={`${plusJakartaSans.variable} ${dmSerifDisplay.variable}`}>
         <NextIntlClientProvider messages={messages}>
           {children}
+          <PatnaAssistant />
         </NextIntlClientProvider>
       </body>
     </html>

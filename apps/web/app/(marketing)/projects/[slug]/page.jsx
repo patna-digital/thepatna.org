@@ -34,7 +34,15 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const supabase = createPublicProjectsClient();
-  const { project } = await fetchProjectBySlug({ supabase, slug });
+  const { project, error, galleryError } = await fetchProjectBySlug({ supabase, slug });
+
+  if (error || galleryError) {
+    console.error("[projects] Metadata fetch warning", {
+      slug,
+      projectError: error?.message || null,
+      galleryError: galleryError?.message || null,
+    });
+  }
 
   if (!project) {
     return { title: "Project not found" };
@@ -76,10 +84,19 @@ export default async function ProjectDetailPage({ params }) {
   const t = await getTranslations();
 
   const supabase = createPublicProjectsClient();
-  const [{ project }, { projects }] = await Promise.all([
+  const [{ project, error, galleryError }, { projects, error: projectsError }] = await Promise.all([
     fetchProjectBySlug({ supabase, slug }),
     fetchPublishedProjects({ supabase }),
   ]);
+
+  if (error || galleryError || projectsError) {
+    console.error("[projects] Detail page fetch warning", {
+      slug,
+      projectError: error?.message || null,
+      galleryError: galleryError?.message || null,
+      relatedProjectsError: projectsError?.message || null,
+    });
+  }
 
   if (!project) {
     notFound();

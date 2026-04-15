@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Lock, Send, Sparkles, CheckSquare, Ban } from "lucide-react";
+import { AssistantMessageMarkdown } from "@/components/assistant-message-markdown";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PatnaAssistant
@@ -11,7 +12,18 @@ import { X, Lock, Send, Sparkles, CheckSquare, Ban } from "lucide-react";
 // Mobile:  full-screen overlay
 // ─────────────────────────────────────────────────────────────────────────────
 
+const ASSISTANT_STORAGE_KEY = "patna-assistant-session-v1";
+
+function isStoredMessageList(value) {
+  return Array.isArray(value) && value.every((item) =>
+    item &&
+    (item.role === "user" || item.role === "assistant") &&
+    typeof item.content === "string",
+  );
+}
+
 export function PatnaAssistant() {
+  const [assistantAvailability, setAssistantAvailability] = useState("loading");
   const [isOpen, setIsOpen] = useState(false);
   const [showAccess, setShowAccess] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -32,6 +44,32 @@ export function PatnaAssistant() {
   const inputRef = useRef(null);
   const abortControllerRef = useRef(null);
 
+  function restoreSessionState() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const raw = window.sessionStorage.getItem(ASSISTANT_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (isStoredMessageList(parsed?.messages)) {
+        setMessages(parsed.messages);
+      }
+      if (typeof parsed?.inputValue === "string") {
+        setInputValue(parsed.inputValue);
+      }
+      if (typeof parsed?.isOpen === "boolean") {
+        setIsOpen(parsed.isOpen);
+      }
+    } catch (error) {
+      console.error("Failed to restore assistant session state:", error);
+    }
+  }
+
   // ── Load assistant access context from the server on mount ─────────────────
   useEffect(() => {
     let isMounted = true;
@@ -43,6 +81,9 @@ export function PatnaAssistant() {
         });
 
         if (!response.ok) {
+          if (isMounted) {
+            setAssistantAvailability("hidden");
+          }
           return;
         }
 
@@ -62,8 +103,14 @@ export function PatnaAssistant() {
         if (typeof payload?.welcomeMessage === "string" && payload.welcomeMessage.trim()) {
           setWelcomeMessage(payload.welcomeMessage.trim());
         }
+
+        restoreSessionState();
+        setAssistantAvailability("ready");
       } catch (error) {
         console.error("Failed to load assistant access context:", error);
+        if (isMounted) {
+          setAssistantAvailability("hidden");
+        }
       }
     }
 
@@ -73,6 +120,21 @@ export function PatnaAssistant() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (assistantAvailability !== "ready" || typeof window === "undefined") {
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      ASSISTANT_STORAGE_KEY,
+      JSON.stringify({
+        inputValue,
+        isOpen,
+        messages,
+      }),
+    );
+  }, [assistantAvailability, inputValue, isOpen, messages]);
 
   // ── Auto-scroll on new messages ────────────────────────────────────────────
   useEffect(() => {
@@ -197,6 +259,10 @@ export function PatnaAssistant() {
     }
     setIsOpen(false);
     setShowAccess(false);
+  }
+
+  if (assistantAvailability !== "ready") {
+    return null;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -355,7 +421,13 @@ export function PatnaAssistant() {
                           : "patna-assistant-bubble-assistant"
                       }`}
                     >
-                      {msg.content || (
+                      {msg.content ? (
+                        msg.role === "assistant" ? (
+                          <AssistantMessageMarkdown content={msg.content} />
+                        ) : (
+                          <p className="patna-assistant-bubble-copy">{msg.content}</p>
+                        )
+                      ) : (
                         <span className="patna-assistant-typing" aria-label="PATNA Assistant is typing">
                           <span className="patna-assistant-typing-dot" />
                           <span className="patna-assistant-typing-dot" />

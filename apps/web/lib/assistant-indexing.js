@@ -9,6 +9,12 @@ import {
   mapProfileVisibilityToAssistantVisibility,
   stripHtml,
 } from "./assistant.js";
+import {
+  computeChangeKey,
+  fetchAndExtractPdfText,
+  fileHasChanged,
+  listDriveFolderPdfs,
+} from "./assistant-drive.js";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "./env.js";
 import { createSupabaseAdminClient } from "./supabase/admin.js";
 
@@ -94,6 +100,25 @@ function buildEventDateLabel(event) {
   return "";
 }
 
+async function updateExternalSourceProgress(supabase, sourceId, updates = {}) {
+  await supabase.from("assistant_external_sources").update({
+    ...updates,
+    updated_at: new Date().toISOString(),
+  }).eq("id", sourceId);
+}
+
+export function shouldSyncExternalFile(driveFile, existingDoc) {
+  if (!existingDoc) {
+    return true;
+  }
+
+  if (existingDoc.status !== "indexed") {
+    return true;
+  }
+
+  return fileHasChanged(driveFile, existingDoc.checksum_or_version);
+}
+
 async function upsertAssistantDocument({ payload }) {
   const supabaseUrl = getSupabaseUrl();
   const serviceRoleKey = getSupabaseServiceRoleKey();
@@ -111,6 +136,59 @@ async function upsertAssistantDocument({ payload }) {
     const errorText = await response.text();
     throw new Error(`embed-document failed: ${errorText}`);
   }
+}
+
+export function summarizeExternalSyncErrors(errors = []) {
+  const byKind = new Map();
+
+  for (const error of errors) {
+    const reason = String(error?.reason || "Unknown sync error");
+    const normalized = reason.toLowerCase();
+    let kind = "sync_failed";
+    let label = "Sync failed";
+    let detail = reason;
+
+    if (normalized.startsWith("drive api list error")) {
+      kind = "drive_listing_failed";
+      label = "Drive listing failed";
+    } else if (normalized.startsWith("drive api download error")) {
+      kind = normalized.includes("requested function was not found")
+        ? "embedding_function_missing"
+        : "pdf_download_failed";
+      label = kind === "embedding_function_missing" ? "Embedding function missing" : "PDF download failed";
+    } else if (normalized.includes("pdf produced no extractable text")) {
+      kind = "text_extraction_failed";
+      label = "Text extraction failed";
+    } else if (normalized.includes("requested function was not found")) {
+      kind = "embedding_function_missing";
+      label = "Embedding function missing";
+    } else if (normalized.includes("unsupported source_type")) {
+      kind = "embedding_payload_rejected";
+      label = "Embedding payload rejected";
+    } else if (normalized.startsWith("embed-document failed")) {
+      kind = "embedding_failed";
+      label = "Embedding failed";
+    }
+
+    if (!byKind.has(kind)) {
+      byKind.set(kind, { count: 0, detail, kind, label });
+    }
+
+    byKind.get(kind).count += 1;
+  }
+
+  return [...byKind.values()];
+}
+
+function buildExternalSyncErrorSummary(errors = []) {
+  const summaries = summarizeExternalSyncErrors(errors);
+  if (!summaries.length) {
+    return null;
+  }
+
+  return summaries
+    .map(({ count, detail, label }) => `${label} (${count}): ${detail}`)
+    .join("; ");
 }
 
 export async function deleteAssistantDocument({
@@ -580,6 +658,232 @@ export async function syncCommunityApplicationAssistantDocument({
   }
 
   await upsertAssistantDocument({ payload });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// External document helpers (Google Drive sources)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function buildExternalDocumentAssistantPayload({ externalDoc, source, contentText }) {
+  const patnaPath = `/app/documents/${externalDoc.id}`;
+  return {
+    source_type: "external_document",
+    source_id: externalDoc.id,
+    space_id: null,
+    visibility: source.visibility,
+    content_text: contentText,
+    metadata: {
+      path: patnaPath,
+      title: externalDoc.title,
+      source_family: "Google Drive Document",
+      source_title: source.title,
+      provider: source.provider,
+      mime_type: externalDoc.mime_type,
+      drive_url: externalDoc.source_url,
+      modified_at: externalDoc.modified_at || "",
+      visibility: source.visibility,
+    },
+  };
+}
+
+export async function syncExternalDocumentAssistantDocument({ adminSupabase, externalDoc, source }) {
+  const supabase = getAdminClient(adminSupabase);
+  try {
+    const contentText = await fetchAndExtractPdfText(externalDoc.external_file_id);
+    const payload = buildExternalDocumentAssistantPayload({ externalDoc, source, contentText });
+    await upsertAssistantDocument({ payload });
+    await supabase.from("assistant_external_documents").update({
+      status: "indexed",
+      last_indexed_at: new Date().toISOString(),
+      last_error: null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", externalDoc.id);
+    return { ok: true };
+  } catch (err) {
+    const errorMessage = String(err?.message || "Unknown error");
+    await supabase.from("assistant_external_documents").update({
+      status: "error",
+      last_error: errorMessage,
+      updated_at: new Date().toISOString(),
+    }).eq("id", externalDoc.id);
+    return { ok: false, error: errorMessage };
+  }
+}
+
+export async function syncExternalSource({ adminSupabase, sourceId }) {
+  const supabase = getAdminClient(adminSupabase);
+  const { data: source, error: sourceError } = await supabase
+    .from("assistant_external_sources")
+    .select("id, title, provider, visibility, external_folder_id, status")
+    .eq("id", sourceId)
+    .maybeSingle();
+  if (sourceError) throw sourceError;
+  if (!source) throw new Error(`External source ${sourceId} not found.`);
+
+  let driveFiles;
+  try {
+    driveFiles = await listDriveFolderPdfs(source.external_folder_id);
+  } catch (err) {
+    const errorMsg = String(err?.message || "Drive listing failed");
+    await updateExternalSourceProgress(supabase, sourceId, {
+      status: "error",
+      current_sync_processed: 0,
+      current_sync_stage: "Drive listing failed",
+      current_sync_started_at: new Date().toISOString(),
+      current_sync_total: 0,
+      last_synced_at: new Date().toISOString(),
+      last_sync_status: "error",
+      last_sync_error: errorMsg,
+    });
+    throw err;
+  }
+
+  await updateExternalSourceProgress(supabase, sourceId, {
+    current_sync_processed: 0,
+    current_sync_stage: driveFiles.length ? "Syncing files" : "No files to sync",
+    current_sync_started_at: new Date().toISOString(),
+    current_sync_total: driveFiles.length,
+    last_sync_error: null,
+    status: "active",
+  });
+
+  const driveFileIds = new Set(driveFiles.map((f) => f.id));
+  const { data: existingDocs } = await supabase
+    .from("assistant_external_documents")
+    .select("id, external_file_id, checksum_or_version, status")
+    .eq("source_id", sourceId);
+  const existingByFileId = new Map((existingDocs || []).map((doc) => [doc.external_file_id, doc]));
+
+  let synced = 0;
+  let skipped = 0;
+  let processed = 0;
+  const errors = [];
+
+  for (const driveFile of driveFiles) {
+    const existing = existingByFileId.get(driveFile.id);
+    const changeKey = computeChangeKey(driveFile);
+    const now = new Date().toISOString();
+
+    const upsertPayload = {
+      source_id: sourceId,
+      external_file_id: driveFile.id,
+      title: driveFile.name || driveFile.id,
+      mime_type: driveFile.mimeType || "application/pdf",
+      source_url: driveFile.webViewLink || `https://drive.google.com/file/d/${driveFile.id}/view`,
+      download_url: `https://www.googleapis.com/drive/v3/files/${driveFile.id}?alt=media`,
+      modified_at: driveFile.modifiedTime || null,
+      checksum_or_version: changeKey,
+      updated_at: now,
+    };
+
+    let docId = existing?.id;
+    if (!existing) {
+      // Use upsert so that a row created by a previous sync (or a duplicate
+      // Drive file ID in the listing) is updated rather than rejected with a
+      // unique-constraint violation.
+      const { data: inserted, error: insertError } = await supabase
+        .from("assistant_external_documents")
+        .upsert(
+          { ...upsertPayload, status: "pending" },
+          { onConflict: "source_id,external_file_id" },
+        )
+        .select("id")
+        .maybeSingle();
+      if (insertError) {
+        errors.push({ title: driveFile.name || driveFile.id, reason: insertError.message });
+        processed += 1;
+        await updateExternalSourceProgress(supabase, sourceId, {
+          current_sync_processed: processed,
+          current_sync_stage: "Syncing files",
+        });
+        continue;
+      }
+      docId = inserted?.id;
+    } else if (!shouldSyncExternalFile(driveFile, existing)) {
+      skipped += 1;
+      processed += 1;
+      await updateExternalSourceProgress(supabase, sourceId, {
+        current_sync_processed: processed,
+        current_sync_stage: "Checking files",
+      });
+      continue;
+    } else {
+      await supabase.from("assistant_external_documents")
+        .update({ ...upsertPayload, status: "pending" }).eq("id", existing.id);
+    }
+
+    if (!docId) {
+      errors.push({ title: driveFile.name || driveFile.id, reason: "Could not resolve document row ID." });
+      processed += 1;
+      await updateExternalSourceProgress(supabase, sourceId, {
+        current_sync_processed: processed,
+        current_sync_stage: "Syncing files",
+      });
+      continue;
+    }
+
+    const { data: docRow } = await supabase
+      .from("assistant_external_documents")
+      .select("id, external_file_id, title, mime_type, source_url, modified_at")
+      .eq("id", docId)
+      .maybeSingle();
+
+    if (!docRow) {
+      errors.push({ title: driveFile.name || driveFile.id, reason: "Document row not found after upsert." });
+      processed += 1;
+      await updateExternalSourceProgress(supabase, sourceId, {
+        current_sync_processed: processed,
+        current_sync_stage: "Syncing files",
+      });
+      continue;
+    }
+
+    const result = await syncExternalDocumentAssistantDocument({ adminSupabase: supabase, externalDoc: docRow, source });
+    if (result.ok) {
+      synced += 1;
+    } else {
+      errors.push({ title: docRow.title, reason: result.error || "Indexing failed." });
+    }
+    processed += 1;
+    await updateExternalSourceProgress(supabase, sourceId, {
+      current_sync_processed: processed,
+      current_sync_stage: "Embedding files",
+    });
+  }
+
+  for (const [fileId, existingDoc] of existingByFileId.entries()) {
+    if (!driveFileIds.has(fileId)) {
+      await deleteAssistantDocument({ adminSupabase: supabase, sourceType: "external_document", sourceId: existingDoc.id });
+      await supabase.from("assistant_external_documents")
+        .update({ status: "skipped", updated_at: new Date().toISOString() }).eq("id", existingDoc.id);
+    }
+  }
+
+  const syncStatus = errors.length === 0 ? "ok" : synced > 0 ? "partial" : "error";
+  await updateExternalSourceProgress(supabase, sourceId, {
+    status: "active",
+    current_sync_processed: 0,
+    current_sync_stage: null,
+    current_sync_started_at: null,
+    current_sync_total: 0,
+    last_synced_at: new Date().toISOString(),
+    last_sync_status: syncStatus,
+    last_sync_error: buildExternalSyncErrorSummary(errors),
+  });
+
+  return { synced, skipped, errors };
+}
+
+export async function deleteExternalSource({ adminSupabase, sourceId }) {
+  const supabase = getAdminClient(adminSupabase);
+  const { data: docs } = await supabase
+    .from("assistant_external_documents").select("id").eq("source_id", sourceId);
+  const docIds = (docs || []).map((d) => d.id);
+  if (docIds.length) {
+    await deleteAssistantDocuments({ adminSupabase: supabase, sourceType: "external_document", sourceIds: docIds });
+  }
+  const { error } = await supabase.from("assistant_external_sources").delete().eq("id", sourceId);
+  if (error) throw error;
 }
 
 export async function syncThreadCommentAssistantDocumentsByThreadId({

@@ -33,6 +33,7 @@ const ALLOWED_SOURCE_TYPES = new Set([
   "event",
   "profile",
   "community_application",
+  "external_document",
 ]);
 
 const ALLOWED_VISIBILITIES = new Set([
@@ -66,6 +67,13 @@ serve(async (req: Request) => {
   }
 
   const { source_type, source_id, content_text, space_id, visibility, metadata } = body;
+
+  if (body?.healthcheck === true) {
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   if (!source_type || !source_id || !content_text?.trim()) {
     return new Response(

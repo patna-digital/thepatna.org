@@ -84,7 +84,7 @@ as $$
     de.visibility,
     de.content_text,
     de.metadata,
-    1 - (de.embedding <=> query_embedding) as similarity
+    1 - (de.embedding OPERATOR(extensions.<=>) query_embedding) as similarity
   from public.document_embeddings de
   where
     (
@@ -101,7 +101,7 @@ as $$
       filter_source_types is null
       or de.source_type = any(filter_source_types)
     )
-  order by de.embedding <=> query_embedding
+  order by de.embedding OPERATOR(extensions.<=>) query_embedding
   limit greatest(match_count, 1);
 $$;
 
