@@ -15,6 +15,7 @@ import {
   fileHasChanged,
   listDriveFolderPdfs,
 } from "./assistant-drive.js";
+import { summarizeSyncErrorReason } from "./assistant-error-format.js";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "./env.js";
 import { createSupabaseAdminClient } from "./supabase/admin.js";
 
@@ -143,19 +144,23 @@ export function summarizeExternalSyncErrors(errors = []) {
 
   for (const error of errors) {
     const reason = String(error?.reason || "Unknown sync error");
-    const normalized = reason.toLowerCase();
+    const detail = summarizeSyncErrorReason(reason);
+    const normalized = detail.toLowerCase();
     let kind = "sync_failed";
     let label = "Sync failed";
-    let detail = reason;
 
-    if (normalized.startsWith("drive api list error")) {
+    if (normalized.includes("google_drive_api_key is not configured")) {
+      kind = "drive_env_missing";
+      label = "Drive API key missing";
+    } else if (normalized.startsWith("drive api list error")) {
       kind = "drive_listing_failed";
       label = "Drive listing failed";
+    } else if (normalized.includes("google drive blocked the request")) {
+      kind = "drive_access_blocked";
+      label = "Drive access blocked";
     } else if (normalized.startsWith("drive api download error")) {
-      kind = normalized.includes("requested function was not found")
-        ? "embedding_function_missing"
-        : "pdf_download_failed";
-      label = kind === "embedding_function_missing" ? "Embedding function missing" : "PDF download failed";
+      kind = "pdf_download_failed";
+      label = "PDF download failed";
     } else if (normalized.includes("pdf produced no extractable text")) {
       kind = "text_extraction_failed";
       label = "Text extraction failed";
