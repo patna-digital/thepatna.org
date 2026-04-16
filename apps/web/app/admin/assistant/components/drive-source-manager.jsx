@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatStoredSyncSummary, summarizeSyncErrorReason } from "@/lib/assistant-error-format";
 import {
   ExternalLink,
   FileText,
@@ -219,6 +220,7 @@ function DriveSourceRow({ source: initialSource, onDeleted }) {
 
   const counts = source.docCounts || {};
   const progress = getSyncProgress(source);
+  const sourceErrorSummary = formatStoredSyncSummary(source.last_sync_error);
   const syncStatusChip = source.last_sync_status === "ok"
     ? <span className="status-chip chip-success">Synced</span>
     : source.last_sync_status === "partial"
@@ -255,9 +257,9 @@ function DriveSourceRow({ source: initialSource, onDeleted }) {
             ) : null}
             <span>Last sync: {formatDate(source.last_synced_at)}</span>
           </div>
-          {source.last_sync_error && (
+          {sourceErrorSummary && (
             <p className="assistant-drive-card-error">
-              {source.last_sync_error}
+              {sourceErrorSummary}
             </p>
           )}
 
@@ -319,7 +321,7 @@ function DriveSourceRow({ source: initialSource, onDeleted }) {
             <div style={{ marginTop: "0.5rem" }}>
               {syncResult.errors.map((e, i) => (
                 <p key={i} style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>
-                  {e.title}: {e.reason}
+                  {e.title}: {summarizeSyncErrorReason(e.reason)}
                 </p>
               ))}
             </div>
@@ -329,7 +331,7 @@ function DriveSourceRow({ source: initialSource, onDeleted }) {
 
       {syncState === "error" && syncResult?.error && (
         <div className="admin-notice admin-notice-error">
-          <p style={{ margin: 0 }}>Sync failed: {syncResult.error}</p>
+          <p style={{ margin: 0 }}>Sync failed: {summarizeSyncErrorReason(syncResult.error)}</p>
         </div>
       )}
     </div>
@@ -344,6 +346,7 @@ export function DriveSourceManager({ initialSources = [] }) {
   const [showForm, setShowForm] = useState(false);
 
   function handleCreated({ source, syncResult }) {
+    const errorCount = syncResult?.errors?.length || 0;
     const newSource = {
       ...source,
       current_sync_processed: 0,
@@ -351,9 +354,17 @@ export function DriveSourceManager({ initialSources = [] }) {
       current_sync_started_at: null,
       current_sync_total: 0,
       last_synced_at: new Date().toISOString(),
-      last_sync_status: syncResult?.errors?.length > 0 ? (syncResult.synced > 0 ? "partial" : "error") : "ok",
-      last_sync_error: syncResult?.errors?.length > 0 ? syncResult.errors.map((e) => `${e.title}: ${e.reason}`).join("; ") : null,
-      docCounts: { total: (syncResult?.synced || 0) + (syncResult?.skipped || 0), indexed: syncResult?.synced || 0, error: syncResult?.errors?.length || 0, pending: 0, skipped: syncResult?.skipped || 0 },
+      last_sync_status: errorCount > 0 ? (syncResult.synced > 0 ? "partial" : "error") : "ok",
+      last_sync_error: errorCount > 0
+        ? syncResult.errors.map((e) => `${e.title}: ${summarizeSyncErrorReason(e.reason)}`).join("; ")
+        : null,
+      docCounts: {
+        total: (syncResult?.synced || 0) + (syncResult?.skipped || 0) + errorCount,
+        indexed: syncResult?.synced || 0,
+        error: errorCount,
+        pending: 0,
+        skipped: syncResult?.skipped || 0,
+      },
     };
     setSources((prev) => [newSource, ...prev]);
     setShowForm(false);

@@ -170,6 +170,21 @@ test("summarizeExternalSyncErrors groups repeated root causes for drive syncs", 
   );
 });
 
+test("summarizeExternalSyncErrors classifies missing Drive env separately", () => {
+  const summary = summarizeExternalSyncErrors([
+    { title: "Sync", reason: "GOOGLE_DRIVE_API_KEY is not configured." },
+  ]);
+
+  assert.deepEqual(summary, [
+    {
+      kind: "drive_env_missing",
+      label: "Drive API key missing",
+      count: 1,
+      detail: "GOOGLE_DRIVE_API_KEY is not configured.",
+    },
+  ]);
+});
+
 test("shouldSyncExternalFile retries unchanged files that previously failed", () => {
   const driveFile = { md5Checksum: "abc", modifiedTime: "2026-04-12T00:00:00.000Z" };
 

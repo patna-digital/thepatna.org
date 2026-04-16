@@ -9,6 +9,7 @@
 //   - PDF files only (application/pdf)
 //   - Manual sync only (no webhooks or scheduled polling)
 
+import { summarizeDriveProviderError } from "./assistant-error-format.js";
 import { getGoogleDriveApiKey, getSiteUrl } from "./env.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -170,6 +171,9 @@ export function fileHasChanged(driveFile, storedChangeKey) {
  */
 async function downloadDriveFile(fileId) {
   const apiKey = getGoogleDriveApiKey();
+  if (!apiKey) {
+    throw new Error("GOOGLE_DRIVE_API_KEY is not configured.");
+  }
   // acknowledgeAbuse=true bypasses the virus-scan confirmation page that Drive
   // returns for large or unscanned files, which otherwise produces a 403 with
   // an HTML body instead of the file bytes.
@@ -251,8 +255,8 @@ function normalizeText(raw) {
 function tryParseGoogleError(body) {
   try {
     const json = JSON.parse(body);
-    return json?.error?.message || body;
+    return summarizeDriveProviderError(json?.error?.message || body);
   } catch {
-    return body || "Unknown error";
+    return summarizeDriveProviderError(body);
   }
 }

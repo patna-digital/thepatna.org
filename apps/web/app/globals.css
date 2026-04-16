@@ -12010,6 +12010,8 @@ dl.compact-list dd {
   margin: 0.45rem 0 0;
   color: #b5472d;
   font-size: var(--text-xs);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 /* Dashboard shell — remove top-heavy sidebar description */
