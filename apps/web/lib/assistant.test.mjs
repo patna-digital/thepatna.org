@@ -14,10 +14,15 @@ test("buildAccessContext exposes member and blocked scopes consistently", () => 
   const accessContext = buildAccessContext({
     canReadAdminContent: false,
     canReadMemberContent: true,
+    externalSources: [
+      { id: "drive_1", indexedCount: 100, title: "IMO MEPC Submissions", visibility: "members" },
+    ],
     spaces: [{ id: "space_1", name: "Policy Cohort", space_type: "cohort" }],
   });
 
   assert.equal(accessContext.permitted[0].name, "Policy Cohort");
+  assert.equal(accessContext.permitted[1].name, "IMO MEPC Submissions");
+  assert.match(accessContext.permitted[1].detail, /100 indexed/);
   assert.equal(
     accessContext.permitted.some((item) => item.name === "Events & Calendar"),
     true,
