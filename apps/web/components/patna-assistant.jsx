@@ -43,6 +43,44 @@ export function PatnaAssistant() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const hasRestoredSessionRef = useRef(false);
+
+  async function refreshAssistantContext({ restoreSession = false } = {}) {
+    try {
+      const response = await fetch("/api/assistant/access", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        setAssistantAvailability("hidden");
+        return;
+      }
+
+      const payload = await response.json();
+
+      if (payload?.accessContext) {
+        setAccessContext(payload.accessContext);
+      }
+
+      if (Array.isArray(payload?.suggestedPrompts) && payload.suggestedPrompts.length > 0) {
+        setSuggestedPrompts(payload.suggestedPrompts);
+      }
+
+      if (typeof payload?.welcomeMessage === "string" && payload.welcomeMessage.trim()) {
+        setWelcomeMessage(payload.welcomeMessage.trim());
+      }
+
+      if (restoreSession && !hasRestoredSessionRef.current) {
+        restoreSessionState();
+        hasRestoredSessionRef.current = true;
+      }
+
+      setAssistantAvailability("ready");
+    } catch (error) {
+      console.error("Failed to load assistant access context:", error);
+      setAssistantAvailability("hidden");
+    }
+  }
 
   function restoreSessionState() {
     if (typeof window === "undefined") {
@@ -72,53 +110,7 @@ export function PatnaAssistant() {
 
   // ── Load assistant access context from the server on mount ─────────────────
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadAssistantContext() {
-      try {
-        const response = await fetch("/api/assistant/access", {
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          if (isMounted) {
-            setAssistantAvailability("hidden");
-          }
-          return;
-        }
-
-        const payload = await response.json();
-        if (!isMounted) {
-          return;
-        }
-
-        if (payload?.accessContext) {
-          setAccessContext(payload.accessContext);
-        }
-
-        if (Array.isArray(payload?.suggestedPrompts) && payload.suggestedPrompts.length > 0) {
-          setSuggestedPrompts(payload.suggestedPrompts);
-        }
-
-        if (typeof payload?.welcomeMessage === "string" && payload.welcomeMessage.trim()) {
-          setWelcomeMessage(payload.welcomeMessage.trim());
-        }
-
-        restoreSessionState();
-        setAssistantAvailability("ready");
-      } catch (error) {
-        console.error("Failed to load assistant access context:", error);
-        if (isMounted) {
-          setAssistantAvailability("hidden");
-        }
-      }
-    }
-
-    loadAssistantContext();
-
-    return () => {
-      isMounted = false;
-    };
+    refreshAssistantContext({ restoreSession: true });
   }, []);
 
   useEffect(() => {
@@ -149,6 +141,14 @@ export function PatnaAssistant() {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen, showAccess]);
+
+  useEffect(() => {
+    if (!showAccess) {
+      return;
+    }
+
+    refreshAssistantContext();
+  }, [showAccess]);
 
   // ── Lock background scroll while the mobile overlay is open ──────────────
   useEffect(() => {

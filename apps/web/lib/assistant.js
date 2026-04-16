@@ -328,6 +328,7 @@ function buildCurrentDateLine() {
 export async function resolveAssistantAccessScope({ supabase, userId, isAdmin = false }) {
   if (!supabase || !userId) {
     return {
+      externalSources: [],
       userId: "",
       isAdmin: false,
       canReadMemberContent: false,
@@ -349,6 +350,7 @@ export async function resolveAssistantAccessScope({ supabase, userId, isAdmin = 
   const spaces = (memberships || []).map((row) => row.spaces).filter(Boolean);
 
   return {
+    externalSources: [],
     userId,
     isAdmin: Boolean(isAdmin),
     canReadMemberContent: true,
@@ -358,8 +360,31 @@ export async function resolveAssistantAccessScope({ supabase, userId, isAdmin = 
   };
 }
 
+function buildExternalSourceAccessItems(externalSources = []) {
+  const visibleSources = [...externalSources]
+    .filter((source) => source?.title)
+    .sort((left, right) => String(left.title).localeCompare(String(right.title)));
+
+  const sourceItems = visibleSources.slice(0, 3).map((source) => ({
+    name: source.title,
+    detail: source.indexedCount > 0
+      ? `Google Drive PDFs · ${source.indexedCount} indexed`
+      : "Google Drive PDFs",
+  }));
+
+  if (visibleSources.length > 3) {
+    sourceItems.push({
+      name: "More Google Drive sources",
+      detail: `${visibleSources.length - 3} additional synced folders`,
+    });
+  }
+
+  return sourceItems;
+}
+
 export function buildAccessContext(accessScope) {
   const spaces = accessScope?.spaces || [];
+  const externalSources = accessScope?.externalSources || [];
   const permitted = [
     ...spaces.map((space) => ({
       name: space.name,
@@ -367,6 +392,7 @@ export function buildAccessContext(accessScope) {
         ? "Discussions, members, documents"
         : "Discussions, members",
     })),
+    ...buildExternalSourceAccessItems(externalSources),
     {
       name: "Insights Hub",
       detail: "All published content",
