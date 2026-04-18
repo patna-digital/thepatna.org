@@ -12040,6 +12040,377 @@ dl.compact-list dd {
   margin-top: 0;
 }
 
+/* ── Collapsible admin section ──────────────────────────────────────────── */
+
+.admin-collapsible {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-collapsible-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.admin-collapsible-header:hover {
+  background: rgba(209, 232, 245, 0.18);
+}
+
+.admin-collapsible-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.admin-collapsible-title-group .admin-section-title {
+  font-size: var(--text-md);
+}
+
+.admin-collapsible-badge {
+  display: flex;
+}
+
+.admin-collapsible-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.admin-collapsible-meta {
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.admin-collapsible-chevron {
+  color: var(--ink-soft);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.admin-collapsible-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.admin-collapsible-body {
+  padding: 0 1.5rem 1.5rem;
+}
+
+/* ── Assistant page intro bar ───────────────────────────────────────────── */
+
+.assistant-intro-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--blue-pale);
+  border: 1px solid rgba(209, 232, 245, 0.8);
+  border-radius: var(--radius-xl);
+  flex-wrap: wrap;
+}
+
+.assistant-intro-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--blue-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.assistant-intro-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+/* ── Section hint (replaces description in header for body use) ─────────── */
+
+.assistant-section-hint {
+  margin: 0 0 1.1rem;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+/* ── Drive source manager ───────────────────────────────────────────────── */
+
+.assistant-drive-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.assistant-drive-add-btn {
+  align-self: flex-start;
+}
+
+.assistant-drive-form-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.assistant-drive-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Drive source card */
+.assistant-drive-card {
+  gap: 0.5rem;
+}
+
+.assistant-drive-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.assistant-drive-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.assistant-drive-card-name {
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.assistant-drive-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.assistant-drive-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--text-xs);
+}
+
+.assistant-drive-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* Stats row */
+.assistant-drive-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.75rem;
+  background: rgba(209, 232, 245, 0.2);
+  border-radius: calc(var(--radius-xl) - 4px);
+}
+
+.assistant-drive-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.assistant-drive-stat strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.assistant-drive-stat.tone-success strong { color: #1d8e54; }
+.assistant-drive-stat.tone-error strong   { color: #c0392b; }
+.assistant-drive-stat.tone-muted strong   { color: var(--ink-soft); }
+
+.assistant-sync-error-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+}
+
+.assistant-sync-error-list li {
+  margin: 0.2rem 0;
+}
+
+/* ── Staged add progress panel ──────────────────────────────────────────── */
+
+.assistant-add-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--blue-pale);
+  border: 1px solid rgba(209, 232, 245, 0.9);
+  border-radius: var(--radius-xl);
+}
+
+.assistant-add-progress-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.assistant-add-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.assistant-add-stage {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+
+.assistant-add-stage.is-active {
+  opacity: 1;
+  color: var(--blue-dark);
+  font-weight: 600;
+}
+
+.assistant-add-stage.is-done {
+  opacity: 0.65;
+  color: #1d8e54;
+}
+
+.assistant-add-stage-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+.assistant-add-stage.is-active .assistant-add-stage-dot {
+  border-color: var(--blue-bright);
+}
+
+.assistant-add-stage.is-done .assistant-add-stage-dot {
+  background: #eef8f1;
+  border-color: #1d8e54;
+}
+
+/* Indeterminate shimmer variant for progress bar */
+.assistant-sync-progress-indeterminate {
+  width: 35% !important;
+  animation: progress-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes progress-shimmer {
+  0%   { transform: translateX(-200%); }
+  100% { transform: translateX(500%); }
+}
+
+/* Spin utility */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Data sources table ─────────────────────────────────────────────────── */
+
+.assistant-sources-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.assistant-sources-table thead tr {
+  border-bottom: 2px solid rgba(209, 232, 245, 0.8);
+}
+
+.assistant-sources-table th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.assistant-sources-table th:nth-child(2),
+.assistant-sources-table td:nth-child(2) {
+  text-align: right;
+}
+
+.assistant-sources-table th:last-child,
+.assistant-sources-table td:last-child {
+  text-align: right;
+}
+
+.assistant-sources-table tbody tr {
+  border-bottom: 1px solid rgba(209, 232, 245, 0.5);
+  transition: background 0.1s;
+}
+
+.assistant-sources-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.assistant-sources-table tbody tr:hover {
+  background: rgba(209, 232, 245, 0.15);
+}
+
+.assistant-sources-table td {
+  padding: 0.65rem 0.75rem;
+  vertical-align: middle;
+}
+
+.assistant-sources-table-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.assistant-sources-table-count {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--blue-dark);
+}
+
 /* Responsive overrides for admin UI */
 @media (max-width: 1100px) {
   .assistant-source-grid {
@@ -12060,6 +12431,18 @@ dl.compact-list dd {
   .admin-section,
   .assistant-page-intro-card {
     padding: 1rem;
+  }
+
+  .admin-collapsible-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .admin-collapsible-body {
+    padding: 0 1rem 1.25rem;
+  }
+
+  .admin-collapsible-meta {
+    display: none;
   }
 
   .assistant-page-nav {

@@ -19,7 +19,7 @@ import { getGoogleDriveApiKey, getSiteUrl } from "./env.js";
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
 const SUPPORTED_MIME_TYPES = new Set(["application/pdf"]);
 const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB per file
-const MAX_FILES_PER_SYNC = 100;
+const DRIVE_LIST_PAGE_SIZE = 100; // Drive API max per-page is 1000; 100 is a safe default
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HTTP headers for server-side Drive API calls
@@ -101,29 +101,35 @@ export async function listDriveFolderPdfs(folderId) {
 
   const fields = "nextPageToken,files(id,name,mimeType,modifiedTime,md5Checksum,webViewLink,size)";
   const q = encodeURIComponent(`'${folderId}' in parents and mimeType='application/pdf' and trashed=false`);
-  const url =
+  const baseUrl =
     `${DRIVE_API_BASE}/files` +
     `?q=${q}` +
     `&fields=${encodeURIComponent(fields)}` +
-    `&pageSize=${MAX_FILES_PER_SYNC}` +
+    `&pageSize=${DRIVE_LIST_PAGE_SIZE}` +
     `&supportsAllDrives=true` +
     `&includeItemsFromAllDrives=true` +
     `&key=${encodeURIComponent(apiKey)}`;
 
-  const res = await fetch(url, {
-    headers: driveApiHeaders(),
-  });
+  const allFiles = [];
+  let pageToken = null;
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    const detail = tryParseGoogleError(body);
-    throw new Error(`Drive API list error (${res.status}): ${detail}`);
-  }
+  do {
+    const url = pageToken ? `${baseUrl}&pageToken=${encodeURIComponent(pageToken)}` : baseUrl;
+    const res = await fetch(url, { headers: driveApiHeaders() });
 
-  const json = await res.json();
-  const files = (json.files || []).filter((f) => SUPPORTED_MIME_TYPES.has(f.mimeType));
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      const detail = tryParseGoogleError(body);
+      throw new Error(`Drive API list error (${res.status}): ${detail}`);
+    }
 
-  return files;
+    const json = await res.json();
+    const page = (json.files || []).filter((f) => SUPPORTED_MIME_TYPES.has(f.mimeType));
+    allFiles.push(...page);
+    pageToken = json.nextPageToken || null;
+  } while (pageToken);
+
+  return allFiles;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -89,9 +89,10 @@ export function summarizeSyncErrorReason(value) {
 }
 
 export function formatStoredSyncSummary(value) {
-  return String(value || "")
+  if (!value) return "";
+  return String(value)
     .split(/\s*;\s+/)
-    .map((part) => summarizeSyncErrorReason(part))
+    .map((part) => (part.trim() ? summarizeSyncErrorReason(part) : ""))
     .filter(Boolean)
     .join("\n");
 }
