@@ -6,23 +6,25 @@ import { requireAdminContext } from "@/lib/supabase/access";
 import {
   Activity,
   BookOpenText,
+  CheckCircle2,
   Database,
   FolderOpen,
   RefreshCw,
-  ShieldCheck,
   Sparkles,
+  TriangleAlert,
 } from "lucide-react";
 import { AssistantReindexButton } from "./components/assistant-reindex-button";
+import { CollapsibleSection } from "./components/collapsible-section";
 import { DriveSourceManager } from "./components/drive-source-manager";
 
 const SOURCE_TYPE_LABELS = {
-  thread: "Discussions (threads)",
-  comment: "Discussion replies",
-  content_item: "Publications (Insights Hub)",
-  event: "Events & Calendar",
-  profile: "Member Directory",
+  thread: "Discussions",
+  comment: "Replies",
+  content_item: "Publications",
+  event: "Events",
+  profile: "Members",
   community_application: "Applications",
-  external_document: "Uploaded documents",
+  external_document: "Uploaded docs",
 };
 
 const SOURCE_TYPES = Object.keys(SOURCE_TYPE_LABELS);
@@ -33,7 +35,7 @@ function formatDate(value) {
   if (Number.isNaN(parsed.getTime())) return "Unknown";
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
-    month: "long",
+    month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -73,11 +75,19 @@ export default async function AdminAssistantPage() {
     fetchAssistantIndexStats({ adminSupabase }),
     fetchDriveSources(adminSupabase),
   ]);
+
   const bySourceType = SOURCE_TYPES.map((sourceType) => {
     const match = stats.bySourceType.find((item) => item.sourceType === sourceType);
     return match || { sourceType, count: null };
   });
+
   const failingChecks = Object.values(stats.health.checks).filter((check) => !check.ok);
+  const activeSourceCount = stats.bySourceType.filter((r) => (r.count ?? 0) > 0).length;
+  const emptySourceCount = bySourceType.filter((r) => (r.count ?? 0) === 0).length;
+
+  const healthBadge = stats.health.isReady
+    ? <span className="status-chip chip-success"><CheckCircle2 size={11} /> Healthy</span>
+    : <span className="status-chip chip-error"><TriangleAlert size={11} /> Issue detected</span>;
 
   return (
     <DashboardShell
@@ -86,111 +96,81 @@ export default async function AdminAssistantPage() {
       eyebrow="AI"
       navItems={adminNav}
       title="PATNA Assistant"
-      subtitle="Manage the AI assistant index and data sources."
+      subtitle="Manage the AI knowledge index and connected data sources."
     >
       <div className="assistant-admin-page">
-        <section className="assistant-page-intro-card">
-          <div className="assistant-page-intro-copy">
-            <div className="assistant-page-intro-label">
-              <Sparkles size={14} />
-              <span>System overview</span>
-            </div>
-            <h2>Keep the assistant easy to understand, current, and healthy.</h2>
-            <p>
-              This page is organised around three jobs: checking index health,
-              reviewing connected knowledge sources, and syncing new material
-              without reprocessing everything.
-            </p>
-          </div>
 
-          <div className="assistant-page-nav" aria-label="Assistant page sections">
-            <a className="assistant-page-nav-link" href="#assistant-health">
-              <Activity size={14} />
-              <span>Health</span>
-            </a>
-            <a className="assistant-page-nav-link" href="#assistant-sources">
-              <BookOpenText size={14} />
-              <span>Source types</span>
-            </a>
-            <a className="assistant-page-nav-link" href="#assistant-drive">
-              <FolderOpen size={14} />
-              <span>Drive folders</span>
-            </a>
-            <a className="assistant-page-nav-link" href="#assistant-sync">
-              <RefreshCw size={14} />
-              <span>Sync</span>
-            </a>
+        {/* ── Intro ─────────────────────────────────────────────────────── */}
+        <div className="assistant-intro-bar">
+          <div className="assistant-intro-label">
+            <Sparkles size={13} />
+            <span>How this page works</span>
           </div>
-        </section>
+          <p className="assistant-intro-text">
+            Check index health, review connected data sources, add Google Drive folders, and
+            run an incremental sync after publishing new content. Each section can be
+            collapsed once you&apos;re familiar.
+          </p>
+        </div>
 
-        {!stats.health.isReady && (
-          <div className="admin-section">
-            <div className="admin-notice admin-notice-error">
+        {/* ── Health ────────────────────────────────────────────────────── */}
+        <CollapsibleSection
+          id="assistant-health"
+          icon={<Activity size={15} />}
+          title="Index health"
+          badge={healthBadge}
+          meta={`Last indexed: ${formatDate(stats.lastIndexedAt)}`}
+          defaultOpen
+        >
+          {!stats.health.isReady && (
+            <div className="admin-notice admin-notice-error" style={{ marginBottom: "1rem" }}>
               <strong>{stats.health.issueSummary}</strong>
-              <div style={{ marginTop: "0.5rem" }}>
-                {failingChecks.map((check) => (
-                  <p key={check.description} style={{ margin: "0.25rem 0" }}>
-                    {check.description}: {check.error?.message || "Unavailable"}
-                  </p>
-                ))}
-              </div>
+              {failingChecks.map((check) => (
+                <p key={check.description} style={{ margin: "0.25rem 0 0" }}>
+                  {check.description}: {check.error?.message || "Unavailable"}
+                </p>
+              ))}
             </div>
-          </div>
-        )}
-
-        <section className="admin-section" id="assistant-health">
-          <div className="admin-section-header">
-            <div className="admin-section-heading">
-              <span className="admin-section-icon">
-                <ShieldCheck size={16} />
-              </span>
-              <h2 className="admin-section-title">Index health</h2>
-            </div>
-            <p className="admin-section-description">
-              Last indexed: {formatDate(stats.lastIndexedAt)}
-            </p>
-          </div>
+          )}
 
           <div className="admin-stat-grid admin-stat-grid-3">
             <div className="admin-stat-card">
-              <strong>{stats.total}</strong>
+              <strong>{stats.total.toLocaleString()}</strong>
               <h4>Total documents</h4>
-              <p>Across all sources</p>
+              <p>Indexed across all sources</p>
             </div>
             <div className="admin-stat-card tone-success">
-              <strong>{stats.bySourceType.filter((r) => (r.count ?? 0) > 0).length}</strong>
+              <strong>{activeSourceCount}</strong>
               <h4>Active sources</h4>
               <p>Sources with indexed content</p>
             </div>
-            <div className="admin-stat-card tone-muted">
-              <strong>{bySourceType.filter((r) => (r.count ?? 0) === 0).length}</strong>
+            <div className={`admin-stat-card ${emptySourceCount > 0 ? "tone-muted" : "tone-success"}`}>
+              <strong>{emptySourceCount}</strong>
               <h4>Empty sources</h4>
               <p>{stats.health.isReady ? "Not yet indexed" : "Infra not ready"}</p>
             </div>
           </div>
-        </section>
+        </CollapsibleSection>
 
-        <section className="admin-section" id="assistant-sources">
-          <div className="admin-section-header">
-            <div className="admin-section-heading">
-              <span className="admin-section-icon">
-                <Database size={16} />
-              </span>
-              <h2 className="admin-section-title">Data sources</h2>
-            </div>
-            <p className="admin-section-description">
-              Documents indexed by source type. Run a full reindex from the CLI
-              with <code>pnpm assistant:reindex</code>.
-            </p>
-          </div>
-
+        {/* ── Data sources ──────────────────────────────────────────────── */}
+        <CollapsibleSection
+          id="assistant-sources"
+          icon={<Database size={15} />}
+          title="Data sources"
+          meta={`${stats.total.toLocaleString()} documents`}
+          defaultOpen
+        >
+          <p className="assistant-section-hint">
+            Documents indexed by source type. Run a full reindex from the CLI with{" "}
+            <code>pnpm assistant:reindex</code>.
+          </p>
           <div className="assistant-source-grid">
             {bySourceType.map(({ sourceType, count }) => (
               <article className="assistant-source-card" key={sourceType}>
                 <div className="assistant-source-card-top">
                   <h3>{SOURCE_TYPE_LABELS[sourceType]}</h3>
                   {!stats.health.isReady ? (
-                    <span className="status-chip chip-error">Not deployed</span>
+                    <span className="status-chip chip-error">No infra</span>
                   ) : count === null ? (
                     <span className="status-chip chip-error">Error</span>
                   ) : count === 0 ? (
@@ -199,44 +179,42 @@ export default async function AdminAssistantPage() {
                     <span className="status-chip chip-success">Indexed</span>
                   )}
                 </div>
-                <strong>{count ?? "—"}</strong>
-                <p>Indexed documents available to the assistant.</p>
+                <strong>{count != null ? count.toLocaleString() : "—"}</strong>
+                <p>documents</p>
               </article>
             ))}
           </div>
-        </section>
+        </CollapsibleSection>
 
-        <section className="admin-section" id="assistant-drive">
-          <div className="admin-section-header">
-            <div className="admin-section-heading">
-              <span className="admin-section-icon">
-                <FolderOpen size={16} />
-              </span>
-              <h2 className="admin-section-title">Google Drive sources</h2>
-            </div>
-            <p className="admin-section-description">
-              Add publicly shared Google Drive folders to make their PDF files searchable
-              by the assistant. Sync is manual — use "Sync now" after adding new files.
-            </p>
-          </div>
+        {/* ── Drive sources ─────────────────────────────────────────────── */}
+        <CollapsibleSection
+          id="assistant-drive"
+          icon={<FolderOpen size={15} />}
+          title="Google Drive folders"
+          meta={driveSources.length > 0 ? `${driveSources.length} source${driveSources.length !== 1 ? "s" : ""}` : undefined}
+          defaultOpen
+        >
+          <p className="assistant-section-hint">
+            Add publicly shared Google Drive folders to make their PDF files searchable by the
+            assistant. Sync is manual — use <strong>Sync now</strong> after adding new files to a folder.
+          </p>
           <DriveSourceManager initialSources={driveSources} />
-        </section>
+        </CollapsibleSection>
 
-        <section className="admin-section" id="assistant-sync">
-          <div className="admin-section-header">
-            <div className="admin-section-heading">
-              <span className="admin-section-icon">
-                <RefreshCw size={16} />
-              </span>
-              <h2 className="admin-section-title">Incremental sync</h2>
-            </div>
-            <p className="admin-section-description">
-              Sync the most recently updated records for each source type without
-              clearing existing embeddings. Use this after publishing new content.
-            </p>
-          </div>
+        {/* ── Incremental sync ──────────────────────────────────────────── */}
+        <CollapsibleSection
+          id="assistant-sync"
+          icon={<RefreshCw size={15} />}
+          title="Incremental sync"
+          defaultOpen={false}
+        >
+          <p className="assistant-section-hint">
+            Re-indexes the 20 most recently updated records for each data source without clearing
+            existing embeddings. Use this after publishing new community content.
+          </p>
           <AssistantReindexButton health={stats.health} />
-        </section>
+        </CollapsibleSection>
+
       </div>
     </DashboardShell>
   );
