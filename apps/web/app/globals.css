@@ -12349,12 +12349,66 @@ dl.compact-list dd {
   to   { transform: rotate(360deg); }
 }
 
-/* ── Source type grid (updated label/count layout) ──────────────────────── */
+/* ── Data sources table ─────────────────────────────────────────────────── */
 
-.assistant-source-card p {
+.assistant-sources-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.assistant-sources-table thead tr {
+  border-bottom: 2px solid rgba(209, 232, 245, 0.8);
+}
+
+.assistant-sources-table th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
   font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--ink-soft);
-  margin: 0.15rem 0 0;
+  white-space: nowrap;
+}
+
+.assistant-sources-table th:nth-child(2),
+.assistant-sources-table td:nth-child(2) {
+  text-align: right;
+}
+
+.assistant-sources-table th:last-child,
+.assistant-sources-table td:last-child {
+  text-align: right;
+}
+
+.assistant-sources-table tbody tr {
+  border-bottom: 1px solid rgba(209, 232, 245, 0.5);
+  transition: background 0.1s;
+}
+
+.assistant-sources-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.assistant-sources-table tbody tr:hover {
+  background: rgba(209, 232, 245, 0.15);
+}
+
+.assistant-sources-table td {
+  padding: 0.65rem 0.75rem;
+  vertical-align: middle;
+}
+
+.assistant-sources-table-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.assistant-sources-table-count {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--blue-dark);
 }
 
 /* Responsive overrides for admin UI */

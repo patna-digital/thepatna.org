@@ -1,6 +1,10 @@
 // GET  /api/admin/assistant/external-sources  — list all sources with document counts
 // POST /api/admin/assistant/external-sources  — create a new Drive folder source
 
+// Allow up to 5 minutes — initial sync of a new Drive folder involves per-file
+// PDF downloads, text extraction, and embedding calls.
+export const maxDuration = 300;
+
 import { NextResponse } from "next/server";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";

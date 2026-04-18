@@ -14,6 +14,19 @@ import {
   X,
 } from "lucide-react";
 
+/**
+ * Parse a fetch Response as JSON without throwing on non-JSON bodies.
+ * Returns an empty object when the body can't be parsed (e.g. HTML timeout pages).
+ */
+async function safeJson(res) {
+  try {
+    const text = await res.text();
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
 const VISIBILITY_LABELS = {
   public: "Public",
   members: "Members",
@@ -113,10 +126,10 @@ function AddDriveSourceForm({ onCreated, onCancel }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
+      const data = await safeJson(res);
       clearTimeout(t1);
       clearTimeout(t2);
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      if (!res.ok) throw new Error(data?.error || `Server error (${res.status}). Please try again.`);
       setForm({ title: "", source_url: "", visibility: "members" });
       setState("idle");
       onCreated(data);
@@ -247,13 +260,13 @@ function DriveSourceRow({ source: initialSource, onDeleted }) {
     }));
     try {
       const res = await fetch(`/api/admin/assistant/external-sources/${source.id}/sync`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      const data = await safeJson(res);
+      if (!res.ok) throw new Error(data?.error || `Server error (${res.status}). Please try again.`);
       setSyncResult(data);
       setSyncState("done");
       const listRes = await fetch("/api/admin/assistant/external-sources");
       if (listRes.ok) {
-        const listData = await listRes.json();
+        const listData = await safeJson(listRes);
         const updated = (listData.sources || []).find((s) => s.id === source.id);
         if (updated) setSource(updated);
       }
@@ -268,8 +281,8 @@ function DriveSourceRow({ source: initialSource, onDeleted }) {
     setDeleteState("deleting");
     try {
       const res = await fetch(`/api/admin/assistant/external-sources/${source.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      const data = await safeJson(res);
+      if (!res.ok) throw new Error(data?.error || `Server error (${res.status}). Please try again.`);
       onDeleted(source.id);
     } catch (err) {
       setSyncResult({ error: err.message });

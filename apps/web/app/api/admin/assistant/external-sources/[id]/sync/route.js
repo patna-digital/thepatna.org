@@ -2,6 +2,10 @@
 // Re-syncs a single Drive folder source: lists current PDFs, upserts changed
 // files, removes files no longer present, refreshes embeddings.
 
+// Allow up to 5 minutes — syncing large Drive folders involves per-file PDF
+// downloads, text extraction, and embedding calls that easily exceed 60 s.
+export const maxDuration = 300;
+
 import { NextResponse } from "next/server";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";

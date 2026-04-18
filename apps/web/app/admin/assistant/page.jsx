@@ -164,26 +164,38 @@ export default async function AdminAssistantPage() {
             Documents indexed by source type. Run a full reindex from the CLI with{" "}
             <code>pnpm assistant:reindex</code>.
           </p>
-          <div className="assistant-source-grid">
-            {bySourceType.map(({ sourceType, count }) => (
-              <article className="assistant-source-card" key={sourceType}>
-                <div className="assistant-source-card-top">
-                  <h3>{SOURCE_TYPE_LABELS[sourceType]}</h3>
-                  {!stats.health.isReady ? (
-                    <span className="status-chip chip-error">No infra</span>
-                  ) : count === null ? (
-                    <span className="status-chip chip-error">Error</span>
-                  ) : count === 0 ? (
-                    <span className="status-chip chip-muted">Empty</span>
-                  ) : (
-                    <span className="status-chip chip-success">Indexed</span>
-                  )}
-                </div>
-                <strong>{count != null ? count.toLocaleString() : "—"}</strong>
-                <p>documents</p>
-              </article>
-            ))}
-          </div>
+          <table className="assistant-sources-table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Documents</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bySourceType.map(({ sourceType, count }) => (
+                <tr key={sourceType}>
+                  <td className="assistant-sources-table-name">
+                    {SOURCE_TYPE_LABELS[sourceType]}
+                  </td>
+                  <td className="assistant-sources-table-count">
+                    {count != null ? count.toLocaleString() : "—"}
+                  </td>
+                  <td>
+                    {!stats.health.isReady ? (
+                      <span className="status-chip chip-error">No infra</span>
+                    ) : count === null ? (
+                      <span className="status-chip chip-error">Error</span>
+                    ) : count === 0 ? (
+                      <span className="status-chip chip-muted">Empty</span>
+                    ) : (
+                      <span className="status-chip chip-success">Indexed</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CollapsibleSection>
 
         {/* ── Drive sources ─────────────────────────────────────────────── */}
