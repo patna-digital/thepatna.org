@@ -7,7 +7,7 @@ import { requireAdminContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { syncExternalSource } from "@/lib/assistant-indexing";
 
-export async function POST(_request, { params }) {
+export async function POST(request, { params }) {
   try {
     await requireAdminContext();
   } catch {
@@ -20,9 +20,10 @@ export async function POST(_request, { params }) {
   }
 
   const adminSupabase = createSupabaseAdminClient();
+  const force = new URL(request.url).searchParams.get("force") === "1";
 
   try {
-    const result = await syncExternalSource({ adminSupabase, sourceId: id });
+    const result = await syncExternalSource({ adminSupabase, force, sourceId: id });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Sync failed." }, { status: 500 });

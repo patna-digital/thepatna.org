@@ -116,6 +116,7 @@ export async function checkAssistantMatchRpc({ adminSupabase }) {
   const { error } = await adminSupabase.rpc("match_assistant_documents", {
     allow_admin_content: false,
     allow_member_content: false,
+    filter_external_source_ids: [],
     filter_source_types: [],
     filter_space_ids: [],
     match_count: 1,
@@ -230,6 +231,7 @@ export async function fetchAssistantIndexStats({ adminSupabase = null, fetchImpl
     "event",
     "profile",
     "community_application",
+    "external_document",
   ];
 
   const results = await Promise.all(

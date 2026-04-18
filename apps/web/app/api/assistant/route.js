@@ -11,11 +11,73 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { getAnthropicApiKey } from "@/lib/env";
 import {
-  resolveAssistantAccessScope,
-  retrieveAssistantEvidence,
+  ASSISTANT_TOOLS,
+  buildAssistantQueryPlan,
   buildSystemPrompt,
-  buildContextBlock,
+  executeAssistantTool,
+  resolveAccessibleExternalSources,
+  resolveAssistantAccessScope,
+  resolveSelectedAssistantScopes,
 } from "@/lib/assistant";
+
+const WORKFLOW_STAGE_LABELS = {
+  answer: "Drafting answer",
+  planning: "Understanding your request",
+  search: "Inspecting matching records",
+  snapshot: "Checking PATNA sources",
+};
+
+function buildScopeSummary(activeScope) {
+  const selectedLabels = Array.isArray(activeScope?.selectedLabels)
+    ? activeScope.selectedLabels
+    : [];
+
+  if (!selectedLabels.length) {
+    return "No PATNA sources were selected for this answer.";
+  }
+
+  return `Using: ${selectedLabels.join(", ")}.`;
+}
+
+function getToolStageId(toolName) {
+  if (toolName === "plan_patna_query") {
+    return "planning";
+  }
+
+  if (toolName === "get_patna_snapshot") {
+    return "snapshot";
+  }
+
+  if (toolName === "search_patna_documents" || toolName === "get_patna_document") {
+    return "search";
+  }
+
+  return "answer";
+}
+
+function formatAssistantError(error) {
+  const message = String(error?.message || "");
+
+  if (/unauthorized/i.test(message)) {
+    return "Your session has expired. Please refresh the page and sign in again.";
+  }
+
+  return "PATNA Assistant encountered an error. Please try again.";
+}
+
+function buildPreloadedToolResultsBlock(results = []) {
+  if (!results.length) {
+    return "";
+  }
+
+  return [
+    "",
+    "PRELOADED PATNA TOOL RESULTS:",
+    ...results.map(({ toolName, result }, index) =>
+      `${index + 1}. ${toolName}\n${JSON.stringify(result, null, 2)}`
+    ),
+  ].join("\n\n");
+}
 
 export async function POST(request) {
   // ── 1. Authenticate ──────────────────────────────────────────────────────
@@ -29,9 +91,9 @@ export async function POST(request) {
   }
 
   // ── 2. Parse request body ─────────────────────────────────────────────────
-  let message, history;
+  let history, message, selectedScopeIds;
   try {
-    ({ message, history = [] } = await request.json());
+    ({ message, history = [], selectedScopeIds = null } = await request.json());
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -49,6 +111,18 @@ export async function POST(request) {
     supabase,
     userId: user.id,
   });
+  accessScope.externalSources = await resolveAccessibleExternalSources(accessScope, supabase);
+  const activeScope = resolveSelectedAssistantScopes({
+    accessScope,
+    selectedScopeIds,
+  });
+
+  if (Array.isArray(selectedScopeIds) && !activeScope.hasAnyScope) {
+    return NextResponse.json(
+      { error: "Select at least one assistant content scope." },
+      { status: 400 },
+    );
+  }
 
   let adminSupabase = null;
   try {
@@ -57,55 +131,214 @@ export async function POST(request) {
     console.error("Assistant admin client unavailable:", error);
   }
 
-  let evidence = [];
-  try {
-    evidence = await retrieveAssistantEvidence({
-      accessScope,
-      message,
-      semanticSupabase: adminSupabase,
-      supabase: adminSupabase || supabase,
-    });
-  } catch (err) {
-    console.error("Assistant evidence retrieval error:", err);
-  }
-
-  // ── 4. Build Claude prompt ────────────────────────────────────────────────
-  const systemPrompt = buildSystemPrompt({ accessScope, profile });
-  const contextBlock = buildContextBlock(evidence);
-
-  // ── 5. Stream Claude response ─────────────────────────────────────────────
-  const anthropic = new Anthropic({ apiKey: getAnthropicApiKey() });
+  // ── 4. Build system prompt ────────────────────────────────────────────────
+  const systemPrompt = buildSystemPrompt({ accessScope, activeScope, profile });
+  const initialQueryPlan = buildAssistantQueryPlan({
+    accessScope,
+    activeScope,
+    message,
+  });
 
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
+      const anthropic = new Anthropic({ apiKey: getAnthropicApiKey() });
+      const conversation = [
+        ...recentHistory.map((h) => ({ role: h.role, content: h.content })),
+        { role: "user", content: message },
+      ];
+      const MAX_TOOL_ROUNDS = 4;
+
+      function emit(event) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      }
 
       try {
-        const claudeStream = anthropic.messages.stream({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1024,
-          system: systemPrompt + contextBlock,
-          messages: [
-            ...recentHistory.map((h) => ({ role: h.role, content: h.content })),
-            { role: "user", content: message },
-          ],
+        emit({
+          kind: "scope",
+          scopeSummary: buildScopeSummary(activeScope),
+        });
+        emit({
+          kind: "stage",
+          stageId: "planning",
+          label: WORKFLOW_STAGE_LABELS.planning,
+          status: "in_progress",
+          summary: "Working out the best PATNA retrieval path for your request.",
+        });
+        emit({
+          kind: "stage",
+          stageId: "planning",
+          label: WORKFLOW_STAGE_LABELS.planning,
+          status: "completed",
+          summary: initialQueryPlan.summary,
         });
 
-        for await (const event of claudeStream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            controller.enqueue(encoder.encode(event.delta.text));
+        const preloadedToolResults = [];
+
+        for (const task of initialQueryPlan.tasks) {
+          if (task.toolName === "plan_patna_query") {
+            continue;
           }
+
+          const stageId = getToolStageId(task.toolName);
+          emit({
+            kind: "stage",
+            stageId,
+            label: WORKFLOW_STAGE_LABELS[stageId],
+            status: "in_progress",
+            summary: task.reason,
+          });
+
+          const toolResult = await executeAssistantTool({
+            toolName: task.toolName,
+            toolInput:
+              task.toolName === "get_patna_document"
+                ? { title_query: initialQueryPlan.namedDocumentReference || message }
+                : {
+                    query: message,
+                    source_types: initialQueryPlan.preferredSourceTypes.length
+                      ? initialQueryPlan.preferredSourceTypes
+                      : undefined,
+                  },
+            accessScope,
+            activeScope,
+            supabase,
+            semanticSupabase: adminSupabase,
+            queryPlan: initialQueryPlan,
+          });
+
+          preloadedToolResults.push({
+            toolName: task.toolName,
+            result: toolResult,
+          });
+
+          if (Array.isArray(toolResult?.sourceSummaries) && toolResult.sourceSummaries.length) {
+            emit({
+              kind: "source_summaries",
+              sourceSummaries: toolResult.sourceSummaries,
+            });
+          }
+
+          emit({
+            kind: "stage",
+            stageId,
+            label: WORKFLOW_STAGE_LABELS[stageId],
+            status: "completed",
+            summary: toolResult?.summary || task.reason,
+          });
         }
-      } catch (err) {
-        console.error("Claude streaming error:", err);
-        controller.enqueue(
-          encoder.encode(
-            "\n\n[PATNA Assistant encountered an error. Please try again.]"
-          )
-        );
+
+        emit({
+          kind: "stage",
+          stageId: "answer",
+          label: WORKFLOW_STAGE_LABELS.answer,
+          status: "in_progress",
+          summary: "Drafting a response from the retrieved PATNA evidence.",
+        });
+
+        let finalText = null;
+        const systemPromptWithPreloadedResults = `${systemPrompt}${buildPreloadedToolResultsBlock(preloadedToolResults)}`;
+
+        for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
+          const response = await anthropic.messages.create({
+            model: "claude-sonnet-4-6",
+            max_tokens: 2048,
+            system: systemPromptWithPreloadedResults,
+            tools: ASSISTANT_TOOLS,
+            messages: conversation,
+          });
+
+          if (response.stop_reason === "end_turn") {
+            finalText = response.content
+              .filter((block) => block.type === "text")
+              .map((block) => block.text)
+              .join("");
+            break;
+          }
+
+          if (response.stop_reason === "tool_use") {
+            conversation.push({ role: "assistant", content: response.content });
+            const toolResults = [];
+
+            for (const toolBlock of response.content.filter((block) => block.type === "tool_use")) {
+              const stageId = getToolStageId(toolBlock.name);
+              emit({
+                kind: "stage",
+                stageId,
+                label: WORKFLOW_STAGE_LABELS[stageId],
+                status: "in_progress",
+                summary: `Running ${toolBlock.name.replaceAll("_", " ")}.`,
+              });
+
+              const toolResult = await executeAssistantTool({
+                toolName: toolBlock.name,
+                toolInput: toolBlock.input,
+                accessScope,
+                activeScope,
+                supabase,
+                semanticSupabase: adminSupabase,
+                queryPlan: initialQueryPlan,
+              });
+
+              if (Array.isArray(toolResult?.sourceSummaries) && toolResult.sourceSummaries.length) {
+                emit({
+                  kind: "source_summaries",
+                  sourceSummaries: toolResult.sourceSummaries,
+                });
+              }
+
+              emit({
+                kind: "stage",
+                stageId,
+                label: WORKFLOW_STAGE_LABELS[stageId],
+                status: "completed",
+                summary: toolResult?.summary || `Finished ${toolBlock.name.replaceAll("_", " ")}.`,
+              });
+
+              toolResults.push({
+                type: "tool_result",
+                tool_use_id: toolBlock.id,
+                content: JSON.stringify(toolResult, null, 2),
+              });
+            }
+
+            conversation.push({ role: "user", content: toolResults });
+            continue;
+          }
+
+          finalText = response.content
+            .filter((block) => block.type === "text")
+            .map((block) => block.text)
+            .join("");
+          break;
+        }
+
+        const responseText = finalText || "[No response generated. Please try again.]";
+
+        emit({
+          kind: "stage",
+          stageId: "answer",
+          label: WORKFLOW_STAGE_LABELS.answer,
+          status: "completed",
+          summary: "Answer drafted from the retrieved PATNA evidence.",
+        });
+        emit({
+          kind: "final",
+          content: responseText,
+        });
+      } catch (error) {
+        console.error("Claude agentic loop error:", error);
+        emit({
+          kind: "stage",
+          stageId: "answer",
+          label: WORKFLOW_STAGE_LABELS.answer,
+          status: "error",
+          summary: "The assistant hit an error before it could finish the answer.",
+        });
+        emit({
+          kind: "error",
+          message: formatAssistantError(error),
+        });
       } finally {
         controller.close();
       }
@@ -114,9 +347,10 @@ export async function POST(request) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
+      "Content-Type": "text/event-stream; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "no-store",
+      Connection: "keep-alive",
     },
   });
 }

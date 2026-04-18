@@ -22,6 +22,7 @@ const SOURCE_TYPE_LABELS = {
   event: "Events & Calendar",
   profile: "Member Directory",
   community_application: "Applications",
+  external_document: "Uploaded documents",
 };
 
 const SOURCE_TYPES = Object.keys(SOURCE_TYPE_LABELS);

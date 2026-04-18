@@ -122,6 +122,19 @@ async function main() {
     throw clearError;
   }
 
+  const { error: resetExternalDocsError } = await supabase
+    .from("assistant_external_documents")
+    .update({
+      last_error: null,
+      status: "pending",
+      updated_at: new Date().toISOString(),
+    })
+    .in("status", ["indexed", "error", "skipped"]);
+
+  if (resetExternalDocsError) {
+    throw resetExternalDocsError;
+  }
+
   console.log("Cleared existing assistant documents.");
 
   const [
@@ -204,7 +217,11 @@ async function main() {
     for (const source of externalSources) {
       console.log(`  Syncing "${source.title}"…`);
       try {
-        const result = await syncExternalSource({ adminSupabase: supabase, sourceId: source.id });
+        const result = await syncExternalSource({
+          adminSupabase: supabase,
+          force: true,
+          sourceId: source.id,
+        });
         successCount += result.synced;
         errorCount += result.errors.length;
         process.stdout.write(`  ✓ ${result.synced} indexed, ${result.skipped} unchanged`);
