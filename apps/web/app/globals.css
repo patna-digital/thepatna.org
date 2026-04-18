@@ -12988,6 +12988,13 @@ body.patna-assistant-body-locked {
   background: linear-gradient(180deg, #f9fbfd 0%, #ffffff 100%);
 }
 
+.patna-assistant-access-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: #6b8db5;
+}
+
 .patna-assistant-section-label {
   font-size: 0.68rem;
   font-weight: 700;
@@ -13009,6 +13016,15 @@ body.patna-assistant-body-locked {
   border-bottom: 1px solid #e4eff9;
 }
 
+.patna-assistant-access-item-selectable {
+  cursor: pointer;
+}
+
+.patna-assistant-access-item-selectable.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .patna-assistant-access-item:last-child {
   border-bottom: 0;
 }
@@ -13016,6 +13032,14 @@ body.patna-assistant-body-locked {
 .patna-assistant-access-copy {
   gap: 0.18rem;
   min-width: 0;
+}
+
+.patna-assistant-access-checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0.15rem 0 0;
+  accent-color: #03529d;
 }
 
 .patna-assistant-access-icon {
@@ -13116,6 +13140,101 @@ body.patna-assistant-body-locked {
 
 .patna-assistant-bubble-user .patna-assistant-bubble-copy {
   white-space: pre-wrap;
+}
+
+.patna-assistant-workflow {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 0.78rem;
+  padding: 0.78rem 0.82rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #d7e5f1;
+}
+
+.patna-assistant-workflow-scope {
+  margin: 0;
+  color: #4b6784;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.patna-assistant-workflow-stage-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.patna-assistant-workflow-stage {
+  padding: 0.55rem 0.62rem;
+  border-radius: 12px;
+  background: #f7fbff;
+  border: 1px solid transparent;
+}
+
+.patna-assistant-workflow-stage.is-in_progress {
+  background: #eef7ff;
+  border-color: #bddcff;
+}
+
+.patna-assistant-workflow-stage.is-completed {
+  background: #f4fbf5;
+  border-color: #cfe9d4;
+}
+
+.patna-assistant-workflow-stage.is-error {
+  background: #fff5f4;
+  border-color: #f1c5bf;
+}
+
+.patna-assistant-workflow-stage-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.patna-assistant-workflow-stage-label,
+.patna-assistant-workflow-stage-status,
+.patna-assistant-workflow-stage-summary {
+  margin: 0;
+}
+
+.patna-assistant-workflow-stage-label {
+  color: #19324a;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.patna-assistant-workflow-stage-status {
+  color: #5f7b96;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.patna-assistant-workflow-stage-summary {
+  margin-top: 0.24rem;
+  color: #516d89;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.patna-assistant-workflow-source-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.patna-assistant-workflow-source-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  background: #e5eff8;
+  color: #274664;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .patna-assistant-markdown > * {
@@ -13244,6 +13363,11 @@ body.patna-assistant-body-locked {
 .patna-assistant-prompt-button:hover {
   border-color: rgba(3, 82, 157, 0.32);
   background: #f7fbfe;
+}
+
+.patna-assistant-prompt-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .patna-assistant-typing {

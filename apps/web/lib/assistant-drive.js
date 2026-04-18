@@ -20,8 +20,6 @@ const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
 const SUPPORTED_MIME_TYPES = new Set(["application/pdf"]);
 const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB per file
 const MAX_FILES_PER_SYNC = 100;
-// Truncate extracted text before embedding (gte-small handles ~512 tokens)
-const MAX_CONTENT_CHARS = 6000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HTTP headers for server-side Drive API calls
@@ -232,7 +230,7 @@ export async function fetchAndExtractPdfText(fileId) {
     throw new Error("PDF produced no extractable text.");
   }
 
-  return text.slice(0, MAX_CONTENT_CHARS);
+  return text;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

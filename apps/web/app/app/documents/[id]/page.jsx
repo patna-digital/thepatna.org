@@ -2,7 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { memberNav } from "@/lib/patna-data";
 
 const VISIBILITY_LABELS = {
@@ -23,7 +22,7 @@ function formatDate(value) {
 
 export default async function ExternalDocumentPage({ params }) {
   const { id } = await params;
-  const { user, isAdmin } = await getCurrentUserContext({
+  const { supabase, user } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: true,
   });
@@ -32,10 +31,25 @@ export default async function ExternalDocumentPage({ params }) {
     redirect(`/auth/login?next=/app/documents/${id}`);
   }
 
-  const adminSupabase = createSupabaseAdminClient();
-  const { data: doc } = await adminSupabase
+  const { data: doc } = await supabase
     .from("assistant_external_documents")
-    .select("id, title, mime_type, source_url, modified_at, last_indexed_at, status, source_id, assistant_external_sources(id, title, visibility, source_url)")
+    .select(`
+      id,
+      title,
+      mime_type,
+      source_url,
+      modified_at,
+      last_indexed_at,
+      status,
+      source_id,
+      document_code_display,
+      meeting_body,
+      meeting_session,
+      agenda_title,
+      submitter_entities,
+      topic_tags,
+      assistant_external_sources(id, title, visibility, source_url)
+    `)
     .eq("id", id)
     .maybeSingle();
 
@@ -45,13 +59,12 @@ export default async function ExternalDocumentPage({ params }) {
 
   const source = doc.assistant_external_sources;
 
-  if (source?.visibility === "admin_only" && !isAdmin) {
-    notFound();
-  }
-
   const modifiedLabel = formatDate(doc.modified_at);
   const indexedLabel = formatDate(doc.last_indexed_at);
   const visibilityLabel = VISIBILITY_LABELS[source?.visibility] || source?.visibility || "—";
+  const meetingLabel = doc.meeting_body && doc.meeting_session != null
+    ? `${doc.meeting_body} ${doc.meeting_session}`
+    : null;
 
   return (
     <DashboardShell
@@ -80,6 +93,41 @@ export default async function ExternalDocumentPage({ params }) {
 
           <dt style={{ fontWeight: 600 }}>File type</dt>
           <dd style={{ margin: 0 }}>{doc.mime_type}</dd>
+
+          {doc.document_code_display && (
+            <>
+              <dt style={{ fontWeight: 600 }}>Document code</dt>
+              <dd style={{ margin: 0 }}>{doc.document_code_display}</dd>
+            </>
+          )}
+
+          {meetingLabel && (
+            <>
+              <dt style={{ fontWeight: 600 }}>Meeting</dt>
+              <dd style={{ margin: 0 }}>{meetingLabel}</dd>
+            </>
+          )}
+
+          {doc.agenda_title && (
+            <>
+              <dt style={{ fontWeight: 600 }}>Agenda topic</dt>
+              <dd style={{ margin: 0 }}>{doc.agenda_title}</dd>
+            </>
+          )}
+
+          {Array.isArray(doc.submitter_entities) && doc.submitter_entities.length > 0 && (
+            <>
+              <dt style={{ fontWeight: 600 }}>Submitted by</dt>
+              <dd style={{ margin: 0 }}>{doc.submitter_entities.join(", ")}</dd>
+            </>
+          )}
+
+          {Array.isArray(doc.topic_tags) && doc.topic_tags.length > 0 && (
+            <>
+              <dt style={{ fontWeight: 600 }}>Topic tags</dt>
+              <dd style={{ margin: 0 }}>{doc.topic_tags.join(", ")}</dd>
+            </>
+          )}
 
           {modifiedLabel && (
             <>

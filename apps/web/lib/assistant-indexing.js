@@ -19,8 +19,479 @@ import { summarizeSyncErrorReason } from "./assistant-error-format.js";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "./env.js";
 import { createSupabaseAdminClient } from "./supabase/admin.js";
 
+export const ASSISTANT_DOCUMENT_CHUNK_SIZE = 1500;
+export const ASSISTANT_DOCUMENT_CHUNK_OVERLAP = 200;
+
+const EMBED_DOCUMENT_BATCH_SIZE = 4;
+const DOCUMENT_EMBEDDING_INSERT_BATCH_SIZE = 50;
+const EMBED_DOCUMENT_MAX_RETRIES = 2;
+const EMBED_DOCUMENT_RETRY_BASE_DELAY_MS = 250;
+const EXTERNAL_DOCUMENT_CODE_PATTERN =
+  /\b((?:MEPC|ISWG[-\s]?GHG|MEPC\/ES(?:\.\d+)?)\s*\d+(?:\/[A-Za-z0-9.-]+)+)\b/i;
+const EXTERNAL_MEETING_SESSION_PATTERN =
+  /\b(MEPC|ISWG[-\s]?GHG|MEPC\/ES(?:\.\d+)?)[\s-]*(\d{1,3})\b/i;
+const EXTERNAL_SUBMITTED_BY_PATTERN = /submitted by[:\s]+([^\n]+)/i;
+const EXTERNAL_SUBMITTER_SPLIT_PATTERN = /\s*(?:,|;| and |\/)\s*/i;
+const EXTERNAL_ENTITY_ORG_KEYWORDS = [
+  "association",
+  "authority",
+  "bimco",
+  "council",
+  "commission",
+  "committee",
+  "federation",
+  "forum",
+  "group",
+  "iacs",
+  "ics",
+  "imo",
+  "institute",
+  "intercargo",
+  "interferry",
+  "intermanager",
+  "international",
+  "intertanko",
+  "organisation",
+  "organization",
+  "programme",
+  "program",
+  "secretariat",
+  "society",
+  "union",
+  "university",
+];
+const EXTERNAL_COUNTRY_ENTITIES = new Set([
+  "argentina",
+  "australia",
+  "bahamas",
+  "bangladesh",
+  "belgium",
+  "brazil",
+  "canada",
+  "chile",
+  "china",
+  "cook islands",
+  "croatia",
+  "cyprus",
+  "denmark",
+  "finland",
+  "france",
+  "germany",
+  "greece",
+  "india",
+  "indonesia",
+  "italy",
+  "japan",
+  "kenya",
+  "liberia",
+  "marshall islands",
+  "mexico",
+  "netherlands",
+  "nigeria",
+  "norway",
+  "panama",
+  "peru",
+  "philippines",
+  "singapore",
+  "south africa",
+  "spain",
+  "sweden",
+  "thailand",
+  "turkey",
+  "united arab emirates",
+  "united kingdom",
+  "united states",
+  "vanuatu",
+]);
+const EXTERNAL_TOPIC_TAG_RULES = [
+  { tag: "energy-efficiency", patterns: [/\benergy efficiency\b/i, /\beexi\b/i, /\bseemp\b/i, /\bcii\b/i] },
+  { tag: "carbon-intensity", patterns: [/\bcarbon intensity\b/i, /\bcii\b/i] },
+  { tag: "ghg-pricing", patterns: [/\blevy\b/i, /\bpricing\b/i, /\brevenue\b/i, /\bcontribution\b/i] },
+  { tag: "fuel-standard", patterns: [/\bfuel standard\b/i, /\bgfs\b/i, /\bfuel intensity\b/i] },
+  { tag: "lca", patterns: [/\blife cycle\b/i, /\blifecycle\b/i, /\blca\b/i] },
+  { tag: "net-zero", patterns: [/\bnet zero\b/i, /\bnet-zero\b/i, /\bghg strategy\b/i] },
+  { tag: "ballast-water", patterns: [/\bballast\b/i] },
+  { tag: "maritime-safety", patterns: [/\bsafety\b/i, /\bship strikes\b/i] },
+];
+
 function getAdminClient(adminSupabase) {
   return adminSupabase || createSupabaseAdminClient();
+}
+
+function normalizeMeetingBody(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ");
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized.startsWith("ISWG GHG") || normalized.startsWith("ISWG-GHG")) {
+    return "ISWG-GHG";
+  }
+
+  return normalized;
+}
+
+export function normalizeAssistantDocumentCode(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\s+/g, " ");
+
+  if (!normalized) {
+    return "";
+  }
+
+  return normalized.replace(/^ISWG GHG\b/i, "ISWG-GHG");
+}
+
+function extractDocumentCodeDisplay(value) {
+  const match = String(value || "").match(EXTERNAL_DOCUMENT_CODE_PATTERN);
+  return match ? normalizeAssistantDocumentCode(match[1]) : "";
+}
+
+function extractMeetingReference(value) {
+  const match = String(value || "").match(EXTERNAL_MEETING_SESSION_PATTERN);
+
+  if (!match) {
+    return {
+      meetingBody: "",
+      meetingSession: null,
+    };
+  }
+
+  const meetingSession = Number.parseInt(match[2], 10);
+
+  return {
+    meetingBody: normalizeMeetingBody(match[1]),
+    meetingSession: Number.isFinite(meetingSession) ? meetingSession : null,
+  };
+}
+
+function extractAgendaTitle(title, documentCodeDisplay) {
+  const cleanTitle = stripHtml(title || "");
+
+  if (!cleanTitle) {
+    return null;
+  }
+
+  if (!documentCodeDisplay) {
+    return null;
+  }
+
+  const normalizedTitle = normalizeAssistantDocumentCode(cleanTitle);
+  if (!normalizedTitle.startsWith(documentCodeDisplay)) {
+    return null;
+  }
+
+  const remainder = cleanTitle
+    .slice(cleanTitle.toUpperCase().indexOf(documentCodeDisplay))
+    .slice(documentCodeDisplay.length)
+    .trim()
+    .replace(/^[-–—:.,\s]+/, "")
+    .trim();
+
+  return remainder || null;
+}
+
+function splitSubmittedByEntities(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.]+$/, "")
+    .split(EXTERNAL_SUBMITTER_SPLIT_PATTERN)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function dedupeTextArray(values = []) {
+  return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
+}
+
+function classifySubmitterEntities(entities = []) {
+  const countryEntities = [];
+  const organizationEntities = [];
+
+  for (const entity of entities) {
+    const normalized = entity.toLowerCase();
+
+    if (EXTERNAL_COUNTRY_ENTITIES.has(normalized)) {
+      countryEntities.push(entity);
+      continue;
+    }
+
+    if (
+      EXTERNAL_ENTITY_ORG_KEYWORDS.some((keyword) => normalized.includes(keyword))
+      || (/^[A-Z0-9-]{2,8}$/.test(entity) && !/\s/.test(entity))
+    ) {
+      organizationEntities.push(entity);
+    }
+  }
+
+  return {
+    countryEntities: dedupeTextArray(countryEntities),
+    organizationEntities: dedupeTextArray(organizationEntities),
+  };
+}
+
+function buildExternalTopicTags({ contentText, title }) {
+  const haystack = `${title || ""}\n${contentText || ""}`;
+
+  return EXTERNAL_TOPIC_TAG_RULES
+    .filter((rule) => rule.patterns.some((pattern) => pattern.test(haystack)))
+    .map((rule) => rule.tag);
+}
+
+export function buildExternalDocumentCatalogMetadata({
+  title,
+  contentText,
+}) {
+  const plainTitle = stripHtml(title || "");
+  const plainText = stripHtml(contentText || "");
+  const headText = plainText.slice(0, 4000);
+  const titleOrHead = [plainTitle, headText].filter(Boolean).join("\n");
+  const documentCodeDisplay = extractDocumentCodeDisplay(titleOrHead);
+  const { meetingBody, meetingSession } = extractMeetingReference(
+    documentCodeDisplay || titleOrHead,
+  );
+  const submittedByLine = String(contentText || "").match(EXTERNAL_SUBMITTED_BY_PATTERN)?.[1] || "";
+  const submitterEntities = dedupeTextArray(splitSubmittedByEntities(submittedByLine));
+  const { countryEntities, organizationEntities } = classifySubmitterEntities(submitterEntities);
+  const codeParts = documentCodeDisplay ? documentCodeDisplay.split("/") : [];
+  const agendaItem = codeParts.length >= 2 ? codeParts[1] : null;
+  const summaryExcerpt = plainText.slice(0, 320).trim() || plainTitle || "";
+  const indexedChunkCount = buildAssistantDocumentChunks({
+    contentText,
+    metadata: {
+      title: plainTitle,
+    },
+  }).length;
+
+  return {
+    agenda_item: agendaItem || null,
+    agenda_title: extractAgendaTitle(plainTitle, documentCodeDisplay),
+    content_character_count: plainText.length,
+    country_entities: countryEntities,
+    document_code_display: documentCodeDisplay || null,
+    document_code_normalized: documentCodeDisplay
+      ? normalizeAssistantDocumentCode(documentCodeDisplay)
+      : null,
+    indexed_chunk_count: indexedChunkCount,
+    language: "en",
+    meeting_body: meetingBody || null,
+    meeting_session: meetingSession,
+    organization_entities: organizationEntities,
+    submitter_entities: submitterEntities,
+    summary_excerpt: summaryExcerpt || null,
+    topic_tags: buildExternalTopicTags({ contentText: plainText, title: plainTitle }),
+  };
+}
+
+function sleep(ms) {
+  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+}
+
+function chunkItems(items, size) {
+  const chunks = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+function buildChunkPrefix(metadata = {}) {
+  const prefixLines = [
+    typeof metadata.title === "string" && metadata.title.trim()
+      ? `Title: ${metadata.title.trim()}`
+      : "",
+    typeof metadata.source_title === "string" && metadata.source_title.trim()
+      ? `Source: ${metadata.source_title.trim()}`
+      : "",
+    typeof metadata.source_family === "string" && metadata.source_family.trim()
+      ? `Type: ${metadata.source_family.trim()}`
+      : "",
+  ].filter(Boolean);
+
+  return prefixLines.length ? `${prefixLines.join("\n")}\n\n` : "";
+}
+
+export function buildAssistantDocumentChunks({ contentText, metadata = {} }) {
+  const trimmed = String(contentText || "").trim();
+
+  if (!trimmed) {
+    return [];
+  }
+
+  const prefix = buildChunkPrefix(metadata);
+  const chunks = [];
+  let start = 0;
+
+  while (start < trimmed.length) {
+    const end = Math.min(start + ASSISTANT_DOCUMENT_CHUNK_SIZE, trimmed.length);
+    const slice = trimmed.slice(start, end).trim();
+
+    if (slice) {
+      chunks.push(`${prefix}${slice}`.trim());
+    }
+
+    if (end >= trimmed.length) {
+      break;
+    }
+
+    start = Math.max(end - ASSISTANT_DOCUMENT_CHUNK_OVERLAP, start + 1);
+  }
+
+  return chunks;
+}
+
+function parseEmbedDocumentError(responseText = "") {
+  if (!responseText) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(responseText);
+    return [parsed?.code, parsed?.error, parsed?.message, parsed?.detail]
+      .filter(Boolean)
+      .join(": ");
+  } catch {
+    return responseText;
+  }
+}
+
+export function isTransientEmbedFailure(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+
+  return (
+    message.includes("worker_resource_limit")
+    || message.includes("not having enough compute resources")
+    || message.includes("fetch failed")
+    || message.includes("bad gateway")
+    || message.includes("gateway timeout")
+    || message.includes("service unavailable")
+    || message.includes("status 502")
+    || message.includes("status 503")
+    || message.includes("status 504")
+    || message.includes("(502)")
+    || message.includes("(503)")
+    || message.includes("(504)")
+  );
+}
+
+function isWorkerResourceLimitFailure(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+
+  return (
+    message.includes("worker_resource_limit")
+    || message.includes("not having enough compute resources")
+  );
+}
+
+async function requestChunkEmbeddings({
+  chunks,
+  fetchImpl = fetch,
+}) {
+  const supabaseUrl = getSupabaseUrl();
+  const serviceRoleKey = getSupabaseServiceRoleKey();
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Supabase URL or service role key is not configured.");
+  }
+
+  const response = await fetchImpl(`${supabaseUrl}/functions/v1/embed-document`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({ chunks }),
+  });
+
+  const responseText = await response.text().catch(() => "");
+
+  if (!response.ok) {
+    const detail = parseEmbedDocumentError(responseText) || response.statusText || "Unknown error";
+    throw new Error(`embed-document failed (${response.status}): ${detail}`);
+  }
+
+  let parsed;
+  try {
+    parsed = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    throw new Error("embed-document failed: invalid JSON response");
+  }
+
+  if (!parsed?.ok || !Array.isArray(parsed.embeddings)) {
+    throw new Error("embed-document failed: invalid response payload");
+  }
+
+  if (parsed.embeddings.length !== chunks.length) {
+    throw new Error(
+      `embed-document failed: expected ${chunks.length} embeddings, received ${parsed.embeddings.length}`,
+    );
+  }
+
+  return parsed.embeddings;
+}
+
+async function requestChunkEmbeddingsWithRetry({
+  chunks,
+  fetchImpl = fetch,
+  sleepImpl = sleep,
+}) {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await requestChunkEmbeddings({ chunks, fetchImpl });
+    } catch (error) {
+      if (attempt >= EMBED_DOCUMENT_MAX_RETRIES || !isTransientEmbedFailure(error)) {
+        throw error;
+      }
+
+      const delayMs = EMBED_DOCUMENT_RETRY_BASE_DELAY_MS * (2 ** attempt);
+      attempt += 1;
+      await sleepImpl(delayMs);
+    }
+  }
+}
+
+async function requestChunkEmbeddingsResilient({
+  chunks,
+  fetchImpl = fetch,
+  sleepImpl = sleep,
+}) {
+  try {
+    return await requestChunkEmbeddingsWithRetry({
+      chunks,
+      fetchImpl,
+      sleepImpl,
+    });
+  } catch (error) {
+    if (!isWorkerResourceLimitFailure(error) || chunks.length <= 1) {
+      throw error;
+    }
+
+    const midpoint = Math.ceil(chunks.length / 2);
+    const leftEmbeddings = await requestChunkEmbeddingsResilient({
+      chunks: chunks.slice(0, midpoint),
+      fetchImpl,
+      sleepImpl,
+    });
+    const rightEmbeddings = await requestChunkEmbeddingsResilient({
+      chunks: chunks.slice(midpoint),
+      fetchImpl,
+      sleepImpl,
+    });
+
+    return [...leftEmbeddings, ...rightEmbeddings];
+  }
 }
 
 function buildThreadPath(spaceSlug, threadId) {
@@ -108,7 +579,11 @@ async function updateExternalSourceProgress(supabase, sourceId, updates = {}) {
   }).eq("id", sourceId);
 }
 
-export function shouldSyncExternalFile(driveFile, existingDoc) {
+export function shouldSyncExternalFile(driveFile, existingDoc, { force = false } = {}) {
+  if (force) {
+    return true;
+  }
+
   if (!existingDoc) {
     return true;
   }
@@ -120,22 +595,72 @@ export function shouldSyncExternalFile(driveFile, existingDoc) {
   return fileHasChanged(driveFile, existingDoc.checksum_or_version);
 }
 
-async function upsertAssistantDocument({ payload }) {
-  const supabaseUrl = getSupabaseUrl();
-  const serviceRoleKey = getSupabaseServiceRoleKey();
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/embed-document`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${serviceRoleKey}`,
-    },
-    body: JSON.stringify(payload),
+export async function upsertAssistantDocument({
+  adminSupabase,
+  fetchImpl = fetch,
+  payload,
+  sleepImpl = sleep,
+}) {
+  const supabase = getAdminClient(adminSupabase);
+  const metadata = payload?.metadata && typeof payload.metadata === "object"
+    ? payload.metadata
+    : {};
+  const chunks = buildAssistantDocumentChunks({
+    contentText: payload?.content_text,
+    metadata,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`embed-document failed: ${errorText}`);
+  if (!chunks.length) {
+    throw new Error("content_text produced no indexable chunks");
+  }
+
+  const embeddings = [];
+
+  for (const chunkBatch of chunkItems(chunks, EMBED_DOCUMENT_BATCH_SIZE)) {
+    const batchEmbeddings = await requestChunkEmbeddingsResilient({
+      chunks: chunkBatch,
+      fetchImpl,
+      sleepImpl,
+    });
+    embeddings.push(...batchEmbeddings);
+  }
+
+  const now = new Date().toISOString();
+  const rows = chunks.map((chunkText, chunkIndex) => ({
+    chunk_index: chunkIndex,
+    content_text: chunkText,
+    created_at: now,
+    embedding: JSON.stringify(embeddings[chunkIndex]),
+    metadata: {
+      ...metadata,
+      chunk_index: chunkIndex,
+      chunk_total: chunks.length,
+    },
+    source_id: payload.source_id,
+    source_type: payload.source_type,
+    space_id: payload.space_id ?? null,
+    updated_at: now,
+    visibility: payload.visibility ?? "space_members",
+  }));
+
+  const { error: deleteError } = await supabase
+    .from("document_embeddings")
+    .delete()
+    .eq("source_type", payload.source_type)
+    .eq("source_id", payload.source_id);
+
+  if (deleteError) {
+    throw deleteError;
+  }
+
+  for (const rowBatch of chunkItems(rows, DOCUMENT_EMBEDDING_INSERT_BATCH_SIZE)) {
+    const { error: insertError } = await supabase
+      .from("document_embeddings")
+      .insert(rowBatch);
+
+    if (insertError) {
+      throw insertError;
+    }
   }
 }
 
@@ -164,6 +689,23 @@ export function summarizeExternalSyncErrors(errors = []) {
     } else if (normalized.includes("pdf produced no extractable text")) {
       kind = "text_extraction_failed";
       label = "Text extraction failed";
+    } else if (
+      normalized.includes("worker_resource_limit")
+      || normalized.includes("not having enough compute resources")
+    ) {
+      kind = "embedding_resource_limited";
+      label = "Embedding worker exhausted";
+    } else if (
+      normalized.includes("bad gateway")
+      || normalized.includes("gateway timeout")
+      || normalized.includes("service unavailable")
+      || normalized.includes("fetch failed")
+      || normalized.includes("status 502")
+      || normalized.includes("status 503")
+      || normalized.includes("status 504")
+    ) {
+      kind = "embedding_transient_failure";
+      label = "Embedding transient failure";
     } else if (normalized.includes("requested function was not found")) {
       kind = "embedding_function_missing";
       label = "Embedding function missing";
@@ -458,7 +1000,7 @@ export async function syncEventAssistantDocument({
     return;
   }
 
-  await upsertAssistantDocument({ payload });
+  await upsertAssistantDocument({ adminSupabase: supabase, payload });
 }
 
 export async function syncContentItemAssistantDocument({
@@ -487,7 +1029,7 @@ export async function syncContentItemAssistantDocument({
     return;
   }
 
-  await upsertAssistantDocument({ payload });
+  await upsertAssistantDocument({ adminSupabase: supabase, payload });
 }
 
 export async function syncThreadAssistantDocument({
@@ -512,7 +1054,7 @@ export async function syncThreadAssistantDocument({
     return;
   }
 
-  await upsertAssistantDocument({ payload });
+  await upsertAssistantDocument({ adminSupabase: supabase, payload });
 }
 
 export async function syncCommentAssistantDocument({
@@ -552,7 +1094,7 @@ export async function syncCommentAssistantDocument({
     return;
   }
 
-  await upsertAssistantDocument({ payload });
+  await upsertAssistantDocument({ adminSupabase: supabase, payload });
 }
 
 export async function syncProfileAssistantDocument({
@@ -611,7 +1153,7 @@ export async function syncProfileAssistantDocument({
     return;
   }
 
-  await upsertAssistantDocument({ payload });
+  await upsertAssistantDocument({ adminSupabase: supabase, payload });
 }
 
 export async function syncCommunityApplicationAssistantDocument({
@@ -662,15 +1204,37 @@ export async function syncCommunityApplicationAssistantDocument({
     return;
   }
 
-  await upsertAssistantDocument({ payload });
+  await upsertAssistantDocument({ adminSupabase: supabase, payload });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // External document helpers (Google Drive sources)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function buildExternalDocumentAssistantPayload({ externalDoc, source, contentText }) {
+export function buildExternalDocumentAssistantPayload({
+  externalDoc,
+  source,
+  contentText,
+  catalogMetadata = null,
+}) {
   const patnaPath = `/app/documents/${externalDoc.id}`;
+  const metadata = {
+    agenda_item: externalDoc.agenda_item || "",
+    agenda_title: externalDoc.agenda_title || "",
+    country_entities: externalDoc.country_entities || [],
+    document_code_display: externalDoc.document_code_display || "",
+    document_code_normalized: externalDoc.document_code_normalized || "",
+    indexed_chunk_count: externalDoc.indexed_chunk_count || 0,
+    language: externalDoc.language || "",
+    meeting_body: externalDoc.meeting_body || "",
+    meeting_session: externalDoc.meeting_session || "",
+    organization_entities: externalDoc.organization_entities || [],
+    submitter_entities: externalDoc.submitter_entities || [],
+    summary_excerpt: externalDoc.summary_excerpt || "",
+    topic_tags: externalDoc.topic_tags || [],
+    ...catalogMetadata,
+  };
+
   return {
     source_type: "external_document",
     source_id: externalDoc.id,
@@ -678,6 +1242,7 @@ export function buildExternalDocumentAssistantPayload({ externalDoc, source, con
     visibility: source.visibility,
     content_text: contentText,
     metadata: {
+      external_source_id: source.id,
       path: patnaPath,
       title: externalDoc.title,
       source_family: "Google Drive Document",
@@ -686,6 +1251,18 @@ export function buildExternalDocumentAssistantPayload({ externalDoc, source, con
       mime_type: externalDoc.mime_type,
       drive_url: externalDoc.source_url,
       modified_at: externalDoc.modified_at || "",
+      document_code_display: metadata.document_code_display,
+      document_code_normalized: metadata.document_code_normalized,
+      meeting_body: metadata.meeting_body,
+      meeting_session: metadata.meeting_session,
+      agenda_item: metadata.agenda_item,
+      agenda_title: metadata.agenda_title,
+      submitter_entities: metadata.submitter_entities,
+      country_entities: metadata.country_entities,
+      organization_entities: metadata.organization_entities,
+      topic_tags: metadata.topic_tags,
+      summary_excerpt: metadata.summary_excerpt,
+      indexed_chunk_count: metadata.indexed_chunk_count,
       visibility: source.visibility,
     },
   };
@@ -695,9 +1272,19 @@ export async function syncExternalDocumentAssistantDocument({ adminSupabase, ext
   const supabase = getAdminClient(adminSupabase);
   try {
     const contentText = await fetchAndExtractPdfText(externalDoc.external_file_id);
-    const payload = buildExternalDocumentAssistantPayload({ externalDoc, source, contentText });
-    await upsertAssistantDocument({ payload });
+    const catalogMetadata = buildExternalDocumentCatalogMetadata({
+      contentText,
+      title: externalDoc.title,
+    });
+    const payload = buildExternalDocumentAssistantPayload({
+      externalDoc,
+      source,
+      contentText,
+      catalogMetadata,
+    });
+    await upsertAssistantDocument({ adminSupabase: supabase, payload });
     await supabase.from("assistant_external_documents").update({
+      ...catalogMetadata,
       status: "indexed",
       last_indexed_at: new Date().toISOString(),
       last_error: null,
@@ -715,7 +1302,7 @@ export async function syncExternalDocumentAssistantDocument({ adminSupabase, ext
   }
 }
 
-export async function syncExternalSource({ adminSupabase, sourceId }) {
+export async function syncExternalSource({ adminSupabase, sourceId, force = false }) {
   const supabase = getAdminClient(adminSupabase);
   const { data: source, error: sourceError } = await supabase
     .from("assistant_external_sources")
@@ -804,7 +1391,7 @@ export async function syncExternalSource({ adminSupabase, sourceId }) {
         continue;
       }
       docId = inserted?.id;
-    } else if (!shouldSyncExternalFile(driveFile, existing)) {
+    } else if (!shouldSyncExternalFile(driveFile, existing, { force })) {
       skipped += 1;
       processed += 1;
       await updateExternalSourceProgress(supabase, sourceId, {
@@ -829,7 +1416,7 @@ export async function syncExternalSource({ adminSupabase, sourceId }) {
 
     const { data: docRow } = await supabase
       .from("assistant_external_documents")
-      .select("id, external_file_id, title, mime_type, source_url, modified_at")
+      .select("id, external_file_id, title, mime_type, source_url, modified_at, document_code_display, document_code_normalized, meeting_body, meeting_session, agenda_item, agenda_title, submitter_entities, country_entities, organization_entities, topic_tags, language, summary_excerpt, indexed_chunk_count")
       .eq("id", docId)
       .maybeSingle();
 
