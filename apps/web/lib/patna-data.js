@@ -509,6 +509,7 @@ export const memberNav = [
 export const adminNav = [
   {
     label: "Core",
+    collapsible: false,
     items: [
       { href: "/admin", label: "Overview", icon: "LayoutDashboard" },
       { href: "/admin/applications", label: "Applications", icon: "ClipboardList", badge: 4, highlight: true },
@@ -517,6 +518,7 @@ export const adminNav = [
   },
   {
     label: "Community",
+    collapsible: true,
     items: [
       { href: "/admin/spaces", label: "Spaces", icon: "Layers" },
       { href: "/admin/events", label: "Events", icon: "CalendarCheck" },
@@ -526,6 +528,7 @@ export const adminNav = [
   },
   {
     label: "Partnerships",
+    collapsible: true,
     items: [
       { href: "/admin/service-requests", label: "Service Requests", icon: "Wrench" },
       { href: "/admin/partnership-leads", label: "Partnership Leads", icon: "Handshake" },
@@ -533,9 +536,11 @@ export const adminNav = [
     ],
   },
   {
-    label: "AI",
+    label: "Tools",
+    collapsible: true,
     items: [
-      { href: "/admin/assistant", label: "Assistant", icon: "Sparkles" },
+      { href: "/admin/assistant", label: "AI Assistant", icon: "Sparkles" },
+      { href: "/admin/admins", label: "Admins", icon: "ShieldCheck" },
     ],
   },
 ];

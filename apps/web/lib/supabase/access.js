@@ -301,3 +301,20 @@ export async function requireAdminContext() {
 
   return context;
 }
+
+export async function requireSuperAdminContext() {
+  const context = await requireAdminContext();
+
+  const adminClient = createSupabaseAdminClient();
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", context.user.id)
+    .single();
+
+  if (!profile?.is_super_admin) {
+    redirect("/admin");
+  }
+
+  return context;
+}
