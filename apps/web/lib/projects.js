@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { PROJECT_CONTENT_OVERRIDES } from "@/lib/project-content";
+import { buildProjectRelationshipSummary } from "@/lib/project-relations";
 import {
   getAfricanCountryByCode,
   getAfricanCountryByName,
@@ -49,6 +50,76 @@ export const PROJECT_FOOTPRINT_HUB_TYPES = [
   { value: "secretariat", label: "Secretariat" },
 ];
 
+export const PROJECT_WORKSTREAM_STATUSES = [
+  { value: "planned", label: "Planned" },
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "paused", label: "Paused" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+export const PROJECT_ACTIVITY_TYPES = [
+  { value: "research", label: "Research" },
+  { value: "convening", label: "Convening" },
+  { value: "publication", label: "Publication" },
+  { value: "negotiation_support", label: "Negotiation support" },
+  { value: "capacity_building", label: "Capacity building" },
+  { value: "coordination", label: "Coordination" },
+  { value: "fellowship", label: "Fellowship" },
+  { value: "milestone", label: "Milestone" },
+  { value: "other", label: "Other" },
+];
+
+export const PROJECT_ORGANIZATION_RELATIONSHIP_TYPES = [
+  { value: "lead", label: "Lead" },
+  { value: "research_partner", label: "Research partner" },
+  { value: "strategic_partner", label: "Strategic partner" },
+  { value: "funder", label: "Funder" },
+  { value: "implementing_partner", label: "Implementing partner" },
+  { value: "institutional_partner", label: "Institutional partner" },
+  { value: "host", label: "Host" },
+  { value: "co_organizer", label: "Co-organizer" },
+  { value: "supporter", label: "Supporter" },
+  { value: "participant", label: "Participant" },
+  { value: "other", label: "Other" },
+];
+
+export const PROJECT_CONTRIBUTION_TYPES = [
+  { value: "lead", label: "Lead" },
+  { value: "technical", label: "Technical" },
+  { value: "policy", label: "Policy" },
+  { value: "coordination", label: "Coordination" },
+  { value: "facilitation", label: "Facilitation" },
+  { value: "research", label: "Research" },
+  { value: "communications", label: "Communications" },
+  { value: "reviewer", label: "Reviewer" },
+  { value: "participant", label: "Participant" },
+  { value: "other", label: "Other" },
+];
+
+export const PROJECT_CONTENT_RELATIONSHIP_TYPES = [
+  { value: "deliverable", label: "Deliverable" },
+  { value: "report", label: "Report" },
+  { value: "brief", label: "Brief" },
+  { value: "tool", label: "Tool" },
+  { value: "evidence", label: "Evidence" },
+  { value: "output", label: "Output" },
+  { value: "reference", label: "Reference" },
+  { value: "planned_product", label: "Planned product" },
+  { value: "other", label: "Other" },
+];
+
+export const PROJECT_EVENT_RELATIONSHIP_TYPES = [
+  { value: "convening", label: "Convening" },
+  { value: "launch", label: "Launch" },
+  { value: "validation", label: "Validation" },
+  { value: "presentation", label: "Presentation" },
+  { value: "negotiation_session", label: "Negotiation session" },
+  { value: "participation", label: "Participation" },
+  { value: "output_source", label: "Output source" },
+  { value: "other", label: "Other" },
+];
+
 export function formatProjectType(value) {
   return PROJECT_TYPES.find((t) => t.value === value)?.label || value || "";
 }
@@ -77,6 +148,17 @@ const PROJECT_BASE_SELECT = `
   *,
   project_resources ( id, resource_title, resource_url, resource_type ),
   project_countries ( * ),
+  project_workstreams ( * ),
+  project_activities ( * ),
+  project_organization_links ( *, organizations ( id, name, slug, acronym, organization_type, website_url, country, country_code, description ) ),
+  project_content_links ( *, content_items ( id, title, slug, content_type, summary, publish_status, visibility, published_at ) ),
+  project_event_links ( *, events ( id, title, slug, event_type, location, display_date, starts_at, ends_at, status, visibility ) ),
+  project_contributions (
+    *,
+    member_profile:member_profile_id ( id, email, first_name, surname, role_title, organisation_name, country_of_residence ),
+    external_contributors ( id, name, slug, role_title, organization_name, country, profile_url ),
+    organizations ( id, name, slug, acronym, organization_type )
+  ),
   linked_space:linked_space_id ( id, name, slug, space_type, description )
 `.trim();
 
@@ -227,12 +309,7 @@ export async function fetchAdminProjects({ supabase }) {
 export async function fetchAdminProjectById({ supabase, projectId }) {
   const { data, error } = await supabase
     .from("projects")
-    .select(`
-      *,
-      project_resources ( id, resource_title, resource_url, resource_type ),
-      project_countries ( * ),
-      linked_space:linked_space_id ( id, name, slug, space_type )
-    `)
+    .select(PROJECT_BASE_SELECT)
     .eq("id", projectId)
     .maybeSingle();
 
@@ -242,6 +319,57 @@ export async function fetchAdminProjectById({ supabase, projectId }) {
   });
 
   return { project: project || null, error };
+}
+
+export async function fetchProjectEditorOptions({ supabase }) {
+  const [
+    organizationsResult,
+    externalContributorsResult,
+    membersResult,
+    eventsResult,
+    publicationsResult,
+  ] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("id, name, slug, acronym, organization_type")
+      .order("name"),
+    supabase
+      .from("external_contributors")
+      .select("id, name, slug, role_title, organization_name")
+      .order("name"),
+    supabase
+      .from("profiles")
+      .select("id, email, first_name, surname, role_title, organisation_name")
+      .eq("profile_status", "active")
+      .order("surname"),
+    supabase
+      .from("events")
+      .select("id, title, slug, display_date, starts_at, status")
+      .order("starts_at", { ascending: false, nullsFirst: false })
+      .limit(200),
+    supabase
+      .from("content_items")
+      .select("id, title, slug, content_type, publish_status, visibility")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(250),
+  ]);
+
+  return {
+    error:
+      organizationsResult.error ||
+      externalContributorsResult.error ||
+      membersResult.error ||
+      eventsResult.error ||
+      publicationsResult.error ||
+      null,
+    options: {
+      events: eventsResult.data || [],
+      externalContributors: externalContributorsResult.data || [],
+      members: membersResult.data || [],
+      organizations: organizationsResult.data || [],
+      publications: publicationsResult.data || [],
+    },
+  };
 }
 
 export async function fetchProjectGallery({ supabase, projectId }) {
@@ -270,7 +398,18 @@ export async function fetchProjectGallery({ supabase, projectId }) {
  */
 export async function createProject({ data: payload }) {
   const adminClient = createSupabaseAdminClient();
-  const { countries, footprint_hubs, resources, ...projectData } = payload;
+  const {
+    activities,
+    content_links,
+    contributions,
+    countries,
+    event_links,
+    footprint_hubs,
+    organization_links,
+    resources,
+    workstreams,
+    ...projectData
+  } = payload;
 
   const { data, error } = await adminClient
     .from("projects")
@@ -307,6 +446,17 @@ export async function createProject({ data: payload }) {
     });
   }
 
+  await replaceProjectGraphRelations({
+    activities,
+    adminClient,
+    content_links,
+    contributions,
+    event_links,
+    organization_links,
+    projectId: data.id,
+    workstreams,
+  });
+
   return { project: data, error: null };
 }
 
@@ -316,7 +466,18 @@ export async function createProject({ data: payload }) {
  */
 export async function updateProject({ projectId, data: payload }) {
   const adminClient = createSupabaseAdminClient();
-  const { countries, footprint_hubs, resources, ...projectData } = payload;
+  const {
+    activities,
+    content_links,
+    contributions,
+    countries,
+    event_links,
+    footprint_hubs,
+    organization_links,
+    resources,
+    workstreams,
+    ...projectData
+  } = payload;
 
   const { data, error } = await adminClient
     .from("projects")
@@ -359,6 +520,18 @@ export async function updateProject({ projectId, data: payload }) {
     });
   }
 
+  await replaceProjectGraphRelations({
+    activities,
+    adminClient,
+    content_links,
+    contributions,
+    event_links,
+    organization_links,
+    projectId,
+    replace: true,
+    workstreams,
+  });
+
   return { project: data, error: null };
 }
 
@@ -387,6 +560,9 @@ export function buildProjectsSummary(projects) {
     archived:   projects.filter((p) => p.status === "archived").length,
   };
 }
+
+export function buildProjectRelationshipSummary(project = {}) {
+export { buildProjectRelationshipSummary };
 
 // ─── Filter helper (admin list) ────────────────────────────────────────────────
 
@@ -437,6 +613,12 @@ function normalizeProjectRecord(project) {
     project_resources: pickArray(project.project_resources, override.project_resources),
     project_countries: projectCountries,
     project_footprint_hubs: projectFootprintHubs,
+    project_workstreams: sortByOrder(pickArray(project.project_workstreams, [])),
+    project_activities: sortByOrder(pickArray(project.project_activities, [])),
+    project_organization_links: sortByOrder(pickArray(project.project_organization_links, [])),
+    project_content_links: sortByOrder(pickArray(project.project_content_links, [])),
+    project_event_links: sortByOrder(pickArray(project.project_event_links, [])),
+    project_contributions: sortByOrder(pickArray(project.project_contributions, [])),
     project_gallery: pickArray(project.project_gallery, []),
     cover_image_url: project.cover_image_url || override.cover_image_url || null,
     cover_image_alt:
@@ -452,6 +634,19 @@ function pickArray(primary, fallback) {
   }
 
   return Array.isArray(fallback) ? fallback : [];
+}
+
+function sortByOrder(items = []) {
+  return [...items].sort((left, right) => {
+    const leftOrder = Number.isFinite(Number(left?.sort_order)) ? Number(left.sort_order) : 0;
+    const rightOrder = Number.isFinite(Number(right?.sort_order)) ? Number(right.sort_order) : 0;
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+    return String(left?.title || left?.label || left?.id || "").localeCompare(
+      String(right?.title || right?.label || right?.id || "")
+    );
+  });
 }
 
 function normalizeProjectCountry(country) {
@@ -532,10 +727,13 @@ async function replaceProjectCountries({
   }
 
   const rowsWithCountryCode = countries.map((country, index) => ({
+    country_class: country.country_class || null,
+    engagement_role: country.engagement_role || null,
     project_id: projectId,
     country: country.country,
     country_code: country.country_code || null,
     phase_label: country.phase_label || null,
+    priority_focus: country.priority_focus || null,
     sort_order: Number.isInteger(country.sort_order) ? country.sort_order : index,
   }));
 
@@ -581,4 +779,248 @@ async function replaceProjectFootprintHubs({
       sort_order: Number.isInteger(hub.sort_order) ? hub.sort_order : index,
     }))
   );
+}
+
+async function replaceProjectGraphRelations({
+  activities,
+  adminClient,
+  content_links,
+  contributions,
+  event_links,
+  organization_links,
+  projectId,
+  replace = false,
+  workstreams,
+}) {
+  const hasGraphPayload = [
+    activities,
+    content_links,
+    contributions,
+    event_links,
+    organization_links,
+    workstreams,
+  ].some(Array.isArray);
+
+  if (!hasGraphPayload) {
+    return;
+  }
+
+  if (replace) {
+    await adminClient.from("project_contributions").delete().eq("project_id", projectId);
+    await adminClient.from("project_organization_links").delete().eq("project_id", projectId);
+    await adminClient.from("project_content_links").delete().eq("project_id", projectId);
+    await adminClient.from("project_event_links").delete().eq("project_id", projectId);
+    await adminClient.from("project_activities").delete().eq("project_id", projectId);
+    await adminClient.from("project_workstreams").delete().eq("project_id", projectId);
+  }
+
+  const workstreamCodeMap = new Map();
+
+  if (Array.isArray(workstreams) && workstreams.length) {
+    const rows = workstreams
+      .filter((workstream) => workstream.title)
+      .map((workstream, index) => ({
+        code: workstream.code || null,
+        ends_on: workstream.ends_on || null,
+        methodology: workstream.methodology || null,
+        objective: workstream.objective || null,
+        project_id: projectId,
+        sort_order: toInteger(workstream.sort_order, index),
+        starts_on: workstream.starts_on || null,
+        status: workstream.status || "planned",
+        summary: workstream.summary || null,
+        title: workstream.title,
+      }));
+
+    if (rows.length) {
+      await adminClient.from("project_workstreams").insert(rows);
+    }
+  }
+
+  const { data: savedWorkstreams } = await adminClient
+    .from("project_workstreams")
+    .select("id, code")
+    .eq("project_id", projectId);
+
+  for (const workstream of savedWorkstreams || []) {
+    if (workstream.code) {
+      workstreamCodeMap.set(workstream.code, workstream.id);
+    }
+  }
+
+  if (Array.isArray(activities) && activities.length) {
+    const rows = activities
+      .filter((activity) => activity.title)
+      .map((activity, index) => ({
+        activity_type: activity.activity_type || "other",
+        code: activity.code || null,
+        ends_at: activity.ends_at || null,
+        location: activity.location || null,
+        notes: activity.notes || null,
+        project_id: projectId,
+        sort_order: toInteger(activity.sort_order, index),
+        starts_at: activity.starts_at || null,
+        status: activity.status || "planned",
+        summary: activity.summary || null,
+        title: activity.title,
+        workstream_id: activity.workstream_code
+          ? workstreamCodeMap.get(activity.workstream_code) || null
+          : activity.workstream_id || null,
+      }));
+
+    if (rows.length) {
+      await adminClient.from("project_activities").insert(rows);
+    }
+  }
+
+  if (Array.isArray(organization_links) && organization_links.length) {
+    const rows = [];
+    for (const [index, link] of organization_links.entries()) {
+      const organizationId =
+        link.organization_id ||
+        (link.organization_name
+          ? await upsertOrganization(adminClient, {
+              name: link.organization_name,
+              organization_type: link.organization_type || "other",
+            })
+          : null);
+
+      if (!organizationId) continue;
+
+      rows.push({
+        label: link.label || null,
+        notes: link.notes || null,
+        organization_id: organizationId,
+        project_id: projectId,
+        relationship_type: link.relationship_type || "institutional_partner",
+        sort_order: toInteger(link.sort_order, index),
+      });
+    }
+
+    if (rows.length) {
+      await adminClient.from("project_organization_links").insert(rows);
+    }
+  }
+
+  if (Array.isArray(content_links) && content_links.length) {
+    const rows = content_links
+      .filter((link) => link.content_id)
+      .map((link, index) => ({
+        content_id: link.content_id,
+        label: link.label || null,
+        notes: link.notes || null,
+        project_id: projectId,
+        relationship_type: link.relationship_type || "reference",
+        sort_order: toInteger(link.sort_order, index),
+      }));
+
+    if (rows.length) {
+      await adminClient.from("project_content_links").insert(rows);
+    }
+  }
+
+  if (Array.isArray(event_links) && event_links.length) {
+    const rows = event_links
+      .filter((link) => link.event_id)
+      .map((link, index) => ({
+        event_id: link.event_id,
+        label: link.label || null,
+        notes: link.notes || null,
+        project_id: projectId,
+        relationship_type: link.relationship_type || "participation",
+        sort_order: toInteger(link.sort_order, index),
+      }));
+
+    if (rows.length) {
+      await adminClient.from("project_event_links").insert(rows);
+    }
+  }
+
+  if (Array.isArray(contributions) && contributions.length) {
+    const rows = [];
+    for (const [index, contribution] of contributions.entries()) {
+      const memberProfileId = contribution.member_profile_id || null;
+      const externalContributorId =
+        memberProfileId
+          ? null
+          : contribution.external_contributor_id ||
+            (contribution.external_name
+              ? await upsertExternalContributor(adminClient, contribution)
+              : null);
+
+      if (!memberProfileId && !externalContributorId) continue;
+
+      rows.push({
+        contribution_type: contribution.contribution_type || "other",
+        external_contributor_id: externalContributorId,
+        member_profile_id: memberProfileId,
+        notes: contribution.notes || null,
+        organization_id: contribution.organization_id || null,
+        project_id: projectId,
+        role_label: contribution.role_label || null,
+        sort_order: toInteger(contribution.sort_order, index),
+      });
+    }
+
+    if (rows.length) {
+      await adminClient.from("project_contributions").insert(rows);
+    }
+  }
+}
+
+async function upsertOrganization(adminClient, organization) {
+  const name = String(organization?.name || "").trim();
+  if (!name) return null;
+
+  const slug = generateProjectSlug(name);
+  const { data, error } = await adminClient
+    .from("organizations")
+    .upsert(
+      {
+        name,
+        organization_type: organization.organization_type || "other",
+        slug,
+      },
+      { onConflict: "slug" }
+    )
+    .select("id")
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return data?.id || null;
+}
+
+async function upsertExternalContributor(adminClient, contribution) {
+  const name = String(contribution?.external_name || "").trim();
+  if (!name) return null;
+
+  const organizationName = String(contribution?.external_organization_name || "").trim();
+  const slug = generateProjectSlug([name, organizationName].filter(Boolean).join(" "));
+  const { data, error } = await adminClient
+    .from("external_contributors")
+    .upsert(
+      {
+        name,
+        organization_name: organizationName || null,
+        role_title: contribution.external_role_title || null,
+        slug,
+      },
+      { onConflict: "slug" }
+    )
+    .select("id")
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return data?.id || null;
+}
+
+function toInteger(value, fallback = 0) {
+  const number = Number.parseInt(String(value ?? ""), 10);
+  return Number.isNaN(number) ? fallback : number;
 }

@@ -7,7 +7,7 @@ import {
   syncContentItemAssistantDocument,
 } from "@/lib/assistant-indexing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireAdminContext } from "@/lib/supabase/access";
+import { requirePublicationManagerContext } from "@/lib/supabase/access";
 import {
   createInsight,
   updateInsight,
@@ -17,7 +17,7 @@ import {
 import { uploadContentImage } from "@/lib/content-images";
 
 export async function createInsightAction(formData) {
-  const { user } = await requireAdminContext();
+  const { user } = await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const title = String(formData.get("title") || "").trim();
@@ -97,7 +97,7 @@ export async function createInsightAction(formData) {
 }
 
 export async function updateInsightAction(insightId, formData) {
-  const { user } = await requireAdminContext();
+  const { user } = await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const title = String(formData.get("title") || "").trim();
@@ -179,7 +179,7 @@ export async function updateInsightAction(insightId, formData) {
 }
 
 export async function deleteInsightAction(insightId) {
-  const { user } = await requireAdminContext();
+  const { user } = await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const { error } = await deleteInsight({

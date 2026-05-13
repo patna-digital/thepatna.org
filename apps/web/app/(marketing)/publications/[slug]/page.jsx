@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
-import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
+import {
+  findPrimaryPublicationAttachment,
+  getPublicationAttachmentFileUrl,
+} from "@/lib/publication-attachments";
 import { fetchPublicPublicationBySlug } from "@/lib/publications";
 
 export async function generateMetadata({ params }) {
@@ -26,6 +29,7 @@ export default async function PublicationDetailPage({ params }) {
   if (!pub) notFound();
 
   const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
+  const downloadHref = getPublicationAttachmentFileUrl(pdfAttachment);
   const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
@@ -70,7 +74,7 @@ export default async function PublicationDetailPage({ params }) {
               <a
                 className="publication-download-btn publication-download-btn-lg"
                 download
-                href={pdfAttachment.file_url}
+                href={downloadHref}
                 rel="noreferrer"
                 target="_blank"
               >
@@ -125,7 +129,7 @@ export default async function PublicationDetailPage({ params }) {
               <a
                 className="primary-button"
                 download
-                href={pdfAttachment.file_url}
+                href={downloadHref}
                 rel="noreferrer"
                 target="_blank"
               >

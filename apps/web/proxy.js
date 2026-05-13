@@ -53,12 +53,15 @@ export async function proxy(request) {
   }
 
   if (request.nextUrl.pathname.startsWith("/admin") && user) {
+    const allowedRoles = request.nextUrl.pathname.startsWith("/admin/insights")
+      ? ["administrator", "publisher"]
+      : ["administrator"];
+
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "administrator")
-      .limit(1);
+      .in("role", allowedRoles);
 
     if (!roles?.length) {
       return NextResponse.redirect(new URL("/app", request.url));

@@ -2,7 +2,11 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
-import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
+import {
+  findPrimaryPublicationAttachment,
+  getPublicationAttachmentFileUrl,
+  isPdfLikePublicationAttachment,
+} from "@/lib/publication-attachments";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { fetchInsightBySlug } from "@/lib/insights";
@@ -31,6 +35,9 @@ export default async function MemberPublicationDetailPage({ params }) {
 
   const sidebarUser = frameData.sidebarUser || null;
   const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
+  const inlineFileHref = getPublicationAttachmentFileUrl(pdfAttachment, { disposition: "inline" });
+  const downloadHref = getPublicationAttachmentFileUrl(pdfAttachment);
+  const canPreviewPdf = pdfAttachment && isPdfLikePublicationAttachment(pdfAttachment);
   const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
@@ -67,7 +74,7 @@ export default async function MemberPublicationDetailPage({ params }) {
               <a
                 className="publication-download-btn publication-download-btn-lg"
                 download
-                href={pdfAttachment.file_url}
+                href={downloadHref}
                 rel="noreferrer"
                 target="_blank"
               >
@@ -76,6 +83,28 @@ export default async function MemberPublicationDetailPage({ params }) {
             )}
           </div>
         </article>
+
+        {canPreviewPdf ? (
+          <article className="dashboard-card">
+            <div className="member-section-heading" style={{ marginBottom: "0.85rem" }}>
+              <h3>Read in PATNA</h3>
+              <p className="member-section-copy">
+                Open the report here, then download a copy when you need it offline.
+              </p>
+            </div>
+            <iframe
+              src={inlineFileHref}
+              title={`${pub.title} PDF preview`}
+              style={{
+                border: "1px solid rgba(15, 23, 42, 0.12)",
+                borderRadius: "8px",
+                height: "72vh",
+                minHeight: "560px",
+                width: "100%",
+              }}
+            />
+          </article>
+        ) : null}
 
         {/* Body */}
         <article className="dashboard-card">
@@ -102,7 +131,7 @@ export default async function MemberPublicationDetailPage({ params }) {
             <a
               className="primary-button"
               download
-              href={pdfAttachment.file_url}
+              href={downloadHref}
               rel="noreferrer"
               target="_blank"
             >

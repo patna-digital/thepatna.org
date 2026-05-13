@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatContentType, formatPublishStatus } from "@/lib/content-types";
+import { getPublicationAttachmentFileUrl } from "@/lib/publication-attachments";
 import { deleteInsightAction } from "../[insightId]/actions";
 
 const STATUS_CHIP_CLASSES = {
@@ -102,7 +103,7 @@ export function AdminInsightsList({ insights }) {
                     {insight.attachments.map((attachment) => (
                       <a
                         key={attachment.id}
-                        href={attachment.file_url}
+                        href={getPublicationAttachmentFileUrl(attachment, { disposition: "inline" })}
                         target="_blank"
                         rel="noreferrer"
                         className="status-chip chip-neutral"

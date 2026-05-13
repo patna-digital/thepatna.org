@@ -113,6 +113,15 @@ export function findPrimaryPublicationAttachment(attachments = []) {
   );
 }
 
+export function getPublicationAttachmentFileUrl(attachment = {}, { disposition = "attachment" } = {}) {
+  if (!attachment?.id) {
+    return normaliseStoredValue(attachment?.file_url);
+  }
+
+  const resolvedDisposition = disposition === "inline" ? "inline" : "attachment";
+  return `/api/publications/files/${encodeURIComponent(attachment.id)}?disposition=${resolvedDisposition}`;
+}
+
 export function getNextPrimaryAttachment(attachments = [], removedAttachmentId = "") {
   const remaining = orderPublicationAttachments(attachments).filter((attachment) => attachment.id !== removedAttachmentId);
   return remaining[0] || null;

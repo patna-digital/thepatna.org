@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { INSIGHT_CONTENT_TYPES, INSIGHT_STATUSES } from "@/lib/content-types";
 import { adminNav } from "@/lib/patna-data";
-import { requireAdminContext } from "@/lib/supabase/access";
+import { requirePublicationManagerContext } from "@/lib/supabase/access";
 import {
   fetchAdminInsights,
   buildInsightsSummary,
@@ -38,7 +38,7 @@ function buildInsightsPath({ status, type, search }) {
 }
 
 export default async function AdminInsightsPage({ searchParams }) {
-  const { supabase } = await requireAdminContext();
+  const { supabase } = await requirePublicationManagerContext();
   const resolvedSearchParams = await searchParams;
 
   const statusFilter = typeof resolvedSearchParams?.status === "string" 

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { ProjectForm } from "../components/project-form";
 import { adminNav } from "@/lib/patna-data";
-import { fetchAdminProjectById } from "@/lib/projects";
+import { fetchAdminProjectById, fetchProjectEditorOptions } from "@/lib/projects";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { fetchAdminSpaces } from "@/lib/spaces";
 import { saveAdminProjectAction, deleteAdminProjectAction } from "./actions";
@@ -21,9 +21,10 @@ export default async function AdminProjectDetailPage({ params, searchParams }) {
   const sp = await searchParams;
   const notice = typeof sp?.notice === "string" ? sp.notice : "";
 
-  const [{ project, error }, { spaces }, galleryResult] = await Promise.all([
+  const [{ project, error }, { spaces }, editorOptionsResult, galleryResult] = await Promise.all([
     fetchAdminProjectById({ supabase, projectId }),
     fetchAdminSpaces({ supabase }),
+    fetchProjectEditorOptions({ supabase }),
     supabase
       .from("project_gallery")
       .select("id, image_url, alt_text, caption, sort_order")
@@ -61,6 +62,7 @@ export default async function AdminProjectDetailPage({ params, searchParams }) {
         <ProjectForm
           action={saveAdminProjectAction}
           project={project}
+          relationOptions={editorOptionsResult.options}
           spaces={spaces || []}
           submitLabel="Save project"
         />

@@ -302,6 +302,25 @@ export async function requireAdminContext() {
   return context;
 }
 
+export async function requirePublicationManagerContext() {
+  const context = await getCurrentUserContext({ includeProfile: true, includeRoles: true });
+
+  if (!context.user) {
+    redirect("/auth/login?next=/admin/insights");
+  }
+
+  const canManagePublications =
+    context.roles.includes("administrator") ||
+    context.roles.includes("publisher") ||
+    Boolean(context.profile?.is_super_admin);
+
+  if (!canManagePublications) {
+    redirect("/app");
+  }
+
+  return context;
+}
+
 export async function requireSuperAdminContext() {
   const context = await requireAdminContext();
 

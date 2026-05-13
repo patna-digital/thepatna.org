@@ -2,20 +2,29 @@ export const siteNavigation = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/projects", label: "Projects" },
-  { href: "/publications", label: "Publications" },
+  { href: "/insights", label: "Insights" },
   { href: "/events", label: "Events" },
   { href: "/community", label: "Community" },
   { href: "/work-with-us", label: "Work With Us" },
-  { href: "/contact", label: "Contact" },
+];
+
+export const coreValues = [
+  "Inclusivity",
+  "Innovation",
+  "Sustainability",
+  "Collaboration",
+  "Transparency",
+  "Leadership",
 ];
 
 export const footerLinkGroups = [
   {
     title: "Platform",
     links: [
+      { href: "/", label: "Home" },
       { href: "/about", label: "About PATNA" },
       { href: "/projects", label: "Projects" },
-      { href: "/publications", label: "Publications" },
+      { href: "/insights", label: "Insights" },
       { href: "/events", label: "Events" },
     ],
   },
@@ -64,15 +73,6 @@ export const homeHeroCards = [
     summary: "A members-only environment for applications, peer exchange, and coordinated outputs.",
     meta: "Applications open",
   },
-];
-
-export const coreValues = [
-  "Inclusivity",
-  "Innovation",
-  "Sustainability",
-  "Collaboration",
-  "Transparency",
-  "Leadership",
 ];
 
 export const featuredProjects = [

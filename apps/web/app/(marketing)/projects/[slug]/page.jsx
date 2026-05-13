@@ -190,6 +190,79 @@ export default async function ProjectDetailPage({ params }) {
                 </div>
               ) : null}
 
+              {project.project_workstreams?.length > 0 ? (
+                <div className="project-detail-resources">
+                  <h2 className="project-detail-section-title">Workstreams</h2>
+                  <div className="project-resource-grid">
+                    {project.project_workstreams.map((workstream) => (
+                      <article className="project-resource-card" key={workstream.id}>
+                        <span className="project-resource-type">
+                          {[workstream.code, workstream.status].filter(Boolean).join(" · ") || "Workstream"}
+                        </span>
+                        <h3>{workstream.title}</h3>
+                        {workstream.summary ? <p>{workstream.summary}</p> : null}
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {project.project_organization_links?.length > 0 ? (
+                <div className="project-detail-resources">
+                  <h2 className="project-detail-section-title">Key institutional partners</h2>
+                  <div className="project-detail-countries-grid">
+                    {project.project_organization_links.map((link) => (
+                      <span className="status-chip chip-neutral" key={link.id}>
+                        {link.organizations?.name || link.label || "Partner"}
+                        {link.label ? ` · ${link.label}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {project.project_event_links?.length > 0 ? (
+                <div className="project-detail-resources">
+                  <h2 className="project-detail-section-title">Connected events</h2>
+                  <div className="project-resource-grid">
+                    {project.project_event_links.map((link) => (
+                      <article className="project-resource-card" key={link.id}>
+                        <span className="project-resource-type">
+                          {link.relationship_type?.replaceAll("_", " ") || "Event"}
+                        </span>
+                        <h3>{link.label || link.events?.title}</h3>
+                        {link.events?.slug ? (
+                          <Link className="text-link" href={`/events/${link.events.slug}`}>
+                            Open event
+                          </Link>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {project.project_content_links?.length > 0 ? (
+                <div className="project-detail-resources">
+                  <h2 className="project-detail-section-title">Connected publications</h2>
+                  <div className="project-resource-grid">
+                    {project.project_content_links.map((link) => (
+                      <article className="project-resource-card" key={link.id}>
+                        <span className="project-resource-type">
+                          {link.relationship_type?.replaceAll("_", " ") || "Publication"}
+                        </span>
+                        <h3>{link.label || link.content_items?.title}</h3>
+                        {link.content_items?.slug ? (
+                          <Link className="text-link" href={`/publications/${link.content_items.slug}`}>
+                            Open publication
+                          </Link>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {project.project_countries?.length > 0 ? (
                 <div className="project-detail-countries">
                   <h2 className="project-detail-section-title">Countries engaged</h2>

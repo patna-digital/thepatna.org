@@ -1,3 +1,5 @@
+import { getPublicationAttachmentFileUrl } from "@/lib/publication-attachments";
+
 export function PublicationFilesManager({
   addAction,
   attachments = [],
@@ -37,7 +39,12 @@ export function PublicationFilesManager({
                     ) : (
                       <span className="status-chip chip-neutral">Archive</span>
                     )}
-                    <a className="secondary-button" href={attachment.file_url} rel="noreferrer" target="_blank">
+                    <a
+                      className="secondary-button"
+                      href={getPublicationAttachmentFileUrl(attachment, { disposition: "inline" })}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
                       Open file
                     </a>
                   </div>

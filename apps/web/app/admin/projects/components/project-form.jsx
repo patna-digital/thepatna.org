@@ -8,11 +8,17 @@ import {
 } from "@/lib/africa-countries";
 import {
   PROJECT_FOOTPRINT_HUB_TYPES,
+  PROJECT_ACTIVITY_TYPES,
+  PROJECT_CONTENT_RELATIONSHIP_TYPES,
+  PROJECT_CONTRIBUTION_TYPES,
+  PROJECT_EVENT_RELATIONSHIP_TYPES,
+  PROJECT_ORGANIZATION_RELATIONSHIP_TYPES,
   PROJECT_TYPES,
   PROJECT_SECTIONS,
   PROJECT_STATUSES,
   PROJECT_STATUS_LABELS,
   PROJECT_ICON_TYPES,
+  PROJECT_WORKSTREAM_STATUSES,
   generateProjectSlug,
 } from "@/lib/projects";
 import { CoverImageUpload } from "@/components/admin/cover-image-upload";
@@ -20,6 +26,39 @@ import { CoverImageUpload } from "@/components/admin/cover-image-upload";
 function createEmptyItem(fields) {
   return Object.fromEntries(fields.map((field) => [field.name, field.defaultValue || ""]));
 }
+
+function memberLabel(member = {}) {
+  const name = [member.first_name, member.surname].filter(Boolean).join(" ").trim();
+  const role = [member.role_title, member.organisation_name].filter(Boolean).join(" · ");
+  return [name || member.email, role].filter(Boolean).join(" — ");
+}
+
+function contentLabel(item = {}) {
+  return [item.title, item.content_type, item.publish_status].filter(Boolean).join(" — ");
+}
+
+function eventLabel(event = {}) {
+  return [event.title, event.display_date || event.starts_at, event.status].filter(Boolean).join(" — ");
+}
+
+function toDatetimeLocal(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 16);
+}
+
+const PROJECT_FORM_TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "content", label: "Content" },
+  { id: "workstreams", label: "Workstreams" },
+  { id: "activities", label: "Activities" },
+  { id: "contributors", label: "Contributors" },
+  { id: "partners", label: "Partners" },
+  { id: "events", label: "Events" },
+  { id: "publications", label: "Publications" },
+  { id: "media", label: "Media" },
+];
 
 function DynamicList({ label, name, initialValues = [], placeholder = "Enter value..." }) {
   const [items, setItems] = useState(initialValues.length ? initialValues : [""]);
@@ -162,12 +201,25 @@ function StructuredListField({
   );
 }
 
-export function ProjectForm({ action, project, spaces = [], submitLabel = "Save project" }) {
+export function ProjectForm({
+  action,
+  project,
+  relationOptions = {},
+  spaces = [],
+  submitLabel = "Save project",
+}) {
   const isNew = !project;
 
   const [title, setTitle] = useState(project?.title || "");
   const [slug, setSlug] = useState(project?.slug || "");
   const [slugTouched, setSlugTouched] = useState(!isNew);
+  const [activeTab, setActiveTab] = useState("overview");
+  const workstreamCodeById = new Map(
+    (project?.project_workstreams || []).map((workstream) => [workstream.id, workstream.code || ""])
+  );
+  const tabPanelStyle = (tabId) => ({
+    display: activeTab === tabId ? "block" : "none",
+  });
 
   const handleTitleChange = useCallback(
     (e) => {
@@ -185,12 +237,47 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
     setSlugTouched(true);
   }, []);
 
+  const organizations = relationOptions.organizations || [];
+  const externalContributors = relationOptions.externalContributors || [];
+  const members = relationOptions.members || [];
+  const events = relationOptions.events || [];
+  const publications = relationOptions.publications || [];
+
   return (
     <form action={action}>
       {project?.id ? <input name="project_id" type="hidden" value={project.id} /> : null}
 
       <div className="form-stack">
-        <div className="form-section">
+        <div
+          aria-label="Project editor sections"
+          role="tablist"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.5rem",
+            marginBottom: "0.25rem",
+          }}
+        >
+          {PROJECT_FORM_TABS.map((tab) => (
+            <button
+              aria-selected={activeTab === tab.id}
+              className={activeTab === tab.id ? "primary-button" : "secondary-button"}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              role="tab"
+              style={{
+                borderRadius: "8px",
+                fontSize: "0.8rem",
+                padding: "0.45rem 0.75rem",
+              }}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="form-section" style={tabPanelStyle("overview")}>
           <h3 className="form-section-title">Identity</h3>
 
           <div className="form-field">
@@ -229,6 +316,36 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
                 Auto-generated from title. Only editable on creation.
               </span>
             ) : null}
+          </div>
+
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label" htmlFor="short_title">
+                Short title
+              </label>
+              <input
+                className="form-input"
+                defaultValue={project?.short_title || ""}
+                id="short_title"
+                name="short_title"
+                placeholder="e.g. LEAP Phase III"
+                type="text"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label" htmlFor="project_code">
+                Project code
+              </label>
+              <input
+                className="form-input"
+                defaultValue={project?.project_code || ""}
+                id="project_code"
+                name="project_code"
+                placeholder="e.g. LEAP-III"
+                type="text"
+              />
+            </div>
           </div>
 
           <div className="form-row">
@@ -344,7 +461,7 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
           </div>
         </div>
 
-        <div className="form-section">
+        <div className="form-section" style={tabPanelStyle("overview")}>
           <h3 className="form-section-title">Display metadata</h3>
 
           <div className="form-field">
@@ -357,6 +474,48 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
               id="period_label"
               name="period_label"
               placeholder="e.g. 2025 - ongoing or 1-2 March 2025 · Abuja, Nigeria"
+              type="text"
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label" htmlFor="start_date">
+                Start date
+              </label>
+              <input
+                className="form-input"
+                defaultValue={project?.start_date || ""}
+                id="start_date"
+                name="start_date"
+                type="date"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-label" htmlFor="end_date">
+                End date
+              </label>
+              <input
+                className="form-input"
+                defaultValue={project?.end_date || ""}
+                id="end_date"
+                name="end_date"
+                type="date"
+              />
+            </div>
+          </div>
+
+          <div className="form-field">
+            <label className="form-label" htmlFor="geographic_scope">
+              Geographic scope
+            </label>
+            <input
+              className="form-input"
+              defaultValue={project?.geographic_scope || ""}
+              id="geographic_scope"
+              name="geographic_scope"
+              placeholder="e.g. Continental Africa with ACP+ exchange"
               type="text"
             />
           </div>
@@ -456,7 +615,7 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
           />
         </div>
 
-        <div className="form-section">
+        <div className="form-section" style={tabPanelStyle("content")}>
           <h3 className="form-section-title">Content</h3>
 
           <div className="form-field">
@@ -539,6 +698,26 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
                 placeholder: "e.g. Phase II",
               },
               {
+                label: "Class",
+                name: "country_class",
+                options: ["A", "B", "C", "D", "E"].map((value) => ({ label: value, value })),
+                placeholder: "-",
+                style: { maxWidth: "120px" },
+              },
+              {
+                label: "Engagement role",
+                name: "country_engagement_role",
+                placeholder: "e.g. trade-sensitive typology",
+              },
+              {
+                label: "Priority focus",
+                multiline: true,
+                name: "country_priority_focus",
+                placeholder: "e.g. Food-security-informed NZF design",
+                rows: 2,
+                style: { gridColumn: "1 / -1" },
+              },
+              {
                 label: "Sort order",
                 name: "country_sort_order",
                 placeholder: "0",
@@ -549,8 +728,11 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
             initialValues={(project?.project_countries || []).map((country, index) => ({
               country_code: country.country_code || "",
               country_name: country.country || "",
+              country_class: country.country_class || "",
+              country_engagement_role: country.engagement_role || "",
               country_phase_label: country.phase_label || "",
               country_sort_order: String(country.sort_order ?? index),
+              country_priority_focus: country.priority_focus || "",
             }))}
             label="Countries engaged"
             note="Used on detail pages and the LEAP countries section."
@@ -641,7 +823,322 @@ export function ProjectForm({ action, project, spaces = [], submitLabel = "Save 
           />
         </div>
 
-        <div className="form-section">
+        <div className="form-section" style={tabPanelStyle("workstreams")}>
+          <h3 className="form-section-title">Workstreams</h3>
+          <StructuredListField
+            addLabel="+ Add workstream"
+            fields={[
+              { label: "Code", name: "workstream_code", placeholder: "WS1" },
+              { label: "Title", name: "workstream_title", placeholder: "Continental Technical Coordination" },
+              {
+                label: "Status",
+                name: "workstream_status",
+                options: PROJECT_WORKSTREAM_STATUSES,
+              },
+              {
+                label: "Sort order",
+                name: "workstream_sort_order",
+                placeholder: "0",
+                style: { maxWidth: "120px" },
+                type: "number",
+              },
+              { label: "Start", name: "workstream_starts_on", type: "date" },
+              { label: "End", name: "workstream_ends_on", type: "date" },
+              {
+                label: "Summary",
+                multiline: true,
+                name: "workstream_summary",
+                placeholder: "Short workstream description.",
+                rows: 2,
+                style: { gridColumn: "1 / -1" },
+              },
+              {
+                label: "Objective",
+                multiline: true,
+                name: "workstream_objective",
+                placeholder: "What this workstream is trying to achieve.",
+                rows: 2,
+                style: { gridColumn: "1 / -1" },
+              },
+              {
+                label: "Methodology",
+                multiline: true,
+                name: "workstream_methodology",
+                placeholder: "How the workstream is delivered.",
+                rows: 2,
+                style: { gridColumn: "1 / -1" },
+              },
+            ]}
+            initialValues={(project?.project_workstreams || []).map((workstream, index) => ({
+              workstream_code: workstream.code || "",
+              workstream_ends_on: workstream.ends_on || "",
+              workstream_methodology: workstream.methodology || "",
+              workstream_objective: workstream.objective || "",
+              workstream_sort_order: String(workstream.sort_order ?? index),
+              workstream_starts_on: workstream.starts_on || "",
+              workstream_status: workstream.status || "planned",
+              workstream_summary: workstream.summary || "",
+              workstream_title: workstream.title || "",
+            }))}
+            label="Project workstreams"
+            note="Use stable codes such as WS1, WS2, WSA, or WSB so activities can reference them."
+          />
+        </div>
+
+        <div className="form-section" style={tabPanelStyle("activities")}>
+          <h3 className="form-section-title">Activities</h3>
+          <StructuredListField
+            addLabel="+ Add activity"
+            fields={[
+              { label: "Code", name: "activity_code", placeholder: "NZF-MODULE-1" },
+              { label: "Title", name: "activity_title", placeholder: "NZF Impact Assessment for Africa" },
+              { label: "Workstream code", name: "activity_workstream_code", placeholder: "WS2" },
+              { label: "Type", name: "activity_type", options: PROJECT_ACTIVITY_TYPES },
+              { label: "Status", name: "activity_status", options: PROJECT_WORKSTREAM_STATUSES },
+              { label: "Location", name: "activity_location", placeholder: "London, UK or virtual" },
+              { label: "Starts", name: "activity_starts_at", type: "datetime-local" },
+              { label: "Ends", name: "activity_ends_at", type: "datetime-local" },
+              {
+                label: "Sort order",
+                name: "activity_sort_order",
+                placeholder: "0",
+                style: { maxWidth: "120px" },
+                type: "number",
+              },
+              {
+                label: "Summary",
+                multiline: true,
+                name: "activity_summary",
+                placeholder: "Short activity description.",
+                rows: 3,
+                style: { gridColumn: "1 / -1" },
+              },
+            ]}
+            initialValues={(project?.project_activities || []).map((activity, index) => ({
+              activity_code: activity.code || "",
+              activity_ends_at: toDatetimeLocal(activity.ends_at),
+              activity_location: activity.location || "",
+              activity_sort_order: String(activity.sort_order ?? index),
+              activity_starts_at: toDatetimeLocal(activity.starts_at),
+              activity_status: activity.status || "planned",
+              activity_summary: activity.summary || "",
+              activity_title: activity.title || "",
+              activity_type: activity.activity_type || "other",
+              activity_workstream_code:
+                workstreamCodeById.get(activity.workstream_id) || "",
+            }))}
+            label="Project activities"
+            note="Activities can represent research modules, convenings, negotiation support, milestones, or fellowship actions."
+          />
+        </div>
+
+        <div className="form-section" style={tabPanelStyle("contributors")}>
+          <h3 className="form-section-title">Contributors</h3>
+          <StructuredListField
+            addLabel="+ Add contributor"
+            fields={[
+              {
+                label: "Member contributor",
+                name: "contribution_member_profile_id",
+                options: members.map((member) => ({ label: memberLabel(member), value: member.id })),
+                placeholder: "- Select member -",
+              },
+              {
+                label: "Existing external contributor",
+                name: "contribution_external_contributor_id",
+                options: externalContributors.map((contributor) => ({
+                  label: [contributor.name, contributor.role_title, contributor.organization_name].filter(Boolean).join(" — "),
+                  value: contributor.id,
+                })),
+                placeholder: "- Select external -",
+              },
+              { label: "New external name", name: "contribution_external_name", placeholder: "Dr Jane Example" },
+              { label: "External role title", name: "contribution_external_role_title", placeholder: "Technical lead" },
+              { label: "External organisation", name: "contribution_external_organization_name", placeholder: "Institution name" },
+              { label: "Contribution type", name: "contribution_type", options: PROJECT_CONTRIBUTION_TYPES },
+              { label: "Role label", name: "contribution_role_label", placeholder: "Principal Investigator" },
+              {
+                label: "Sort order",
+                name: "contribution_sort_order",
+                placeholder: "0",
+                style: { maxWidth: "120px" },
+                type: "number",
+              },
+              {
+                label: "Notes",
+                multiline: true,
+                name: "contribution_notes",
+                placeholder: "Optional contributor context.",
+                rows: 2,
+                style: { gridColumn: "1 / -1" },
+              },
+            ]}
+            initialValues={(project?.project_contributions || []).map((contribution, index) => ({
+              contribution_external_contributor_id: contribution.external_contributor_id || "",
+              contribution_external_name: "",
+              contribution_external_organization_name: "",
+              contribution_external_role_title: "",
+              contribution_member_profile_id: contribution.member_profile_id || "",
+              contribution_notes: contribution.notes || "",
+              contribution_role_label: contribution.role_label || "",
+              contribution_sort_order: String(contribution.sort_order ?? index),
+              contribution_type: contribution.contribution_type || "other",
+            }))}
+            label="Member and external contributors"
+            note="Choose either a member or an external contributor per row. New external people are created automatically."
+          />
+        </div>
+
+        <div className="form-section" style={tabPanelStyle("partners")}>
+          <h3 className="form-section-title">Partners</h3>
+          <StructuredListField
+            addLabel="+ Add partner"
+            fields={[
+              {
+                label: "Existing organization",
+                name: "organization_id",
+                options: organizations.map((organization) => ({
+                  label: [organization.name, organization.acronym, organization.organization_type].filter(Boolean).join(" — "),
+                  value: organization.id,
+                })),
+                placeholder: "- Select organization -",
+              },
+              { label: "New organization", name: "organization_name", placeholder: "Institution name" },
+              {
+                label: "New organization type",
+                name: "organization_type",
+                options: [
+                  "government",
+                  "intergovernmental",
+                  "regional_body",
+                  "research",
+                  "university",
+                  "ngo",
+                  "funder",
+                  "coalition",
+                  "private_sector",
+                  "other",
+                ].map((value) => ({ label: value.replaceAll("_", " "), value })),
+              },
+              {
+                label: "Relationship",
+                name: "organization_relationship_type",
+                options: PROJECT_ORGANIZATION_RELATIONSHIP_TYPES,
+              },
+              { label: "Display label", name: "organization_label", placeholder: "Research partner" },
+              {
+                label: "Sort order",
+                name: "organization_sort_order",
+                placeholder: "0",
+                style: { maxWidth: "120px" },
+                type: "number",
+              },
+              {
+                label: "Notes",
+                multiline: true,
+                name: "organization_notes",
+                placeholder: "Optional partner context.",
+                rows: 2,
+                style: { gridColumn: "1 / -1" },
+              },
+            ]}
+            initialValues={(project?.project_organization_links || []).map((link, index) => ({
+              organization_id: link.organization_id || "",
+              organization_label: link.label || "",
+              organization_name: "",
+              organization_notes: link.notes || "",
+              organization_relationship_type: link.relationship_type || "institutional_partner",
+              organization_sort_order: String(link.sort_order ?? index),
+              organization_type: link.organizations?.organization_type || "other",
+            }))}
+            label="Key institutional partners"
+            note="Use organization records for funders, hosts, research partners, strategic partners, and implementing partners."
+          />
+        </div>
+
+        <div className="form-section" style={tabPanelStyle("events")}>
+          <h3 className="form-section-title">Events</h3>
+          <StructuredListField
+            addLabel="+ Link event"
+            fields={[
+              {
+                label: "Event",
+                name: "event_link_id",
+                options: events.map((event) => ({ label: eventLabel(event), value: event.id })),
+                placeholder: "- Select event -",
+              },
+              { label: "Relationship", name: "event_relationship_type", options: PROJECT_EVENT_RELATIONSHIP_TYPES },
+              { label: "Display label", name: "event_link_label", placeholder: "Dakar Maritime Decarbonisation Workshop" },
+              {
+                label: "Sort order",
+                name: "event_link_sort_order",
+                placeholder: "0",
+                style: { maxWidth: "120px" },
+                type: "number",
+              },
+              {
+                label: "Notes",
+                multiline: true,
+                name: "event_link_notes",
+                placeholder: "Optional event connection context.",
+                rows: 2,
+                style: { gridColumn: "1 / -1" },
+              },
+            ]}
+            initialValues={(project?.project_event_links || []).map((link, index) => ({
+              event_link_id: link.event_id || "",
+              event_link_label: link.label || "",
+              event_link_notes: link.notes || "",
+              event_link_sort_order: String(link.sort_order ?? index),
+              event_relationship_type: link.relationship_type || "participation",
+            }))}
+            label="Connected events"
+            note="Link existing event records instead of repeating event details inside the project body."
+          />
+        </div>
+
+        <div className="form-section" style={tabPanelStyle("publications")}>
+          <h3 className="form-section-title">Publications</h3>
+          <StructuredListField
+            addLabel="+ Link publication"
+            fields={[
+              {
+                label: "Publication / insight",
+                name: "content_link_id",
+                options: publications.map((item) => ({ label: contentLabel(item), value: item.id })),
+                placeholder: "- Select publication -",
+              },
+              { label: "Relationship", name: "content_relationship_type", options: PROJECT_CONTENT_RELATIONSHIP_TYPES },
+              { label: "Display label", name: "content_link_label", placeholder: "NZF Impact Assessment for Africa" },
+              {
+                label: "Sort order",
+                name: "content_link_sort_order",
+                placeholder: "0",
+                style: { maxWidth: "120px" },
+                type: "number",
+              },
+              {
+                label: "Notes",
+                multiline: true,
+                name: "content_link_notes",
+                placeholder: "Optional publication connection context.",
+                rows: 2,
+                style: { gridColumn: "1 / -1" },
+              },
+            ]}
+            initialValues={(project?.project_content_links || []).map((link, index) => ({
+              content_link_id: link.content_id || "",
+              content_link_label: link.label || "",
+              content_link_notes: link.notes || "",
+              content_link_sort_order: String(link.sort_order ?? index),
+              content_relationship_type: link.relationship_type || "reference",
+            }))}
+            label="Connected reports, briefs, tools, and publications"
+            note="Link existing content items so project pages can show the latest publication state and downloads."
+          />
+        </div>
+
+        <div className="form-section" style={tabPanelStyle("media")}>
           <h3 className="form-section-title">Cover image</h3>
           <CoverImageUpload
             currentAlt={project?.cover_image_alt || ""}

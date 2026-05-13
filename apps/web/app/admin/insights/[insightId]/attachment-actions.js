@@ -7,7 +7,7 @@ import {
   uploadPublicationAttachmentFile,
 } from "@/lib/publication-attachments";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireAdminContext } from "@/lib/supabase/access";
+import { requirePublicationManagerContext } from "@/lib/supabase/access";
 
 function revalidatePublicationPaths(contentId, slug) {
   if (contentId) {
@@ -24,7 +24,7 @@ function revalidatePublicationPaths(contentId, slug) {
 }
 
 export async function addInsightAttachmentAction(formData) {
-  const { user } = await requireAdminContext();
+  const { user } = await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const contentId = String(formData.get("content_id") || "").trim();
@@ -94,7 +94,7 @@ export async function addInsightAttachmentAction(formData) {
 }
 
 export async function removeInsightAttachmentAction(formData) {
-  await requireAdminContext();
+  await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const attachmentId = String(formData.get("attachment_id") || "").trim();
@@ -119,7 +119,7 @@ export async function removeInsightAttachmentAction(formData) {
 }
 
 export async function setPrimaryInsightAttachmentAction(formData) {
-  await requireAdminContext();
+  await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const attachmentId = String(formData.get("attachment_id") || "").trim();

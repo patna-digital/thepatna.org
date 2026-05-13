@@ -65,18 +65,184 @@ function parseResources(formData) {
     .filter((row) => row.resource_title);
 }
 
+function parseWorkstreams(formData) {
+  return parseStructuredRows(formData, [
+    "workstream_code",
+    "workstream_title",
+    "workstream_summary",
+    "workstream_objective",
+    "workstream_methodology",
+    "workstream_status",
+    "workstream_starts_on",
+    "workstream_ends_on",
+    "workstream_sort_order",
+  ])
+    .filter((row) => row.workstream_code || row.workstream_title || row.workstream_summary)
+    .map((row, index) => ({
+      code: row.workstream_code || null,
+      ends_on: row.workstream_ends_on || null,
+      methodology: row.workstream_methodology || null,
+      objective: row.workstream_objective || null,
+      sort_order: Number.isNaN(Number.parseInt(row.workstream_sort_order, 10))
+        ? index
+        : Number.parseInt(row.workstream_sort_order, 10),
+      starts_on: row.workstream_starts_on || null,
+      status: row.workstream_status || "planned",
+      summary: row.workstream_summary || null,
+      title: row.workstream_title,
+    }))
+    .filter((row) => row.title);
+}
+
+function parseActivities(formData) {
+  return parseStructuredRows(formData, [
+    "activity_code",
+    "activity_title",
+    "activity_type",
+    "activity_status",
+    "activity_workstream_code",
+    "activity_summary",
+    "activity_location",
+    "activity_starts_at",
+    "activity_ends_at",
+    "activity_sort_order",
+  ])
+    .filter((row) => row.activity_code || row.activity_title || row.activity_summary)
+    .map((row, index) => ({
+      activity_type: row.activity_type || "other",
+      code: row.activity_code || null,
+      ends_at: row.activity_ends_at || null,
+      location: row.activity_location || null,
+      sort_order: Number.isNaN(Number.parseInt(row.activity_sort_order, 10))
+        ? index
+        : Number.parseInt(row.activity_sort_order, 10),
+      starts_at: row.activity_starts_at || null,
+      status: row.activity_status || "planned",
+      summary: row.activity_summary || null,
+      title: row.activity_title,
+      workstream_code: row.activity_workstream_code || null,
+    }))
+    .filter((row) => row.title);
+}
+
+function parseOrganizationLinks(formData) {
+  return parseStructuredRows(formData, [
+    "organization_id",
+    "organization_name",
+    "organization_type",
+    "organization_relationship_type",
+    "organization_label",
+    "organization_notes",
+    "organization_sort_order",
+  ])
+    .filter((row) => row.organization_id || row.organization_name || row.organization_label)
+    .map((row, index) => ({
+      label: row.organization_label || null,
+      notes: row.organization_notes || null,
+      organization_id: row.organization_id || null,
+      organization_name: row.organization_name || null,
+      organization_type: row.organization_type || "other",
+      relationship_type: row.organization_relationship_type || "institutional_partner",
+      sort_order: Number.isNaN(Number.parseInt(row.organization_sort_order, 10))
+        ? index
+        : Number.parseInt(row.organization_sort_order, 10),
+    }))
+    .filter((row) => row.organization_id || row.organization_name);
+}
+
+function parseContentLinks(formData) {
+  return parseStructuredRows(formData, [
+    "content_link_id",
+    "content_relationship_type",
+    "content_link_label",
+    "content_link_notes",
+    "content_link_sort_order",
+  ])
+    .filter((row) => row.content_link_id)
+    .map((row, index) => ({
+      content_id: row.content_link_id,
+      label: row.content_link_label || null,
+      notes: row.content_link_notes || null,
+      relationship_type: row.content_relationship_type || "reference",
+      sort_order: Number.isNaN(Number.parseInt(row.content_link_sort_order, 10))
+        ? index
+        : Number.parseInt(row.content_link_sort_order, 10),
+    }));
+}
+
+function parseEventLinks(formData) {
+  return parseStructuredRows(formData, [
+    "event_link_id",
+    "event_relationship_type",
+    "event_link_label",
+    "event_link_notes",
+    "event_link_sort_order",
+  ])
+    .filter((row) => row.event_link_id)
+    .map((row, index) => ({
+      event_id: row.event_link_id,
+      label: row.event_link_label || null,
+      notes: row.event_link_notes || null,
+      relationship_type: row.event_relationship_type || "participation",
+      sort_order: Number.isNaN(Number.parseInt(row.event_link_sort_order, 10))
+        ? index
+        : Number.parseInt(row.event_link_sort_order, 10),
+    }));
+}
+
+function parseContributions(formData) {
+  return parseStructuredRows(formData, [
+    "contribution_member_profile_id",
+    "contribution_external_contributor_id",
+    "contribution_external_name",
+    "contribution_external_role_title",
+    "contribution_external_organization_name",
+    "contribution_organization_id",
+    "contribution_type",
+    "contribution_role_label",
+    "contribution_notes",
+    "contribution_sort_order",
+  ])
+    .filter((row) =>
+      row.contribution_member_profile_id ||
+      row.contribution_external_contributor_id ||
+      row.contribution_external_name
+    )
+    .map((row, index) => ({
+      contribution_type: row.contribution_type || "other",
+      external_contributor_id: row.contribution_external_contributor_id || null,
+      external_name: row.contribution_external_name || null,
+      external_organization_name: row.contribution_external_organization_name || null,
+      external_role_title: row.contribution_external_role_title || null,
+      member_profile_id: row.contribution_member_profile_id || null,
+      notes: row.contribution_notes || null,
+      organization_id: row.contribution_organization_id || null,
+      role_label: row.contribution_role_label || null,
+      sort_order: Number.isNaN(Number.parseInt(row.contribution_sort_order, 10))
+        ? index
+        : Number.parseInt(row.contribution_sort_order, 10),
+    }))
+    .filter((row) => row.member_profile_id || row.external_contributor_id || row.external_name);
+}
+
 function parseCountries(formData) {
   return parseStructuredRows(formData, [
     "country_name",
     "country_code",
     "country_phase_label",
+    "country_class",
+    "country_priority_focus",
+    "country_engagement_role",
     "country_sort_order",
   ])
     .filter((row) => row.country_name || row.country_code || row.country_phase_label)
     .map((row, index) => ({
       country: row.country_name || getAfricanCountryNameByCode(row.country_code),
       country_code: row.country_code || null,
+      country_class: row.country_class || null,
+      engagement_role: row.country_engagement_role || null,
       phase_label: row.country_phase_label || null,
+      priority_focus: row.country_priority_focus || null,
       sort_order: Number.isNaN(Number.parseInt(row.country_sort_order, 10))
         ? index
         : Number.parseInt(row.country_sort_order, 10),
@@ -168,6 +334,12 @@ export async function saveAdminProjectAction(formData) {
   const resources    = parseResources(formData);
   const countries    = parseCountries(formData);
   const footprint_hubs = parseFootprintHubs(formData);
+  const workstreams = parseWorkstreams(formData);
+  const activities = parseActivities(formData);
+  const organization_links = parseOrganizationLinks(formData);
+  const contributions = parseContributions(formData);
+  const content_links = parseContentLinks(formData);
+  const event_links = parseEventLinks(formData);
 
   // Cover image: upload file if provided, otherwise keep existing URL
   const coverImageFile = formData.get("cover_image_file");
@@ -192,6 +364,11 @@ export async function saveAdminProjectAction(formData) {
   const payload = {
     title,
     slug:             parseText(formData, "slug") || generateProjectSlug(title),
+    short_title:      parseOptional(formData, "short_title"),
+    project_code:     parseOptional(formData, "project_code"),
+    start_date:       parseOptional(formData, "start_date"),
+    end_date:         parseOptional(formData, "end_date"),
+    geographic_scope: parseOptional(formData, "geographic_scope"),
     section,
     project_type:     normaliseProjectType(formData.get("project_type")),
     status:           normaliseStatus(formData.get("status")),
@@ -213,6 +390,12 @@ export async function saveAdminProjectAction(formData) {
     resources,
     countries,
     footprint_hubs,
+    workstreams,
+    activities,
+    organization_links,
+    contributions,
+    content_links,
+    event_links,
   };
 
   let savedId = projectId;

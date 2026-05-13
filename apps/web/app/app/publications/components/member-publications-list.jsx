@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { formatContentType } from "@/lib/content-types";
-import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
+import {
+  findPrimaryPublicationAttachment,
+  getPublicationAttachmentFileUrl,
+} from "@/lib/publication-attachments";
 
 const TYPE_CHIP_CLASSES = {
   report: "chip-neutral",
@@ -26,6 +29,7 @@ export function MemberPublicationsList({ publications }) {
     <div className="publications-list-grid">
       {publications.map((pub) => {
         const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
+        const downloadHref = getPublicationAttachmentFileUrl(pdfAttachment);
 
         return (
           <article key={pub.id} className="publication-list-card">
@@ -82,7 +86,7 @@ export function MemberPublicationsList({ publications }) {
                   <a
                     className="publication-download-btn"
                     download
-                    href={pdfAttachment.file_url}
+                    href={downloadHref}
                     rel="noreferrer"
                     target="_blank"
                     onClick={(e) => e.stopPropagation()}
