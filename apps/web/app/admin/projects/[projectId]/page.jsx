@@ -12,6 +12,7 @@ import { GalleryManager } from "@/components/admin/gallery-manager";
 const NOTICE_MESSAGES = {
   saved:            "Project saved.",
   "missing-fields": "Title is required.",
+  "invalid-parent": "Parent project cannot be this project or one of its child projects.",
   error:            "Operation failed. Please retry.",
 };
 

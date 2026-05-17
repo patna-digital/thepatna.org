@@ -2,12 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {
-  getAfricanCountryNameByCode,
-} from "@/lib/africa-countries";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createProject, updateProject, deleteProject, generateProjectSlug } from "@/lib/projects";
+import { isDescendantProject } from "@/lib/project-hierarchy";
+import { createProject, updateProject, deleteProject } from "@/lib/projects";
+import { generateProjectSlug } from "@/lib/project-config";
 import { uploadContentImage } from "@/lib/content-images";
 
 function parseText(formData, key) {
@@ -132,6 +131,8 @@ function parseOrganizationLinks(formData) {
     "organization_type",
     "organization_relationship_type",
     "organization_label",
+    "organization_workstream_code",
+    "organization_activity_code",
     "organization_notes",
     "organization_sort_order",
   ])
@@ -143,6 +144,8 @@ function parseOrganizationLinks(formData) {
       organization_name: row.organization_name || null,
       organization_type: row.organization_type || "other",
       relationship_type: row.organization_relationship_type || "institutional_partner",
+      workstream_code: row.organization_workstream_code || null,
+      activity_code: row.organization_activity_code || null,
       sort_order: Number.isNaN(Number.parseInt(row.organization_sort_order, 10))
         ? index
         : Number.parseInt(row.organization_sort_order, 10),
@@ -155,6 +158,8 @@ function parseContentLinks(formData) {
     "content_link_id",
     "content_relationship_type",
     "content_link_label",
+    "content_workstream_code",
+    "content_activity_code",
     "content_link_notes",
     "content_link_sort_order",
   ])
@@ -164,6 +169,8 @@ function parseContentLinks(formData) {
       label: row.content_link_label || null,
       notes: row.content_link_notes || null,
       relationship_type: row.content_relationship_type || "reference",
+      workstream_code: row.content_workstream_code || null,
+      activity_code: row.content_activity_code || null,
       sort_order: Number.isNaN(Number.parseInt(row.content_link_sort_order, 10))
         ? index
         : Number.parseInt(row.content_link_sort_order, 10),
@@ -175,6 +182,8 @@ function parseEventLinks(formData) {
     "event_link_id",
     "event_relationship_type",
     "event_link_label",
+    "event_workstream_code",
+    "event_activity_code",
     "event_link_notes",
     "event_link_sort_order",
   ])
@@ -184,6 +193,8 @@ function parseEventLinks(formData) {
       label: row.event_link_label || null,
       notes: row.event_link_notes || null,
       relationship_type: row.event_relationship_type || "participation",
+      workstream_code: row.event_workstream_code || null,
+      activity_code: row.event_activity_code || null,
       sort_order: Number.isNaN(Number.parseInt(row.event_link_sort_order, 10))
         ? index
         : Number.parseInt(row.event_link_sort_order, 10),
@@ -200,6 +211,8 @@ function parseContributions(formData) {
     "contribution_organization_id",
     "contribution_type",
     "contribution_role_label",
+    "contribution_workstream_code",
+    "contribution_activity_code",
     "contribution_notes",
     "contribution_sort_order",
   ])
@@ -218,6 +231,8 @@ function parseContributions(formData) {
       notes: row.contribution_notes || null,
       organization_id: row.contribution_organization_id || null,
       role_label: row.contribution_role_label || null,
+      workstream_code: row.contribution_workstream_code || null,
+      activity_code: row.contribution_activity_code || null,
       sort_order: Number.isNaN(Number.parseInt(row.contribution_sort_order, 10))
         ? index
         : Number.parseInt(row.contribution_sort_order, 10),
@@ -229,6 +244,7 @@ function parseCountries(formData) {
   return parseStructuredRows(formData, [
     "country_name",
     "country_code",
+    "country_place_id",
     "country_phase_label",
     "country_class",
     "country_priority_focus",
@@ -237,11 +253,12 @@ function parseCountries(formData) {
   ])
     .filter((row) => row.country_name || row.country_code || row.country_phase_label)
     .map((row, index) => ({
-      country: row.country_name || getAfricanCountryNameByCode(row.country_code),
+      country: row.country_name || row.country_code || null,
       country_code: row.country_code || null,
       country_class: row.country_class || null,
       engagement_role: row.country_engagement_role || null,
       phase_label: row.country_phase_label || null,
+      place_id: row.country_place_id || null,
       priority_focus: row.country_priority_focus || null,
       sort_order: Number.isNaN(Number.parseInt(row.country_sort_order, 10))
         ? index
@@ -254,6 +271,12 @@ function parseFootprintHubs(formData) {
   return parseStructuredRows(formData, [
     "hub_type",
     "hub_label",
+    "hub_place_id",
+    "hub_place_name",
+    "hub_place_type",
+    "hub_place_source",
+    "hub_place_source_id",
+    "hub_place_address",
     "hub_city",
     "hub_country_code",
     "hub_latitude",
@@ -279,6 +302,12 @@ function parseFootprintHubs(formData) {
       latitude: Number.parseFloat(row.hub_latitude),
       longitude: Number.parseFloat(row.hub_longitude),
       phase_label: row.hub_phase_label || null,
+      place_address: row.hub_place_address || null,
+      place_id: row.hub_place_id || null,
+      place_name: row.hub_place_name || null,
+      place_source: row.hub_place_source || null,
+      place_source_id: row.hub_place_source_id || null,
+      place_type: row.hub_place_type || null,
       related_url: row.hub_related_url || null,
       sort_order: Number.isNaN(Number.parseInt(row.hub_sort_order, 10))
         ? index
@@ -316,6 +345,22 @@ function buildProjectPath({ projectId = "", notice = "" }) {
   return `${base}?notice=${notice}`;
 }
 
+async function isInvalidParentSelection({ adminClient, parentProjectId, projectId }) {
+  if (!parentProjectId) return false;
+  if (!projectId) return false;
+  if (parentProjectId === projectId) return true;
+
+  const { data, error } = await adminClient
+    .from("projects")
+    .select("id, parent_project_id");
+
+  if (error) {
+    return true;
+  }
+
+  return isDescendantProject(data || [], projectId, parentProjectId);
+}
+
 export async function saveAdminProjectAction(formData) {
   const { user } = await requireAdminContext();
   const adminClient = createSupabaseAdminClient();
@@ -340,6 +385,17 @@ export async function saveAdminProjectAction(formData) {
   const contributions = parseContributions(formData);
   const content_links = parseContentLinks(formData);
   const event_links = parseEventLinks(formData);
+  const parent_project_id = parseOptional(formData, "parent_project_id");
+
+  if (
+    await isInvalidParentSelection({
+      adminClient,
+      parentProjectId: parent_project_id,
+      projectId,
+    })
+  ) {
+    redirect(buildProjectPath({ projectId, notice: "invalid-parent" }));
+  }
 
   // Cover image: upload file if provided, otherwise keep existing URL
   const coverImageFile = formData.get("cover_image_file");
@@ -366,6 +422,11 @@ export async function saveAdminProjectAction(formData) {
     slug:             parseText(formData, "slug") || generateProjectSlug(title),
     short_title:      parseOptional(formData, "short_title"),
     project_code:     parseOptional(formData, "project_code"),
+    parent_project_id,
+    series_id:        parseOptional(formData, "series_id"),
+    series_phase_label: parseOptional(formData, "series_phase_label"),
+    series_phase_order: parseIntField(formData, "series_phase_order", 0) || null,
+    phase_summary:    parseOptional(formData, "phase_summary"),
     start_date:       parseOptional(formData, "start_date"),
     end_date:         parseOptional(formData, "end_date"),
     geographic_scope: parseOptional(formData, "geographic_scope"),

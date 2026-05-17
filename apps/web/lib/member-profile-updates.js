@@ -71,7 +71,10 @@ export function parseMemberProfileFormData(formData) {
     middleNames: parseOptionalText(formData, "middle_names"),
     roleTitle: parseOptionalText(formData, "role_title"),
     organisationName: parseOptionalText(formData, "organisation_name"),
-    countryOfResidence: parseOptionalText(formData, "country_of_residence"),
+    countryCode: formData.has("country_code") ? parseOptionalText(formData, "country_code") : undefined,
+    countryOfResidence: formData.has("country_of_residence")
+      ? parseOptionalText(formData, "country_of_residence")
+      : undefined,
     phoneNumber: parseOptionalText(formData, "phone_number"),
     whatsappNumber: parseOptionalText(formData, "whatsapp_number"),
     timezone: parseOptionalText(formData, "timezone"),
@@ -132,7 +135,7 @@ export async function persistMemberProfile({
     supabase
       .from("profiles")
       .select(
-        "id, title, first_name, surname, role_title, organisation_name, country_of_residence, professional_bio, visibility_setting, onboarding_status, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
+        "id, title, first_name, surname, role_title, organisation_name, country_of_residence, country_code, professional_bio, visibility_setting, onboarding_status, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
       )
       .eq("id", userId)
       .maybeSingle(),
@@ -256,6 +259,21 @@ export async function persistMemberProfile({
     };
   }
 
+  let resolvedCountryName =
+    values.countryCode !== undefined
+      ? values.countryCode
+        ? values.countryOfResidence
+        : null
+      : values.countryOfResidence;
+  if (values.countryCode) {
+    const { data: countryRecord } = await adminSupabase
+      .from("countries")
+      .select("name")
+      .eq("code", values.countryCode)
+      .maybeSingle();
+    resolvedCountryName = countryRecord?.name || resolvedCountryName;
+  }
+
   const mergedProfile = {
     ...existingProfile,
     title: values.title !== undefined ? values.title || null : existingProfile?.title || null,
@@ -269,9 +287,13 @@ export async function persistMemberProfile({
         ? values.organisationName || null
         : existingProfile?.organisation_name || null,
     country_of_residence:
-      values.countryOfResidence !== undefined
-        ? values.countryOfResidence || null
+      values.countryCode !== undefined || values.countryOfResidence !== undefined
+        ? resolvedCountryName || null
         : existingProfile?.country_of_residence || null,
+    country_code:
+      values.countryCode !== undefined
+        ? values.countryCode || null
+        : existingProfile?.country_code || null,
     phone_number:
       values.phoneNumber !== undefined ? values.phoneNumber || null : existingProfile?.phone_number || null,
     whatsapp_number:
@@ -353,6 +375,7 @@ export async function persistMemberProfile({
       role_title: mergedProfile.role_title,
       organisation_name: mergedProfile.organisation_name,
       country_of_residence: mergedProfile.country_of_residence,
+      country_code: mergedProfile.country_code,
       professional_bio: mergedProfile.professional_bio,
       visibility_setting: mergedProfile.visibility_setting,
       phone_number: mergedProfile.phone_number,

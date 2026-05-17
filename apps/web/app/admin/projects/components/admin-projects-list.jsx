@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { formatProjectType, formatProjectSection } from "@/lib/projects";
+import { formatProjectType, formatProjectSection } from "@/lib/project-config";
 
 const STATUS_CHIP = {
   published: "chip-success",
@@ -24,7 +24,7 @@ export function AdminProjectsList({ projects }) {
     const q = search.trim().toLowerCase();
     if (!q) return projects;
     return projects.filter((p) =>
-      [p.title, p.summary, p.status_label, p.period_label, p.partner_line, p.section]
+      [p.title, p.short_title, p.summary, p.status_label, p.period_label, p.partner_line, p.section, p.series_phase_label, p.parent_project?.title]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
@@ -53,6 +53,16 @@ export function AdminProjectsList({ projects }) {
                     <div className="app-row-primary">
                       <div className="app-row-identity">
                         <strong>{project.title}</strong>
+                        {project.series_phase_label ? (
+                          <span className="status-chip chip-neutral" style={{ fontSize: "0.7rem" }}>
+                            {project.series_phase_label}
+                          </span>
+                        ) : null}
+                        {project.parent_project ? (
+                          <span className="status-chip chip-neutral" style={{ fontSize: "0.7rem" }}>
+                            Child of {project.parent_project.short_title || project.parent_project.title}
+                          </span>
+                        ) : null}
                         {project.period_label ? <span>{project.period_label}</span> : null}
                       </div>
                       <div className="app-row-signals">
@@ -105,6 +115,18 @@ export function AdminProjectsList({ projects }) {
                         <strong>Countries</strong>
                         <p>{(project.project_countries || []).length} countries</p>
                       </div>
+                      {project.series_phase_label && (
+                        <div className="app-row-detail-field">
+                          <strong>Series phase</strong>
+                          <p>{project.series_phase_label}</p>
+                        </div>
+                      )}
+                      {project.parent_project && (
+                        <div className="app-row-detail-field">
+                          <strong>Parent project</strong>
+                          <p>{project.parent_project.title}</p>
+                        </div>
+                      )}
                       {project.linked_space && (
                         <div className="app-row-detail-field">
                           <strong>Linked workspace</strong>

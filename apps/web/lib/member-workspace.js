@@ -38,7 +38,7 @@ export function buildSidebarUser(member) {
       "Community workspace",
     cohort: member.primaryCohort?.nameDisplay || member.primaryCohort?.name || "Member workspace",
     profileStatus: member.profileStatus,
-    tags: member.domainTags.slice(0, 3).map((tag) => tag.nameDisplay || tag.name),
+    tags: (member.domainTags || []).slice(0, 3).map((tag) => tag.nameDisplay || tag.name),
     headshotSrc: member.headshotSrc,
     initials: member.displayName
       .split(/\s+/)
@@ -260,7 +260,7 @@ export async function fetchMemberDashboardRailData({ supabase, member, userId = 
         "Organisation pending",
       country: member.countryDisplay || member.country_of_residence || "Country pending",
       cohort: member.primaryCohort?.nameDisplay || member.primaryCohort?.name || "Cohort pending",
-      tags: member.domainTags.slice(0, 4).map((tag) => tag.nameDisplay || tag.name),
+      tags: (member.domainTags || []).slice(0, 4).map((tag) => tag.nameDisplay || tag.name),
       completionPercent: member.completionPercent,
       availability: member.availabilityStatus,
       profileStatus: member.profileStatus,

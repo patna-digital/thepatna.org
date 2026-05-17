@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildProjectRelationshipSummary } from "./projects.js";
+import { buildProjectRelationshipSummary } from "./project-relations.js";
 
 test("buildProjectRelationshipSummary counts normalized relationship arrays", () => {
   assert.deepEqual(

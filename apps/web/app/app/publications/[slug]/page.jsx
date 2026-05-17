@@ -5,7 +5,6 @@ import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import {
   findPrimaryPublicationAttachment,
   getPublicationAttachmentFileUrl,
-  isPdfLikePublicationAttachment,
 } from "@/lib/publication-attachments";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
@@ -35,9 +34,7 @@ export default async function MemberPublicationDetailPage({ params }) {
 
   const sidebarUser = frameData.sidebarUser || null;
   const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
-  const inlineFileHref = getPublicationAttachmentFileUrl(pdfAttachment, { disposition: "inline" });
-  const downloadHref = getPublicationAttachmentFileUrl(pdfAttachment);
-  const canPreviewPdf = pdfAttachment && isPdfLikePublicationAttachment(pdfAttachment);
+  const readHref = getPublicationAttachmentFileUrl(pdfAttachment, { disposition: "inline" });
   const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
@@ -73,38 +70,15 @@ export default async function MemberPublicationDetailPage({ params }) {
             {pdfAttachment && (
               <a
                 className="publication-download-btn publication-download-btn-lg"
-                download
-                href={downloadHref}
+                href={readHref}
                 rel="noreferrer"
                 target="_blank"
               >
-                {t("publicationUi.downloadPdf")}
+                {t("publicationUi.openPdf")}
               </a>
             )}
           </div>
         </article>
-
-        {canPreviewPdf ? (
-          <article className="dashboard-card">
-            <div className="member-section-heading" style={{ marginBottom: "0.85rem" }}>
-              <h3>Read in PATNA</h3>
-              <p className="member-section-copy">
-                Open the report here, then download a copy when you need it offline.
-              </p>
-            </div>
-            <iframe
-              src={inlineFileHref}
-              title={`${pub.title} PDF preview`}
-              style={{
-                border: "1px solid rgba(15, 23, 42, 0.12)",
-                borderRadius: "8px",
-                height: "72vh",
-                minHeight: "560px",
-                width: "100%",
-              }}
-            />
-          </article>
-        ) : null}
 
         {/* Body */}
         <article className="dashboard-card">
@@ -124,18 +98,17 @@ export default async function MemberPublicationDetailPage({ params }) {
 
         {/* Footer */}
         <div className="publication-detail-footer">
-          <Link className="secondary-button" href="/app/publications">
+          <Link className="publication-back-link" href="/app/publications">
             {t("publicationUi.backToPublications")}
           </Link>
           {pdfAttachment && (
             <a
               className="primary-button"
-              download
-              href={downloadHref}
+              href={readHref}
               rel="noreferrer"
               target="_blank"
             >
-              {t("publicationUi.downloadPdf")}
+              {t("publicationUi.openPdf")}
             </a>
           )}
         </div>

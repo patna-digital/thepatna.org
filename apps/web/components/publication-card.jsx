@@ -1,9 +1,5 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import {
-  findPrimaryPublicationAttachment,
-  getPublicationAttachmentFileUrl,
-} from "@/lib/publication-attachments";
 
 /**
  * PublicationCard — reusable card for publications across the marketing and community apps.
@@ -34,8 +30,6 @@ export async function PublicationCard({
   } = publication;
 
   const cardHref = href || `/publications/${slug}`;
-  const pdfAttachment = findPrimaryPublicationAttachment(attachments);
-  const downloadHref = getPublicationAttachmentFileUrl(pdfAttachment);
   const typeLabel = publication.contentTypeLabel || CONTENT_TYPE_LABELS[content_type] || content_type;
 
   return (
@@ -80,16 +74,6 @@ export async function PublicationCard({
           <Link className="publication-card-read-link" href={cardHref}>
             {t("publicationUi.readMore")}
           </Link>
-          {showDownload && pdfAttachment && (
-            <a
-              className="publication-download-btn"
-              href={downloadHref}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {t("publicationUi.download")}
-            </a>
-          )}
         </div>
       </div>
     </article>
@@ -109,13 +93,10 @@ export async function FeaturedPublicationCard({ publication, href }) {
     published_at,
     cover_image_url,
     cover_image_alt,
-    attachments = [],
     tags = [],
   } = publication;
 
   const cardHref = href || `/publications/${slug}`;
-  const pdfAttachment = findPrimaryPublicationAttachment(attachments);
-  const downloadHref = getPublicationAttachmentFileUrl(pdfAttachment);
   const typeLabel = publication.contentTypeLabel || CONTENT_TYPE_LABELS[content_type] || content_type;
 
   return (
@@ -162,17 +143,6 @@ export async function FeaturedPublicationCard({ publication, href }) {
           <Link className="primary-button" href={cardHref}>
             {t("publicationUi.readPublication")}
           </Link>
-          {pdfAttachment && (
-            <a
-              className="secondary-button"
-              download
-              href={downloadHref}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {t("publicationUi.downloadPdf")}
-            </a>
-          )}
         </div>
       </div>
     </article>

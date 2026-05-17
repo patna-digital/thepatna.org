@@ -231,7 +231,7 @@ async function MemberDashboardProfileCard({ member, sidebarUser, userId }) {
           <span>Insights</span>
         </div>
         <div>
-          <strong>{member.secondaryCohorts.length + (member.primaryCohort ? 1 : 0)}</strong>
+          <strong>{(member.secondaryCohorts || []).length + (member.primaryCohort ? 1 : 0)}</strong>
           <span>Cohorts</span>
         </div>
       </div>
@@ -344,7 +344,7 @@ export default async function MemberDashboardPage() {
   const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
 
   // Allow access even with incomplete/missing profile data
-  const member = frameData.member || {};
+  const member = frameData.member || { domainTags: [], secondaryCohorts: [], cohortSlugs: [] };
   const sidebarUser = frameData.sidebarUser || null;
   const firstName = member.first_name || member.displayName || "Member";
 

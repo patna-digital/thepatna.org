@@ -10,6 +10,7 @@ export function MemberProfileForm({
   codeOfConductDownloadHref = "",
   cohorts,
   cohortProfile,
+  countries = [],
   currentCohorts,
   currentTags,
   flowMode = "edit",
@@ -55,6 +56,7 @@ export function MemberProfileForm({
           codeOfConductDownloadHref={codeOfConductDownloadHref}
           cohortProfile={cohortProfile}
           cohorts={cohorts}
+          countries={countries}
           currentCohorts={currentCohorts}
           currentTags={currentTags}
           ndaDownloadHref={ndaDownloadHref}

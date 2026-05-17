@@ -8,6 +8,7 @@ import { saveAdminProjectAction } from "../[projectId]/actions";
 
 const NOTICE_MESSAGES = {
   "missing-fields": "Title is required.",
+  "invalid-parent": "Parent project cannot create a circular project hierarchy.",
   error:            "Project creation failed. Please retry.",
 };
 

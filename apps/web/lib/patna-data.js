@@ -445,6 +445,229 @@ export const communityStructures = [
   },
 ];
 
+// ── Homepage hero stats (4 figures, matching website copy) ──────────────────
+export const homeStats = [
+  { value: "100+", label: "African experts in network" },
+  { value: "25+", label: "Countries engaged directly" },
+  { value: "4", label: "Expert cohorts" },
+  { value: "3", label: "LEAP project phases" },
+];
+
+// ── Homepage about-intro pillars (Evidence / Coordination / Advisory) ────────
+export const homePillars = [
+  {
+    number: "01",
+    title: "Evidence",
+    subtitle: "Research grounded in African data",
+    body: "African positions must be grounded in African data, not extrapolated from models built for other economies. We produce technically rigorous, Africa-specific research: emissions inventories, economic impact modelling, port readiness studies, and policy briefs timed to the IMO and UNFCCC calendar.",
+  },
+  {
+    number: "02",
+    title: "Coordination",
+    subtitle: "Aligned positions, one voice",
+    body: "Africa's 44 IMO member states share common interests in equitable transition outcomes but historically arrive at international forums without aligned positions. PATNA convenes delegations, negotiators, and experts to build shared understanding and coordinated negotiating positions before sessions.",
+  },
+  {
+    number: "03",
+    title: "Advisory",
+    subtitle: "Complexity translated into action",
+    body: "Regulatory complexity is a form of exclusion. PATNA translates the technical detail of frameworks like the NZF into actionable guidance for governments, industry, and civil society — closing the capacity gap between African delegations and their well-resourced counterparts.",
+  },
+];
+
+// ── LEAP project phases (homepage card section) ───────────────────────────────
+export const leapPhases = [
+  {
+    slug: "leap-phase-i",
+    phase: "LEAP Phase I",
+    title: "Foundations, Inventories & Economic Evidence",
+    status: "complete",
+    period: "Mid-2024 – Early 2025",
+    countries: "Ghana, Nigeria, Namibia, Malawi, Kenya, Liberia",
+    countryCount: 6,
+    partner: "UCL Energy Institute",
+    body: "Phase I built the evidentiary foundation that no one had built before. Working with the UCL Energy Institute and in-country academic partners, PATNA produced five national shipping emissions inventories — the first ever compiled for African states from their own national port call and AIS data. The phase also produced country-level economic impact case studies quantifying the consequences of four IMO policy scenarios on each country's key import and export commodities.",
+    sourceUrl: "/projects/leap-phase-i",
+  },
+  {
+    slug: "leap-phase-ii",
+    phase: "LEAP Phase II",
+    title: "Expansion, Institution Building & Continental Engagement",
+    status: "complete",
+    period: "Early 2025 – 2026",
+    countries: "25 countries across Anglophone and Francophone Africa",
+    countryCount: 25,
+    flagshipEvent: "Dakar Maritime Decarbonisation Workshop (August 2025)",
+    body: "Phase II turned a project into a permanent institution. PATNA was formally registered as an NGO secretariat. The programme expanded to 25 African countries, adding nine Francophone states. The centrepiece was the Dakar Maritime Decarbonisation Workshop, co-organised with the Government of Senegal, MOWCA, MOESNA, and the IMO Secretariat. The Workshop produced the 15 Dakar Declarations — a set of agreed negotiating principles adopted as a unified African position.",
+    sourceUrl: "/projects/leap-phase-ii",
+  },
+  {
+    slug: "leap-phase-iii",
+    phase: "LEAP Phase III / ORCA Africa 2026",
+    title: "Continental Leadership & NZF Coordination",
+    status: "active",
+    period: "January – December 2026",
+    scope: "Continental + ACP+ inter-regional engagement",
+    keyContext: "NZF formal adoption expected at MEPC 84, 2026",
+    body: "Phase III is Africa's full-cycle continental coordination system for the most consequential year in maritime governance history. PATNA is operating across five workstreams: a fellowship programme deploying trained African negotiators into at least five delegations; multilingual policy outputs in English, French, and Portuguese; four NZF evidence modules; and active engagement at the AU STC-T&E, where Africa's Continental Maritime Decarbonisation Strategy was formally adopted in April 2026.",
+    sourceUrl: "/projects/leap-phase-iii",
+  },
+];
+
+// ── Community snapshot (static demo cards — wire to member DB later) ──────────
+export const cohortSnapshots = [
+  { name: "Dr. Amara Diallo", role: "Policy Adviser", org: "DEEC Senegal", country: "Senegal", flag: "🇸🇳", cohort: "Policy & Government" },
+  { name: "Chidi Okonkwo", role: "Policy Researcher", org: "NIMASA", country: "Nigeria", flag: "🇳🇬", cohort: "Policy & Government" },
+  { name: "Aisha Mwangi", role: "Climate Policy Analyst", org: "KMA", country: "Kenya", flag: "🇰🇪", cohort: "Academics & Researchers" },
+  { name: "Dr. Fatou Ndiaye", role: "Maritime Economist", org: "University of Dakar", country: "Senegal", flag: "🇸🇳", cohort: "Academics & Researchers" },
+  { name: "Kwame Asante", role: "Port Authority Director", org: "GMA", country: "Ghana", flag: "🇬🇭", cohort: "Industry & Private Sector" },
+  { name: "Blessing Okafor", role: "Maritime Lawyer", org: "Lagos Maritime Law", country: "Nigeria", flag: "🇳🇬", cohort: "Legal & Regulatory" },
+  { name: "Prof. Nana Ama Kyei", role: "Climate Researcher", org: "Univ. of Nairobi", country: "Kenya", flag: "🇰🇪", cohort: "Academics & Researchers" },
+  { name: "Carlos Monteiro", role: "Shipping Consultant", org: "ANAM Senegal", country: "Cabo Verde", flag: "🇨🇻", cohort: "Industry & Private Sector" },
+];
+
+// ── Homepage publications (featured + 3 side cards) ───────────────────────────
+export const homePublications = {
+  featured: {
+    date: "April 2026",
+    type: "Session Report",
+    title: "ISWG-GHG 21 — Intersessional Working Group on Greenhouse Gases: Session Report",
+    subtitle: "A pivotal juncture in the IMO Net-Zero Framework rulemaking cycle.",
+    body: "The twenty-first session of the ISWG-GHG sat at a critical juncture. The technical architecture of the Net-Zero Framework — the Global Fuel Standard, GHG Fuel Intensity metric, Lifecycle Assessment guidelines, and Net-Zero Fund — has stabilised. What remains contested is the political architecture: who governs the Fund, how revenues are distributed, whether developing states receive the equity protections they were promised. This report traces coalition dynamics, unresolved technical questions, and the decisions heading to MEPC 84.",
+    href: "/insights/iswg-ghg-21-intersessional-working-group-on-ghg-emissions-from-ships",
+  },
+  side: [
+    {
+      type: "Event Report",
+      title: "Report on the Continental Validation Workshop, Abuja",
+      date: "March 2026",
+      href: "/insights",
+    },
+    {
+      type: "Session Report",
+      title: "AU STC-T&E 5th Ordinary Session: Continental Strategy Adoption Report",
+      date: "April 2026",
+      href: "/insights",
+    },
+    {
+      type: "LEAP I Study Report",
+      title: "An Africa-Centric Analysis of the UNCTAD Comprehensive Impact Assessment",
+      date: "January 2026",
+      href: "/insights",
+    },
+  ],
+};
+
+// ── Partner names (flat list for scrolling marquee) ───────────────────────────
+export const partnerNames = [
+  "African Union Commission",
+  "IMO Secretariat",
+  "MOWCA",
+  "MOESNA",
+  "AAMA",
+  "University College London",
+  "NIMASA",
+  "African Maritime Advisory Group (AMAG)",
+  "Ghana Maritime Authority",
+  "University of Nairobi",
+  "ANAM Senegal",
+  "University of Lagos",
+  "AGNES",
+  "African Shipowners Association",
+  "African Parliamentary Union (APU)",
+  "UNCTAD",
+];
+
+// ── Story timeline (About page — matches PDF) ─────────────────────────────────
+export const storyTimeline = [
+  {
+    year: "2024",
+    title: "PATNA Founded",
+    body: "A focused intervention on maritime decarbonisation at the IMO, convening the UCL Energy Institute and African maritime networks around a shared mission: building Africa's technical presence in global shipping governance.",
+  },
+  {
+    year: "2025",
+    title: "NGO Registration & LEAP Phase I",
+    body: "The PATNA Initiative is officially registered as an independent NGO secretariat. LEAP Phase I completed: first shipping emissions inventories for six African states. African delegations at MEPC 81–82 entered negotiations with their own evidence for the first time.",
+  },
+  {
+    year: "Mar 2025",
+    title: "First Africa Strategic Maritime Summit, Abuja",
+    body: "PATNA lead organiser. Ministers and technical experts from across the continent convened around a continental decarbonisation agenda.",
+  },
+  {
+    year: "Aug 2025",
+    title: "Dakar Maritime Decarbonisation Workshop",
+    body: "Co-organised with the Government of Senegal, MOWCA, MOESNA, and the IMO Secretariat. Over 150 delegates from 25 African IMO Member States. The 15 Dakar Declarations adopted as a unified African negotiating position.",
+  },
+  {
+    year: "Apr 2026",
+    title: "Continental Strategy Adopted & NZF Adjournment",
+    body: "Africa's Continental Maritime Decarbonisation Strategy adopted at AU STC-T&E 5th Ordinary Session. PATNA lead technical consultant. At ISWG-GHG 21: PATNA's advocacy contributed to the IMO's decision to adjourn formal NZF adoption by one year, securing additional time for equity provisions.",
+    active: true,
+  },
+];
+
+// ── Board of Directors (About page — from org profile 2026) ──────────────────
+export const boardMembers = [
+  {
+    name: "Dr Dola Oluteye",
+    title: "Founder / Co-Chair of the Board",
+    org: "The PATNA Initiative | UCL Energy Institute, London",
+    role: "co-chair",
+    bio: "Founder of PATNA and Co-Chair of the Board. Dr Oluteye leads UCL's engagement with African maritime energy transition research and serves as Principal Investigator of the LEAP Project Series. She designed PATNA's evidence framework and has directed the analytical programme across all three LEAP phases, from the first national shipping emissions inventories to the continental coordination architecture of ORCA Africa 2026.",
+  },
+  {
+    name: "Ambassador Nancy Karigithu",
+    title: "Co-Chair of the Board",
+    org: "The PATNA Initiative",
+    role: "co-chair",
+    bio: "Ambassador Karigithu is a preeminent leader in the global maritime sector, currently serving as Kenya's Special Envoy and Advisor for Maritime and Blue Economy. With nearly four decades of experience, she was the founding Principal Secretary of Kenya's State Department for Shipping and Maritime Affairs and the first Director General of the Kenya Maritime Authority. Her extensive international governance experience includes chairing the IMO Technical Cooperation Committee and serving on the boards of the World Maritime University (WMU) and IMLI.",
+  },
+  {
+    name: "Dr Harry Conway",
+    title: "Board Member",
+    org: "The PATNA Initiative",
+    role: "member",
+    bio: "Dr Conway is a leading expert in environmental politics and maritime regulation, currently serving as the Chair of the IMO's Marine Environment Protection Committee (MEPC). Under his leadership, the landmark 2023 IMO GHG Strategy was unanimously adopted. As the Alternate Permanent Representative of Liberia and a former Chair of AMAG, he brings unparalleled expertise in international negotiation and regulatory standards.",
+  },
+  {
+    name: "Maj Gen Oyefosebi Gbolahan (Rt)",
+    title: "Board Member",
+    org: "The PATNA Initiative",
+    role: "member",
+    bio: "A veteran of the Nigerian Army with extensive experience in strategy, intelligence, and international relations, Maj Gen Oyefesobi provides PATNA with vital expertise in security and organisational management. His distinguished career includes serving as the Deputy Chief of Defence Intelligence and as a Defence Adviser at the Nigeria High Commission in London, where he regularly interfaced with IMO representatives.",
+  },
+];
+
+// ── Secretariat (About page) ─────────────────────────────────────────────────
+export const secretariatMembers = [
+  {
+    name: "Aisha Datubo",
+    title: "Operations Coordinator",
+    contact: "operations@thepatna.org",
+    bio: "Aisha Datubo manages the internal operations and human resources for the PATNA Secretariat. She ensures organisational efficiency and provides high-level administrative support to the leadership team, coordinating the day-to-day functions that enable the network's pan-African mission.",
+    initials: "AD",
+    color: "#b9e8fa",
+  },
+  {
+    name: "Annette Wangari",
+    title: "Secretariat Coordinator",
+    contact: "contact@thepatna.org",
+    bio: "Annette Wangari is a maritime lawyer and a graduate of the World Maritime University (WMU). She leads Secretariat coordination, leveraging her legal expertise to manage the network's diverse activities and facilitate collaboration between African delegations, researchers, and technical experts.",
+    initials: "AW",
+    color: "#9fe1cb",
+  },
+  {
+    name: "Fitzroy Meyer-Petgrave",
+    title: "Senior Research Associate",
+    contact: "research@thepatna.org",
+    bio: "Fitzroy Meyer-Petgrave is a data scientist specialising in research, analytics, and intelligence for climate action to deliver measurable outcomes. With a Master's in Data Science and over a decade of experience in business management, he bridges data gaps to drive evidence-based value for PATNA's maritime decarbonisation and policy research.",
+    initials: "FM",
+    color: "#fac775",
+  },
+];
+
 export const contactDetails = {
   email: "contact@thepatna.org",
   phone: "+2349023176598",

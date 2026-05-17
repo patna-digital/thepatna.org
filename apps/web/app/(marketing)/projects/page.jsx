@@ -25,8 +25,12 @@ export default async function ProjectsPage() {
   const supabase = await createSupabaseServerClient();
   const { projects } = await fetchPublishedProjects({ supabase });
 
-  const flagship  = projects.filter((p) => p.section === "flagship");
-  const convenings = projects.filter((p) => p.section === "convening");
+  const publishedProjectIds = new Set(projects.map((project) => project.id));
+  const topLevelProjects = projects.filter(
+    (project) => !project.parent_project_id || !publishedProjectIds.has(project.parent_project_id)
+  );
+  const flagship  = topLevelProjects.filter((p) => p.section === "flagship");
+  const convenings = topLevelProjects.filter((p) => p.section === "convening");
   const leapFootprint = buildLeapSeriesFootprint(projects);
 
   return (

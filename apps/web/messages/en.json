@@ -524,10 +524,9 @@
   "publicationUi": {
     "eyebrow": "Publication",
     "readMore": "Read more →",
-    "download": "↓ Download",
-    "latest": "Latest",
     "readPublication": "Read publication",
-    "downloadPdf": "↓ Download PDF",
+    "openPdf": "Open PDF",
+    "latest": "Latest",
     "backToPublications": "← Back to Publications"
   },
   "profileModal": {

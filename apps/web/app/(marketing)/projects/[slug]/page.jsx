@@ -190,6 +190,28 @@ export default async function ProjectDetailPage({ params }) {
                 </div>
               ) : null}
 
+              {project.child_projects?.length > 0 ? (
+                <div className="project-detail-resources">
+                  <h2 className="project-detail-section-title">Child projects / work packages</h2>
+                  <div className="project-resource-grid project-child-project-grid">
+                    {project.child_projects.map((childProject) => (
+                      <article className="project-resource-card project-child-project-card" key={childProject.id}>
+                        <span className="project-resource-type">
+                          {[formatProjectType(childProject.project_type), childProject.status_label]
+                            .filter(Boolean)
+                            .join(" · ") || "Child project"}
+                        </span>
+                        <h3>{childProject.title}</h3>
+                        {childProject.summary ? <p>{childProject.summary}</p> : null}
+                        <Link className="text-link" href={getProjectHref(childProject.slug)}>
+                          Open child project
+                        </Link>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {project.project_workstreams?.length > 0 ? (
                 <div className="project-detail-resources">
                   <h2 className="project-detail-section-title">Workstreams</h2>
@@ -207,6 +229,26 @@ export default async function ProjectDetailPage({ params }) {
                 </div>
               ) : null}
 
+              {project.project_activities?.length > 0 ? (
+                <div className="project-detail-resources">
+                  <h2 className="project-detail-section-title">Activities and work packages</h2>
+                  <div className="project-resource-grid">
+                    {project.project_activities.map((activity) => (
+                      <article className="project-resource-card" key={`${activity.id}-${activity.inherited_from_project?.id || "direct"}`}>
+                        <span className="project-resource-type">
+                          {[activity.activity_type?.replaceAll("_", " "), activity.status]
+                            .filter(Boolean)
+                            .join(" · ") || "Activity"}
+                        </span>
+                        <h3>{activity.title}</h3>
+                        {activity.summary ? <p>{activity.summary}</p> : null}
+                        <InheritedProjectBadge item={activity} />
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {project.project_organization_links?.length > 0 ? (
                 <div className="project-detail-resources">
                   <h2 className="project-detail-section-title">Key institutional partners</h2>
@@ -215,6 +257,22 @@ export default async function ProjectDetailPage({ params }) {
                       <span className="status-chip chip-neutral" key={link.id}>
                         {link.organizations?.name || link.label || "Partner"}
                         {link.label ? ` · ${link.label}` : ""}
+                        {getInheritedProjectLabel(link) ? ` · ${getInheritedProjectLabel(link)}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {project.project_contributions?.length > 0 ? (
+                <div className="project-detail-resources">
+                  <h2 className="project-detail-section-title">Contributors</h2>
+                  <div className="project-detail-countries-grid">
+                    {project.project_contributions.map((contribution) => (
+                      <span className="status-chip chip-neutral" key={`${contribution.id}-${contribution.inherited_from_project?.id || "direct"}`}>
+                        {getContributorName(contribution)}
+                        {contribution.role_label ? ` · ${contribution.role_label}` : ""}
+                        {getInheritedProjectLabel(contribution) ? ` · ${getInheritedProjectLabel(contribution)}` : ""}
                       </span>
                     ))}
                   </div>
@@ -231,6 +289,7 @@ export default async function ProjectDetailPage({ params }) {
                           {link.relationship_type?.replaceAll("_", " ") || "Event"}
                         </span>
                         <h3>{link.label || link.events?.title}</h3>
+                        <InheritedProjectBadge item={link} />
                         {link.events?.slug ? (
                           <Link className="text-link" href={`/events/${link.events.slug}`}>
                             Open event
@@ -252,6 +311,7 @@ export default async function ProjectDetailPage({ params }) {
                           {link.relationship_type?.replaceAll("_", " ") || "Publication"}
                         </span>
                         <h3>{link.label || link.content_items?.title}</h3>
+                        <InheritedProjectBadge item={link} />
                         {link.content_items?.slug ? (
                           <Link className="text-link" href={`/publications/${link.content_items.slug}`}>
                             Open publication
@@ -274,6 +334,7 @@ export default async function ProjectDetailPage({ params }) {
                         <span className="status-chip chip-neutral" key={`${country.country}-${index}`}>
                           {country.country}
                           {country.phase_label ? ` · ${country.phase_label}` : ""}
+                          {getInheritedProjectLabel(country) ? ` · ${getInheritedProjectLabel(country)}` : ""}
                         </span>
                       ))}
                   </div>
@@ -387,6 +448,12 @@ export default async function ProjectDetailPage({ params }) {
                       <dd>{project.deliverables.length} highlighted</dd>
                     </>
                   ) : null}
+                  {project.child_projects?.length > 0 ? (
+                    <>
+                      <dt>Child work</dt>
+                      <dd>{project.child_projects.length} linked</dd>
+                    </>
+                  ) : null}
                 </dl>
               </div>
 
@@ -399,6 +466,18 @@ export default async function ProjectDetailPage({ params }) {
                   </p>
                   <Link className="secondary-button" href="/app/spaces">
                     Open in community
+                  </Link>
+                </div>
+              ) : null}
+
+              {project.parent_project ? (
+                <div className="project-sidebar-card">
+                  <h3 className="project-sidebar-card-title">Parent project</h3>
+                  <p className="project-sidebar-card-body">
+                    This page is part of {project.parent_project.short_title || project.parent_project.title}.
+                  </p>
+                  <Link className="secondary-button" href={getProjectHref(project.parent_project.slug)}>
+                    Open parent project
                   </Link>
                 </div>
               ) : null}
@@ -471,6 +550,7 @@ function pickRelatedProjects(project, projects = []) {
 
   for (const item of projects) {
     if (!item || item.slug === project.slug) continue;
+    if (item.parent_project_id === project.id || item.id === project.parent_project_id) continue;
 
     if (item.section === project.section) {
       sameSection.push(item);
@@ -480,6 +560,31 @@ function pickRelatedProjects(project, projects = []) {
   }
 
   return [...sameSection, ...fallback].slice(0, 3);
+}
+
+function getInheritedProjectLabel(item = {}) {
+  const source = item.inherited_from_project;
+  if (!source) return "";
+  return `From ${source.short_title || source.title || "child project"}`;
+}
+
+function getContributorName(contribution = {}) {
+  const member = contribution.member_profile;
+  const memberName = [member?.first_name, member?.surname].filter(Boolean).join(" ").trim();
+  return (
+    memberName ||
+    member?.email ||
+    contribution.external_contributors?.name ||
+    contribution.role_label ||
+    "Contributor"
+  );
+}
+
+function InheritedProjectBadge({ item }) {
+  const label = getInheritedProjectLabel(item);
+  if (!label) return null;
+
+  return <span className="project-inherited-label">{label}</span>;
 }
 
 function ProjectHref({ className, href, label }) {

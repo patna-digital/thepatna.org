@@ -4,7 +4,29 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { PROJECT_CONTENT_OVERRIDES } from "@/lib/project-content";
+import {
+  applyProjectChildRollups,
+  attachProjectHierarchy,
+} from "@/lib/project-hierarchy";
 import { buildProjectRelationshipSummary } from "@/lib/project-relations";
+import {
+  PROJECT_CONTENT_RELATIONSHIP_TYPES,
+  PROJECT_EVENT_RELATIONSHIP_TYPES,
+  PROJECT_FOOTPRINT_HUB_TYPES,
+  PROJECT_ICON_TYPES,
+  PROJECT_SECTIONS,
+  PROJECT_STATUSES,
+  PROJECT_STATUS_LABELS,
+  PROJECT_TYPES,
+  PROJECT_ACTIVITY_TYPES,
+  PROJECT_CONTRIBUTION_TYPES,
+  PROJECT_ORGANIZATION_RELATIONSHIP_TYPES,
+  PROJECT_WORKSTREAM_STATUSES,
+  formatProjectSection,
+  formatProjectType,
+  generateProjectSlug,
+  getProjectHref,
+} from "@/lib/project-config";
 import {
   getAfricanCountryByCode,
   getAfricanCountryByName,
@@ -12,135 +34,25 @@ import {
 import { PROJECT_FOOTPRINT_HUB_OVERRIDES } from "@/lib/project-footprints";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-export const PROJECT_TYPES = [
-  { value: "flagship_programme", label: "Flagship Programme" },
-  { value: "convening",          label: "Convening" },
-  { value: "technical_analysis", label: "Technical Analysis" },
-  { value: "capacity_building",  label: "Capacity Building" },
-];
-
-export const PROJECT_SECTIONS = [
-  { value: "flagship",  label: "Flagship Programmes" },
-  { value: "convening", label: "Regional Convenings" },
-  { value: "other",     label: "Other Projects" },
-];
-
-export const PROJECT_STATUSES = [
-  { value: "draft",     label: "Draft" },
-  { value: "published", label: "Published" },
-  { value: "archived",  label: "Archived" },
-];
-
-export const PROJECT_STATUS_LABELS = ["Active", "Completed", "Upcoming", "Ongoing"];
-
-export const PROJECT_ICON_TYPES = [
-  { value: "globe",    label: "Globe" },
-  { value: "team",     label: "Team / People" },
-  { value: "layers",   label: "Layers / Stack" },
-  { value: "calendar", label: "Calendar" },
-  { value: "chart",    label: "Bar Chart" },
-  { value: "check",    label: "Checkmark" },
-];
-
-export const PROJECT_FOOTPRINT_HUB_TYPES = [
-  { value: "convening", label: "Convening" },
-  { value: "partner", label: "Partner anchor" },
-  { value: "secretariat", label: "Secretariat" },
-];
-
-export const PROJECT_WORKSTREAM_STATUSES = [
-  { value: "planned", label: "Planned" },
-  { value: "active", label: "Active" },
-  { value: "completed", label: "Completed" },
-  { value: "paused", label: "Paused" },
-  { value: "cancelled", label: "Cancelled" },
-];
-
-export const PROJECT_ACTIVITY_TYPES = [
-  { value: "research", label: "Research" },
-  { value: "convening", label: "Convening" },
-  { value: "publication", label: "Publication" },
-  { value: "negotiation_support", label: "Negotiation support" },
-  { value: "capacity_building", label: "Capacity building" },
-  { value: "coordination", label: "Coordination" },
-  { value: "fellowship", label: "Fellowship" },
-  { value: "milestone", label: "Milestone" },
-  { value: "other", label: "Other" },
-];
-
-export const PROJECT_ORGANIZATION_RELATIONSHIP_TYPES = [
-  { value: "lead", label: "Lead" },
-  { value: "research_partner", label: "Research partner" },
-  { value: "strategic_partner", label: "Strategic partner" },
-  { value: "funder", label: "Funder" },
-  { value: "implementing_partner", label: "Implementing partner" },
-  { value: "institutional_partner", label: "Institutional partner" },
-  { value: "host", label: "Host" },
-  { value: "co_organizer", label: "Co-organizer" },
-  { value: "supporter", label: "Supporter" },
-  { value: "participant", label: "Participant" },
-  { value: "other", label: "Other" },
-];
-
-export const PROJECT_CONTRIBUTION_TYPES = [
-  { value: "lead", label: "Lead" },
-  { value: "technical", label: "Technical" },
-  { value: "policy", label: "Policy" },
-  { value: "coordination", label: "Coordination" },
-  { value: "facilitation", label: "Facilitation" },
-  { value: "research", label: "Research" },
-  { value: "communications", label: "Communications" },
-  { value: "reviewer", label: "Reviewer" },
-  { value: "participant", label: "Participant" },
-  { value: "other", label: "Other" },
-];
-
-export const PROJECT_CONTENT_RELATIONSHIP_TYPES = [
-  { value: "deliverable", label: "Deliverable" },
-  { value: "report", label: "Report" },
-  { value: "brief", label: "Brief" },
-  { value: "tool", label: "Tool" },
-  { value: "evidence", label: "Evidence" },
-  { value: "output", label: "Output" },
-  { value: "reference", label: "Reference" },
-  { value: "planned_product", label: "Planned product" },
-  { value: "other", label: "Other" },
-];
-
-export const PROJECT_EVENT_RELATIONSHIP_TYPES = [
-  { value: "convening", label: "Convening" },
-  { value: "launch", label: "Launch" },
-  { value: "validation", label: "Validation" },
-  { value: "presentation", label: "Presentation" },
-  { value: "negotiation_session", label: "Negotiation session" },
-  { value: "participation", label: "Participation" },
-  { value: "output_source", label: "Output source" },
-  { value: "other", label: "Other" },
-];
-
-export function formatProjectType(value) {
-  return PROJECT_TYPES.find((t) => t.value === value)?.label || value || "";
-}
-
-export function formatProjectSection(value) {
-  return PROJECT_SECTIONS.find((s) => s.value === value)?.label || value || "";
-}
-
-export function generateProjectSlug(title) {
-  return String(title || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80);
-}
-
-export function getProjectHref(slug) {
-  return `/projects/${slug}`;
-}
+export {
+  PROJECT_CONTENT_RELATIONSHIP_TYPES,
+  PROJECT_EVENT_RELATIONSHIP_TYPES,
+  PROJECT_FOOTPRINT_HUB_TYPES,
+  PROJECT_ICON_TYPES,
+  PROJECT_SECTIONS,
+  PROJECT_STATUSES,
+  PROJECT_STATUS_LABELS,
+  PROJECT_TYPES,
+  PROJECT_ACTIVITY_TYPES,
+  PROJECT_CONTRIBUTION_TYPES,
+  PROJECT_ORGANIZATION_RELATIONSHIP_TYPES,
+  PROJECT_WORKSTREAM_STATUSES,
+  buildProjectRelationshipSummary,
+  formatProjectSection,
+  formatProjectType,
+  generateProjectSlug,
+  getProjectHref,
+};
 
 // ─── Select fragment ──────────────────────────────────────────────────────────
 
@@ -148,6 +60,7 @@ const PROJECT_BASE_SELECT = `
   *,
   project_resources ( id, resource_title, resource_url, resource_type ),
   project_countries ( * ),
+  project_country_typologies ( * ),
   project_workstreams ( * ),
   project_activities ( * ),
   project_organization_links ( *, organizations ( id, name, slug, acronym, organization_type, website_url, country, country_code, description ) ),
@@ -159,6 +72,8 @@ const PROJECT_BASE_SELECT = `
     external_contributors ( id, name, slug, role_title, organization_name, country, profile_url ),
     organizations ( id, name, slug, acronym, organization_type )
   ),
+  project_series:series_id ( id, title, slug, summary, status ),
+  parent_project:parent_project_id ( id, title, slug, short_title, summary, status, status_label, section, project_type, period_label ),
   linked_space:linked_space_id ( id, name, slug, space_type, description )
 `.trim();
 
@@ -184,7 +99,8 @@ export async function fetchPublishedProjects({ supabase }) {
   }
 
   const projects = (data || []).map(normalizeProjectRecord);
-  return { projects: await attachProjectFootprintHubs({ supabase, projects }), error };
+  const projectsWithFootprints = await attachProjectFootprintHubs({ supabase, projects });
+  return { projects: attachProjectHierarchy(projectsWithFootprints), error };
 }
 
 /**
@@ -233,13 +149,44 @@ export async function fetchProjectBySlug({ supabase, slug, includeUnpublished = 
     });
   }
 
+  let childQuery = supabase
+    .from("projects")
+    .select(PROJECT_BASE_SELECT)
+    .eq("parent_project_id", project.id)
+    .order("sort_order")
+    .order("title");
+
+  if (!includeUnpublished) {
+    childQuery = childQuery.eq("status", "published");
+  }
+
+  const { data: childData, error: childError } = await childQuery;
+
+  if (childError) {
+    console.error("[projects] Failed to fetch child projects", {
+      slug,
+      projectId: project.id,
+      message: childError.message,
+      code: childError.code,
+    });
+  }
+
+  const childProjects = await attachProjectFootprintHubs({
+    supabase,
+    projects: (childData || []).map(normalizeProjectRecord),
+  });
+
   return {
-    project: {
-      ...project,
-      project_gallery: gallery,
-    },
+    project: applyProjectChildRollups(
+      {
+        ...project,
+        project_gallery: gallery,
+      },
+      attachProjectHierarchy(childProjects)
+    ),
     error,
     galleryError,
+    childError,
   };
 }
 
@@ -295,6 +242,7 @@ export async function fetchAdminProjects({ supabase }) {
     .select(`
       *,
       project_countries ( * ),
+      parent_project:parent_project_id ( id, title, slug, short_title ),
       linked_space:linked_space_id ( id, name, slug, space_type )
     `)
     .order("section")
@@ -323,12 +271,21 @@ export async function fetchAdminProjectById({ supabase, projectId }) {
 
 export async function fetchProjectEditorOptions({ supabase }) {
   const [
+    countriesResult,
     organizationsResult,
     externalContributorsResult,
     membersResult,
     eventsResult,
+    placesResult,
     publicationsResult,
+    parentProjectsResult,
+    seriesResult,
   ] = await Promise.all([
+    supabase
+      .from("countries")
+      .select("code, alpha2, name, official_name")
+      .eq("is_active", true)
+      .order("name"),
     supabase
       .from("organizations")
       .select("id, name, slug, acronym, organization_type")
@@ -348,26 +305,49 @@ export async function fetchProjectEditorOptions({ supabase }) {
       .order("starts_at", { ascending: false, nullsFirst: false })
       .limit(200),
     supabase
+      .from("places")
+      .select("id, name, slug, place_type, country_code, locality, region, latitude, longitude, address, source")
+      .order("name")
+      .limit(500),
+    supabase
       .from("content_items")
       .select("id, title, slug, content_type, publish_status, visibility")
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(250),
+    supabase
+      .from("projects")
+      .select("id, title, slug, short_title, parent_project_id, status, section, series_phase_label, sort_order")
+      .order("section")
+      .order("sort_order")
+      .order("title"),
+    supabase
+      .from("project_series")
+      .select("id, title, slug, status")
+      .order("sort_order"),
   ]);
 
   return {
     error:
+      countriesResult.error ||
       organizationsResult.error ||
       externalContributorsResult.error ||
       membersResult.error ||
       eventsResult.error ||
+      placesResult.error ||
       publicationsResult.error ||
+      parentProjectsResult.error ||
+      seriesResult.error ||
       null,
     options: {
+      countries: countriesResult.data || [],
       events: eventsResult.data || [],
       externalContributors: externalContributorsResult.data || [],
       members: membersResult.data || [],
       organizations: organizationsResult.data || [],
+      places: placesResult.data || [],
+      parentProjects: parentProjectsResult.data || [],
       publications: publicationsResult.data || [],
+      series: seriesResult.data || [],
     },
   };
 }
@@ -561,9 +541,6 @@ export function buildProjectsSummary(projects) {
   };
 }
 
-export function buildProjectRelationshipSummary(project = {}) {
-export { buildProjectRelationshipSummary };
-
 // ─── Filter helper (admin list) ────────────────────────────────────────────────
 
 export function filterAdminProjects(projects, { status, section, search }) {
@@ -612,6 +589,7 @@ function normalizeProjectRecord(project) {
     highlights: pickArray(project.highlights, override.highlights),
     project_resources: pickArray(project.project_resources, override.project_resources),
     project_countries: projectCountries,
+    project_country_typologies: sortByOrder(pickArray(project.project_country_typologies, [])),
     project_footprint_hubs: projectFootprintHubs,
     project_workstreams: sortByOrder(pickArray(project.project_workstreams, [])),
     project_activities: sortByOrder(pickArray(project.project_activities, [])),
@@ -729,6 +707,7 @@ async function replaceProjectCountries({
   const rowsWithCountryCode = countries.map((country, index) => ({
     country_class: country.country_class || null,
     engagement_role: country.engagement_role || null,
+    place_id: country.place_id || null,
     project_id: projectId,
     country: country.country,
     country_code: country.country_code || null,
@@ -764,8 +743,25 @@ async function replaceProjectFootprintHubs({
     return;
   }
 
-  await adminClient.from("project_footprint_hubs").insert(
-    hubs.map((hub, index) => ({
+  const rows = [];
+  for (const [index, hub] of hubs.entries()) {
+    const placeId =
+      hub.place_id ||
+      (hub.place_name || hub.city
+        ? await upsertPlace(adminClient, {
+            address: hub.place_address || null,
+            country_code: hub.country_code,
+            latitude: hub.latitude,
+            longitude: hub.longitude,
+            locality: hub.city || hub.place_name || null,
+            name: hub.place_name || hub.city || hub.label,
+            place_type: hub.place_type || (hub.hub_type === "secretariat" ? "secretariat" : "city"),
+            source: hub.place_source || "manual",
+            source_id: hub.place_source_id || null,
+          })
+        : null);
+
+    rows.push({
       city: hub.city || null,
       country_code: hub.country_code || null,
       description: hub.description || null,
@@ -774,11 +770,14 @@ async function replaceProjectFootprintHubs({
       latitude: hub.latitude,
       longitude: hub.longitude,
       phase_label: hub.phase_label || null,
+      place_id: placeId,
       project_id: projectId,
       related_url: hub.related_url || null,
       sort_order: Number.isInteger(hub.sort_order) ? hub.sort_order : index,
-    }))
-  );
+    });
+  }
+
+  await adminClient.from("project_footprint_hubs").insert(rows);
 }
 
 async function replaceProjectGraphRelations({
@@ -815,6 +814,7 @@ async function replaceProjectGraphRelations({
   }
 
   const workstreamCodeMap = new Map();
+  const activityCodeMap = new Map();
 
   if (Array.isArray(workstreams) && workstreams.length) {
     const rows = workstreams
@@ -873,6 +873,17 @@ async function replaceProjectGraphRelations({
     }
   }
 
+  const { data: savedActivities } = await adminClient
+    .from("project_activities")
+    .select("id, code, workstream_id")
+    .eq("project_id", projectId);
+
+  for (const activity of savedActivities || []) {
+    if (activity.code) {
+      activityCodeMap.set(activity.code, activity);
+    }
+  }
+
   if (Array.isArray(organization_links) && organization_links.length) {
     const rows = [];
     for (const [index, link] of organization_links.entries()) {
@@ -886,14 +897,17 @@ async function replaceProjectGraphRelations({
           : null);
 
       if (!organizationId) continue;
+      const scope = resolveRelationScope({ activityCodeMap, link, workstreamCodeMap });
 
       rows.push({
+        activity_id: scope.activity_id,
         label: link.label || null,
         notes: link.notes || null,
         organization_id: organizationId,
         project_id: projectId,
         relationship_type: link.relationship_type || "institutional_partner",
         sort_order: toInteger(link.sort_order, index),
+        workstream_id: scope.workstream_id,
       });
     }
 
@@ -905,14 +919,19 @@ async function replaceProjectGraphRelations({
   if (Array.isArray(content_links) && content_links.length) {
     const rows = content_links
       .filter((link) => link.content_id)
-      .map((link, index) => ({
-        content_id: link.content_id,
-        label: link.label || null,
-        notes: link.notes || null,
-        project_id: projectId,
-        relationship_type: link.relationship_type || "reference",
-        sort_order: toInteger(link.sort_order, index),
-      }));
+      .map((link, index) => {
+        const scope = resolveRelationScope({ activityCodeMap, link, workstreamCodeMap });
+        return {
+          activity_id: scope.activity_id,
+          content_id: link.content_id,
+          label: link.label || null,
+          notes: link.notes || null,
+          project_id: projectId,
+          relationship_type: link.relationship_type || "reference",
+          sort_order: toInteger(link.sort_order, index),
+          workstream_id: scope.workstream_id,
+        };
+      });
 
     if (rows.length) {
       await adminClient.from("project_content_links").insert(rows);
@@ -922,14 +941,19 @@ async function replaceProjectGraphRelations({
   if (Array.isArray(event_links) && event_links.length) {
     const rows = event_links
       .filter((link) => link.event_id)
-      .map((link, index) => ({
-        event_id: link.event_id,
-        label: link.label || null,
-        notes: link.notes || null,
-        project_id: projectId,
-        relationship_type: link.relationship_type || "participation",
-        sort_order: toInteger(link.sort_order, index),
-      }));
+      .map((link, index) => {
+        const scope = resolveRelationScope({ activityCodeMap, link, workstreamCodeMap });
+        return {
+          activity_id: scope.activity_id,
+          event_id: link.event_id,
+          label: link.label || null,
+          notes: link.notes || null,
+          project_id: projectId,
+          relationship_type: link.relationship_type || "participation",
+          sort_order: toInteger(link.sort_order, index),
+          workstream_id: scope.workstream_id,
+        };
+      });
 
     if (rows.length) {
       await adminClient.from("project_event_links").insert(rows);
@@ -949,8 +973,10 @@ async function replaceProjectGraphRelations({
               : null);
 
       if (!memberProfileId && !externalContributorId) continue;
+      const scope = resolveRelationScope({ activityCodeMap, link: contribution, workstreamCodeMap });
 
       rows.push({
+        activity_id: scope.activity_id,
         contribution_type: contribution.contribution_type || "other",
         external_contributor_id: externalContributorId,
         member_profile_id: memberProfileId,
@@ -959,6 +985,7 @@ async function replaceProjectGraphRelations({
         project_id: projectId,
         role_label: contribution.role_label || null,
         sort_order: toInteger(contribution.sort_order, index),
+        workstream_id: scope.workstream_id,
       });
     }
 
@@ -966,6 +993,23 @@ async function replaceProjectGraphRelations({
       await adminClient.from("project_contributions").insert(rows);
     }
   }
+}
+
+function resolveRelationScope({ activityCodeMap, link = {}, workstreamCodeMap }) {
+  const activity =
+    link.activity_code && activityCodeMap.has(link.activity_code)
+      ? activityCodeMap.get(link.activity_code)
+      : null;
+  const workstreamId =
+    (link.workstream_code && workstreamCodeMap.get(link.workstream_code)) ||
+    link.workstream_id ||
+    activity?.workstream_id ||
+    null;
+
+  return {
+    activity_id: activity?.id || link.activity_id || null,
+    workstream_id: workstreamId,
+  };
 }
 
 async function upsertOrganization(adminClient, organization) {
@@ -982,6 +1026,46 @@ async function upsertOrganization(adminClient, organization) {
         slug,
       },
       { onConflict: "slug" }
+    )
+    .select("id")
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return data?.id || null;
+}
+
+async function upsertPlace(adminClient, place) {
+  const countryCode = String(place?.country_code || "").trim().toUpperCase();
+  const name = String(place?.name || "").trim();
+  const latitude = Number.parseFloat(place?.latitude);
+  const longitude = Number.parseFloat(place?.longitude);
+
+  if (!countryCode || !name || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+    return null;
+  }
+
+  const slug = generateProjectSlug([name, countryCode].join(" "));
+  const { data, error } = await adminClient
+    .from("places")
+    .upsert(
+      {
+        address: place.address || null,
+        country_code: countryCode,
+        latitude,
+        locality: place.locality || null,
+        longitude,
+        name,
+        place_type: place.place_type || "other",
+        region: place.region || null,
+        slug,
+        source: place.source || "manual",
+        source_id: place.source_id || null,
+        verified_at: place.source === "nominatim" ? new Date().toISOString() : null,
+      },
+      { onConflict: "country_code,slug" }
     )
     .select("id")
     .single();

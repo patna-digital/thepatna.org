@@ -29,7 +29,7 @@ export default async function PublicationDetailPage({ params }) {
   if (!pub) notFound();
 
   const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
-  const downloadHref = getPublicationAttachmentFileUrl(pdfAttachment);
+  const readHref = getPublicationAttachmentFileUrl(pdfAttachment, { disposition: "inline" });
   const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
@@ -73,12 +73,11 @@ export default async function PublicationDetailPage({ params }) {
             {pdfAttachment && (
               <a
                 className="publication-download-btn publication-download-btn-lg"
-                download
-                href={downloadHref}
+                href={readHref}
                 rel="noreferrer"
                 target="_blank"
               >
-                {t("publicationUi.downloadPdf")}
+                {t("publicationUi.openPdf")}
               </a>
             )}
           </div>
@@ -128,12 +127,11 @@ export default async function PublicationDetailPage({ params }) {
             {pdfAttachment && (
               <a
                 className="primary-button"
-                download
-                href={downloadHref}
+                href={readHref}
                 rel="noreferrer"
                 target="_blank"
               >
-                {t("publicationUi.downloadPdf")}
+                {t("publicationUi.openPdf")}
               </a>
             )}
           </div>
