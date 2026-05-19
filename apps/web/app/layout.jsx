@@ -1,6 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import localFont from "next/font/local";
+import { Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { PatnaAssistant } from "@/components/patna-assistant";
 import { isRtlLocale } from "@/lib/locales";
 import "./globals.css";
@@ -17,9 +18,18 @@ const plusJakartaSans = localFont({
   display: "swap",
 });
 
-const dmSerifDisplay = localFont({
-  src: [{ path: "./fonts/dm-serif-display-400.ttf", weight: "400", style: "normal" }],
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
   variable: "--font-serif",
+  display: "swap",
+});
+
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -44,7 +54,7 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang={locale} dir={dir}>
-      <body className={`${plusJakartaSans.variable} ${dmSerifDisplay.variable}`}>
+      <body suppressHydrationWarning className={`${plusJakartaSans.variable} ${cormorantGaramond.variable} ${dmMono.variable}`}>
         <NextIntlClientProvider messages={messages}>
           {children}
           <PatnaAssistant />

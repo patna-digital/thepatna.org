@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { Fragment } from "react";
 import { SectionIntro } from "@/components/section-intro";
 import {
   homeStats,
   homePillars,
   leapPhases,
-  cohortSnapshots,
   homePublications,
   partnerNames,
 } from "@/lib/patna-data";
 import { fetchPublicEvents } from "@/lib/events";
+import { createSupabaseAdminClient, canUseSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const metadata = {
   title: "Home",
@@ -17,9 +17,66 @@ export const metadata = {
     "Data-driven climate action and energy transition for Africa through PATNA's convenings, evidence, and institutional collaboration.",
 };
 
+async function fetchCommunitySnapshot() {
+  if (!canUseSupabaseAdmin()) return [];
+
+  try {
+    const adminClient = createSupabaseAdminClient();
+
+    const { data: profiles, error } = await adminClient
+      .from("profiles")
+      .select("id, first_name, surname, title, role_title, organisation_name, country_of_residence, country_code")
+      .eq("onboarding_status", "active")
+      .eq("profile_status", "active")
+      .limit(12);
+
+    if (error || !profiles?.length) return [];
+
+    const userIds = profiles.map((p) => p.id);
+
+    const [cohortResult, headshotResult] = await Promise.all([
+      adminClient
+        .from("user_cohorts")
+        .select("user_id, cohorts(name, slug), is_primary")
+        .in("user_id", userIds)
+        .eq("is_primary", true),
+      adminClient
+        .from("cohort_member_profiles")
+        .select("user_id, headshot_url")
+        .in("user_id", userIds),
+    ]);
+
+    const cohortByUser = new Map(
+      (cohortResult.data || []).map((row) => [row.user_id, row.cohorts?.name || ""])
+    );
+    const headshotByUser = new Map(
+      (headshotResult.data || []).map((row) => [row.user_id, row.headshot_url || ""])
+    );
+
+    return profiles.slice(0, 8).map((p) => ({
+      id: p.id,
+      name: [p.title, p.first_name, p.surname].filter(Boolean).join(" ") || "PATNA Member",
+      role: p.role_title || "",
+      org: p.organisation_name || "",
+      country: p.country_of_residence || "",
+      cohort: cohortByUser.get(p.id) || "",
+      headshotUrl: headshotByUser.get(p.id) || "",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function getInitials(name) {
+  const skip = new Set(["Dr", "Dr.", "Prof", "Prof.", "Mr", "Mrs", "Ms", "Ambassador", "Amb", "Maj", "Gen", "(Rt)"]);
+  return name.split(" ").filter((w) => !skip.has(w)).slice(0, 2).map((w) => w[0]).join("");
+}
+
 export default async function HomePage() {
-  const t = await getTranslations();
-  const events = await fetchPublicEvents({ limit: 3 });
+  const [events, communityMembers] = await Promise.all([
+    fetchPublicEvents({ limit: 3 }),
+    fetchCommunitySnapshot(),
+  ]);
 
   return (
     <>
@@ -45,9 +102,7 @@ export default async function HomePage() {
               Where African expertise meets the world's most consequential climate &amp; energy transition decisions.
             </h1>
             <p className="hero-video-sub">
-              The PATNA Initiative is a non-profit network of 100+ experts across academia, policymaking,
-              legal specialities, and technical professions working at the intersection of maritime governance,
-              energy transition, and African development.
+              The PATNA Initiative is a non-profit network of 100+ experts across academia, policymaking, legal specialities, and technical professions working at the intersection of maritime governance, energy transition, and African development.
             </p>
             <div className="hero-actions">
               <Link className="primary-button hero-video-primary" href="/community/join">
@@ -60,7 +115,6 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Stat bar */}
         <div className="hero-stat-bar" aria-label="Key figures">
           {homeStats.map((stat) => (
             <div className="hero-stat-bar-cell" key={stat.label}>
@@ -75,7 +129,7 @@ export default async function HomePage() {
       <div className="moment-band" role="note">
         <span className="moment-band-pill">Historic Milestone</span>
         <p className="moment-band-text">
-          Africa's Continental Maritime Decarbonisation Strategy formally adopted at the AU STC-T&E 5th Ordinary Session — April 2026. PATNA served as lead technical consultant.
+          <strong>April 2026 — Johannesburg:</strong> Africa's first-ever Continental Strategy for the Decarbonisation of Maritime Transport adopted at AU STC-T&amp;E 5th Session. PATNA served as lead technical consultant.
         </p>
         <Link className="moment-band-link" href="/insights">
           Read the Report →
@@ -88,80 +142,143 @@ export default async function HomePage() {
           <p className="partners-marquee-label">Trusted by leading institutions across Africa and globally</p>
           <div className="partners-marquee-track-wrap" aria-hidden="true">
             <ul className="partners-marquee-track">
-              {[...partnerNames, ...partnerNames].map((name, i) => (
-                <li className="partners-marquee-badge" key={i}>{name}</li>
+              {partnerNames.map((n, i) => (
+                <li className="partners-marquee-badge" key={`a-${i}`}>{n}</li>
+              ))}
+              {partnerNames.map((n, i) => (
+                <li className="partners-marquee-badge" key={`b-${i}`}>{n}</li>
               ))}
             </ul>
           </div>
         </div>
       </section>
 
-      {/* ── ABOUT INTRO ── */}
-      <section className="section about-intro-section">
-        <div className="section-inner">
-          <div className="about-intro-grid">
-            <div className="about-intro-copy">
-              <div className="section-label">About PATNA</div>
-              <h2 className="section-title about-intro-title">
-                Africa must shape the energy transition it is uniquely positioned to supply.
+      {/* ── VALUE PROPOSITION (v3 divider grid) ── */}
+      <section className="value-prop-section" aria-labelledby="value-prop-heading">
+        <div className="value-prop-inner">
+          <div className="value-prop-header">
+            <div>
+              <div className="value-prop-label">Why PATNA Exists</div>
+              <h2 className="value-prop-title" id="value-prop-heading">
+                Three pillars.<br /><em>One purpose.</em>
               </h2>
-              <p className="about-intro-lead">
+            </div>
+            <p className="value-prop-subtitle">
+              Africa's maritime climate future is decided in rooms where the continent has long been absent. PATNA was built to change that — permanently — through evidence, coordination, and expert advisory presence at every critical juncture.
+            </p>
+          </div>
+
+          <div className="value-prop-pillars">
+            {homePillars.map((pillar, i) => (
+              <Fragment key={pillar.number}>
+                {i > 0 && <div className="value-prop-divider" aria-hidden="true" />}
+                <article className="value-prop-pillar">
+                  <div className="value-prop-pillar-num">{pillar.number}</div>
+                  <h3 className="value-prop-pillar-title">{pillar.title}</h3>
+                  <p className="value-prop-pillar-body">{pillar.body}</p>
+                  <div className="value-prop-proof">{pillar.proof}</div>
+                </article>
+              </Fragment>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── ABOUT INTRO ── */}
+      <section className="about-intro-section-v3">
+        <div className="section-inner">
+          <div className="section-label">About PATNA</div>
+          <h2 className="section-title" style={{ marginBottom: 0 }}>
+            Africa must shape the energy transition it is uniquely <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>positioned to supply.</em>
+          </h2>
+
+          <div className="about-intro-grid-v3">
+            <div className="about-intro-text-v3">
+              <p>
                 The global push for net-zero emissions is more than a compliance mandate; it is a historic market opportunity for Africa's abundant renewable resources. While Africa handles over 90% of its trade by sea and faces significant economic risks from rising shipping costs, it also holds 60% of the world's best solar potential.
               </p>
-              <p className="about-intro-body">
-                PATNA is a non-profit network of over 100 technical experts, policymakers, and researchers dedicated to ensuring Africa is a lead architect of the global energy transition. We exist to solve a critical gap: while Africa represents 44 IMO member states, without a convening of data-driven evidence, these nations often remain individually present but collectively absent from high-stakes decision-making.
+              <p>
+                This positioning allows the continent to supply the green hydrogen and ammonia the global fleet needs to meet International Maritime Organization (IMO) targets. Without strategic engagement, a net-zero framework could increase African shipping costs by 20% by 2035; with it, Africa can unlock a green export market worth hundreds of billions of dollars.
               </p>
-              <Link className="text-link" href="/about">
+              <Link className="about-intro-link-v3" href="/about">
                 Read our full story →
               </Link>
             </div>
 
-            <div className="about-intro-pillars">
-              {homePillars.map((pillar) => (
-                <article className="about-pillar-card" key={pillar.number}>
-                  <div className="about-pillar-num">{pillar.number} · {pillar.title}</div>
-                  <h3 className="about-pillar-subtitle">{pillar.subtitle}</h3>
-                  <p className="about-pillar-body">{pillar.body}</p>
-                </article>
-              ))}
+            <div className="about-intro-stats" aria-label="PATNA by the numbers">
+              <div className="about-intro-stat">
+                <span className="about-intro-stat-num">100<sup>+</sup></span>
+                <span className="about-intro-stat-lbl">African experts in the network</span>
+              </div>
+              <div className="about-intro-stat">
+                <span className="about-intro-stat-num">54</span>
+                <span className="about-intro-stat-lbl">AU member states engaged</span>
+              </div>
+              <div className="about-intro-stat">
+                <span className="about-intro-stat-num">4</span>
+                <span className="about-intro-stat-lbl">Expert cohorts deployed</span>
+              </div>
+              <div className="about-intro-stat">
+                <span className="about-intro-stat-num">3</span>
+                <span className="about-intro-stat-lbl">LEAP project phases since 2024</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── COMMUNITY SNAPSHOT ── */}
-      <section className="section community-snapshot-section" aria-label="Community snapshot">
-        <div className="community-snapshot-inner">
-          <div className="community-snapshot-header">
+      {/* ── COMMUNITY SNAPSHOT (v3 member cards) ── */}
+      <section className="v3-members-section" aria-label="Community snapshot">
+        <div className="section-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 5rem" }}>
+          <div className="v3-members-header">
             <div>
-              <div className="section-label section-label-light">Our Community</div>
-              <h2 className="section-title community-snapshot-title">
-                Experts shaping Africa's energy future.
+              <div className="v3-members-label">Our Community</div>
+              <h2 className="v3-members-title">
+                Experts shaping Africa's <em>energy future.</em>
               </h2>
-              <p className="community-snapshot-sub">
-                The PATNA community is structured around four professional cohorts, each bringing distinct expertise to the organisation's core mission.
-              </p>
             </div>
-            <Link className="text-link community-snapshot-link" href="/community">
+            <Link className="v3-members-link" href="/community">
               View all members →
             </Link>
           </div>
 
-          <div className="community-snapshot-grid">
-            {cohortSnapshots.map((member) => (
-              <article className="snapshot-card" key={member.name}>
-                <div className="snapshot-card-av" aria-hidden="true">
-                  {member.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
+          <p className="v3-members-subtext">
+            The PATNA community is structured around four professional cohorts, each bringing distinct expertise to the organisation's core mission. Members may hold dual cohort affiliations but identify one as primary.
+          </p>
+
+          <div className="v3-cohort-pillars">
+            <div className="v3-cohort-pill">
+              <strong>Academics &amp; Researchers</strong>
+              <span>Generating the evidence base that grounds African positions in rigorous, Africa-specific data and analysis.</span>
+            </div>
+            <div className="v3-cohort-pill">
+              <strong>Policy &amp; Government</strong>
+              <span>Negotiators and advisers engaging IMO, AU, and national processes on behalf of African states.</span>
+            </div>
+            <div className="v3-cohort-pill">
+              <strong>Legal &amp; Regulatory</strong>
+              <span>Maritime law specialists navigating MARPOL, LCA frameworks, UNCLOS, and international trade law.</span>
+            </div>
+            <div className="v3-cohort-pill">
+              <strong>Industry &amp; Private Sector</strong>
+              <span>Shipowners, port operators, financiers, and energy companies implementing the maritime transition.</span>
+            </div>
+          </div>
+
+          <div className="v3-members-grid">
+            {communityMembers.map((member) => (
+              <article className="v3-member-card" key={member.id}>
+                <div className="v3-member-avatar">
+                  {member.headshotUrl ? (
+                    <img src={member.headshotUrl} alt="" />
+                  ) : (
+                    <span className="v3-member-avatar-fallback">{getInitials(member.name)}</span>
+                  )}
                 </div>
-                <div className="snapshot-card-body">
-                  <strong className="snapshot-card-name">{member.name}</strong>
-                  <span className="snapshot-card-role">{member.role}</span>
-                  <span className="snapshot-card-org">{member.org}</span>
-                  <div className="snapshot-card-meta">
-                    <span className="snapshot-card-country">{member.flag} {member.country}</span>
-                    <span className="snapshot-card-cohort">{member.cohort}</span>
-                  </div>
-                </div>
+                <div className="v3-member-name">{member.name}</div>
+                <div className="v3-member-role">{member.role}</div>
+                {member.cohort && <span className="v3-member-cohort">{member.cohort}</span>}
+                {member.country && <div className="v3-member-country">{member.country}</div>}
               </article>
             ))}
           </div>
@@ -169,15 +286,17 @@ export default async function HomePage() {
       </section>
 
       {/* ── LEAP PROJECTS ── */}
-      <section className="section leap-section">
+      <section className="section projects-section-bg">
         <div className="section-inner">
-          <SectionIntro
-            label="Flagship Programme"
-            title="The LEAP Project Series"
-            subtitle="Leading Effective Afrocentric Participation. Three phases. Over two years. One goal: ensuring Africa shapes the IMO's Net-Zero Framework rather than inheriting it."
-          />
+          <div className="section-label">Flagship Programme</div>
+          <h2 className="section-title">
+            The LEAP Project <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>Series</em>
+          </h2>
+          <p style={{ fontSize: "16px", color: "var(--ink-soft)", maxWidth: "640px", marginTop: "0.875rem", lineHeight: "1.7" }}>
+            Leading Effective Afrocentric Participation. Three phases. Over two years. One goal: ensuring Africa shapes the IMO's Net-Zero Framework rather than inheriting it.
+          </p>
 
-          <div className="leap-grid">
+          <div className="leap-grid" style={{ marginTop: "3.25rem" }}>
             {leapPhases.map((phase) => (
               <article className="leap-card" key={phase.slug} data-status={phase.status}>
                 <div className="leap-card-head">
@@ -206,13 +325,12 @@ export default async function HomePage() {
       {/* ── PUBLICATIONS ── */}
       <section className="section home-publications-section">
         <div className="section-inner">
-          <SectionIntro
-            label="Latest Insights"
-            title="Africa-grounded evidence for global decisions."
-          />
+          <div className="section-label">Latest Insights</div>
+          <h2 className="section-title">
+            Africa-grounded evidence for <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>global decisions.</em>
+          </h2>
 
-          <div className="home-pub-grid">
-            {/* Featured */}
+          <div className="home-pub-grid" style={{ marginTop: "3.25rem" }}>
             <article className="home-pub-featured">
               <div className="home-pub-featured-bar" aria-hidden="true" />
               <div className="home-pub-featured-meta">
@@ -227,7 +345,6 @@ export default async function HomePage() {
               </Link>
             </article>
 
-            {/* Side stack */}
             <div className="home-pub-side">
               {homePublications.side.map((pub) => (
                 <Link className="home-pub-side-card" href={pub.href} key={pub.title}>
@@ -293,19 +410,15 @@ export default async function HomePage() {
       )}
 
       {/* ── JOIN CTA BAND ── */}
-      <section className="join-band home-cta-band">
-        <div className="section-inner">
+      <section className="join-band join-band-v4 home-cta-band">
+        <div>
           <h2>Ready to shape Africa's energy future?</h2>
           <p>
-            Join a growing community of specialists, policymakers, researchers, and industry practitioners — collaborating across PATNA's four expert cohorts.
+            Join a growing community of specialists, policymakers, researchers, and industry practitioners – collaborating across PATNA's four expert cohorts.
           </p>
-          <div className="join-band-btns">
-            <Link className="primary-button" href="/community/join">
-              Join Our Community →
-            </Link>
-            <Link className="secondary-button" href="/work-with-us">
-              Work With Us
-            </Link>
+          <div className="join-band-ctas">
+            <Link className="cta-primary" href="/community/join">Join Our Community →</Link>
+            <Link className="cta-secondary" href="/work-with-us">Work With Us</Link>
           </div>
         </div>
       </section>

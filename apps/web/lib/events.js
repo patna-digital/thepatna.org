@@ -65,28 +65,113 @@ export function splitEventList(value) {
     .filter(Boolean);
 }
 
-function parseApproximateDisplayDate(displayDate) {
-  const raw = String(displayDate || "").trim();
+function endOfUtcDay(date) {
+  const next = new Date(date);
+  next.setUTCHours(23, 59, 59, 999);
+  return next;
+}
+
+function parseDateLabel(value, { endOfDay = false } = {}) {
+  const raw = String(value || "").trim();
 
   if (!raw) {
     return null;
+  }
+
+  const isoDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (isoDateMatch) {
+    const parsed = new Date(`${isoDateMatch[1]}-${isoDateMatch[2]}-${isoDateMatch[3]}T00:00:00.000Z`);
+    return Number.isNaN(parsed.getTime()) ? null : endOfDay ? endOfUtcDay(parsed) : parsed;
   }
 
   const exactMatch = raw.match(/^(\d{1,2}) ([A-Za-z]+) (\d{4})$/);
 
   if (exactMatch) {
     const parsed = new Date(`${exactMatch[1]} ${exactMatch[2]} ${exactMatch[3]} UTC`);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+    return Number.isNaN(parsed.getTime()) ? null : endOfDay ? endOfUtcDay(parsed) : parsed;
+  }
+
+  return null;
+}
+
+function parseDisplayDateRange(displayDate) {
+  const raw = String(displayDate || "").trim();
+
+  if (!raw) {
+    return null;
+  }
+
+  const rangeParts = raw.split(/\s+(?:to|–|—)\s+/i);
+
+  if (rangeParts.length === 2) {
+    const start = parseDateLabel(rangeParts[0]);
+    const end = parseDateLabel(rangeParts[1], { endOfDay: true });
+
+    if (start && end) {
+      return { start, end, approximate: false };
+    }
+  }
+
+  const exact = parseDateLabel(raw, { endOfDay: true });
+
+  if (exact) {
+    return { start: parseDateLabel(raw), end: exact, approximate: false };
   }
 
   const monthOnlyMatch = raw.match(/^([A-Za-z]+) (\d{4})(?: \(TBC\))?$/i);
 
   if (monthOnlyMatch) {
     const parsed = new Date(`1 ${monthOnlyMatch[1]} ${monthOnlyMatch[2]} UTC`);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    const end = new Date(parsed);
+    end.setUTCMonth(end.getUTCMonth() + 1, 0);
+    end.setUTCHours(23, 59, 59, 999);
+
+    return { start: parsed, end, approximate: true };
   }
 
   return null;
+}
+
+function parseApproximateDisplayDate(displayDate) {
+  return parseDisplayDateRange(displayDate)?.start || null;
+}
+
+function getEventDateRange(event) {
+  const start = event.starts_at ? new Date(event.starts_at) : null;
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+  const validStart = start && !Number.isNaN(start.getTime()) ? start : null;
+  const validEnd = end && !Number.isNaN(end.getTime()) ? end : null;
+
+  if (validStart || validEnd) {
+    return {
+      start: validStart || validEnd,
+      end: validEnd || endOfUtcDay(validStart),
+      approximate: false,
+    };
+  }
+
+  return parseDisplayDateRange(event.display_date);
+}
+
+function deriveScheduleStatus(event, now = new Date()) {
+  const storedStatus = normaliseScheduleStatus(event.schedule_status);
+  const range = getEventDateRange(event);
+
+  if (!range?.end) {
+    return storedStatus === "past" ? "past" : "tbc";
+  }
+
+  if (range.end.getTime() < now.getTime()) {
+    return "past";
+  }
+
+  return storedStatus === "tbc" || range.approximate ? "tbc" : "upcoming";
 }
 
 function getEventSortDate(event) {
@@ -179,16 +264,20 @@ function normaliseScheduleStatus(value) {
 }
 
 function normaliseEventRow(row) {
-  return {
+  const event = {
     ...row,
     visibility: normaliseVisibility(row.visibility),
     status: normalisePublishStatus(row.status),
-    schedule_status: normaliseScheduleStatus(row.schedule_status),
     organising_institutions: splitEventList(row.organising_institutions),
     themes: splitEventList(row.themes),
     display_date: getDisplayDate(row),
     creatorName: formatProfileName(row.created_by_profile),
     updatedByName: formatProfileName(row.updated_by_profile),
+  };
+
+  return {
+    ...event,
+    schedule_status: deriveScheduleStatus(event),
   };
 }
 
@@ -260,7 +349,7 @@ async function translateEventsForDisplay(events, locale) {
 }
 
 function createSeedFallbackEvents() {
-  return seededPublicEvents.map((event) => ({
+  return seededPublicEvents.map((event) => normaliseEventRow({
     id: event.slug,
     slug: event.slug,
     title: event.title,

@@ -26,13 +26,24 @@ test("buildAccessContext exposes selectable scopes and blocked scopes consistent
     spaces: [{ id: "space_1", name: "Policy Cohort", space_type: "cohort" }],
   });
 
-  assert.equal(accessContext.scopes[0].id, "space:space_1");
-  assert.equal(accessContext.scopes[0].label, "Policy Cohort");
-  assert.equal(accessContext.scopes[1].id, "external_source:drive_1");
-  assert.match(accessContext.scopes[1].detail, /100 indexed/);
+  assert.deepEqual(
+    accessContext.scopes.slice(0, 3).map((item) => item.id),
+    ["source:insights", "source:events", "source:projects"],
+  );
+  assert.deepEqual(
+    accessContext.scopes.slice(0, 3).map((item) => item.defaultChecked),
+    [true, true, true],
+  );
+  assert.equal(accessContext.scopes.find((item) => item.id === "space:space_1")?.defaultChecked, false);
+  assert.equal(accessContext.scopes.find((item) => item.id === "external_source:drive_1")?.defaultChecked, false);
+  assert.match(accessContext.scopes.find((item) => item.id === "external_source:drive_1")?.detail, /100 indexed/);
   assert.equal(
-    accessContext.scopes.some((item) => item.label === "Events & Calendar"),
+    accessContext.scopes.some((item) => item.label === "Events"),
     true,
+  );
+  assert.equal(
+    accessContext.scopes.find((item) => item.id === "source:members")?.defaultChecked,
+    false,
   );
   assert.equal(
     accessContext.blocked.some((item) => item.name === "Admin / Applications"),
@@ -55,9 +66,28 @@ test("buildSuggestedPrompts adds admin prompt only for admin sessions", () => {
     false,
   );
   assert.equal(
-    adminPrompts.includes("Show me applications awaiting my review"),
+    adminPrompts.includes("Where do I manage PATNA assistant data sources?"),
     true,
   );
+});
+
+test("resolveSelectedAssistantScopes defaults to limited published data", () => {
+  const accessScope = {
+    canReadAdminContent: true,
+    canReadMemberContent: true,
+    externalSources: [{ id: "drive_1", indexedCount: 100, title: "IMO MEPC Submissions", visibility: "members" }],
+    spaces: [{ id: "space_1", name: "Policy Cohort", space_type: "cohort" }],
+  };
+
+  const activeScope = resolveSelectedAssistantScopes({ accessScope });
+
+  assert.deepEqual(activeScope.selectedScopeIds, ["source:insights", "source:events", "source:projects"]);
+  assert.equal(activeScope.enabledSourceTypes.has("content_item"), true);
+  assert.equal(activeScope.enabledSourceTypes.has("event"), true);
+  assert.equal(activeScope.enabledSourceTypes.has("project"), true);
+  assert.equal(activeScope.enabledSourceTypes.has("profile"), false);
+  assert.deepEqual(activeScope.selectedExternalSourceIds, []);
+  assert.deepEqual(activeScope.selectedSpaceIds, []);
 });
 
 test("detectAssistantIntent routes structured event and admin queue queries", () => {
@@ -134,6 +164,31 @@ test("resolveSelectedAssistantScopes narrows retrieval to checked items", () => 
   assert.deepEqual(activeScope.selectedExternalSourceIds, ["drive_1"]);
   assert.equal(activeScope.enabledSourceTypes.has("content_item"), true);
   assert.equal(activeScope.enabledSourceTypes.has("event"), false);
+  assert.equal(activeScope.enabledSourceTypes.has("project"), false);
+});
+
+test("project queries use deterministic project snapshots", () => {
+  const accessScope = {
+    canReadAdminContent: false,
+    canReadMemberContent: true,
+    externalSources: [{ id: "drive_1", indexedCount: 34, title: "IMO MEPC Submissions", visibility: "members" }],
+    spaces: [{ id: "space_1", name: "Policy Cohort", space_type: "cohort" }],
+  };
+  const activeScope = resolveSelectedAssistantScopes({
+    accessScope,
+    selectedScopeIds: ["source:projects"],
+  });
+
+  const plan = buildAssistantQueryPlan({
+    accessScope,
+    activeScope,
+    message: "Summarise current PATNA projects by theme",
+  });
+
+  assert.equal(plan.shouldUseSnapshot, true);
+  assert.equal(plan.shouldUseSearch, false);
+  assert.deepEqual(plan.preferredSourceTypes, ["project"]);
+  assert.equal(plan.tasks[0].toolName, "get_patna_snapshot");
 });
 
 test("extractLexicalSearchInput captures focused uploaded-document phrases", () => {
@@ -247,5 +302,5 @@ test("system prompt and welcome message reflect admin scope and active filters",
   assert.match(prompt, /ACTIVE SCOPE FOR THIS ANSWER/);
   assert.match(prompt, /IMO MEPC Submissions/);
   assert.match(prompt, /always use markdown links, not raw paths/);
-  assert.match(welcome, /community discussions, member profiles, events, and insights/i);
+  assert.match(welcome, /publications, events, and projects/i);
 });
