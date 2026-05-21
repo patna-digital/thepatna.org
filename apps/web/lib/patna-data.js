@@ -792,6 +792,7 @@ export const adminNav = [
     items: [
       { href: "/admin/assistant", label: "AI Assistant", icon: "Sparkles" },
       { href: "/admin/admins", label: "Admins", icon: "ShieldCheck" },
+      { href: "/admin/settings", label: "Website Settings", icon: "Globe" },
     ],
   },
 ];

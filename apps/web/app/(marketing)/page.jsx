@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { SectionIntro } from "@/components/section-intro";
 import {
-  homeStats,
   homePillars,
   leapPhases,
   homePublications,
@@ -23,16 +22,38 @@ async function fetchCommunitySnapshot() {
   try {
     const adminClient = createSupabaseAdminClient();
 
-    const { data: profiles, error } = await adminClient
+    // Check admin-configured featured members
+    const { data: settingRow } = await adminClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "home_featured_members")
+      .single();
+
+    const setting = settingRow?.value || { mode: "default", member_ids: [] };
+    const useCustom = setting.mode === "custom" && setting.member_ids?.length > 0;
+
+    let profilesQuery = adminClient
       .from("profiles")
       .select("id, first_name, surname, title, role_title, organisation_name, country_of_residence, country_code")
       .eq("onboarding_status", "active")
-      .eq("profile_status", "active")
-      .limit(12);
+      .eq("profile_status", "active");
+
+    if (useCustom) {
+      profilesQuery = profilesQuery.in("id", setting.member_ids);
+    } else {
+      profilesQuery = profilesQuery.limit(12);
+    }
+
+    const { data: profiles, error } = await profilesQuery;
 
     if (error || !profiles?.length) return [];
 
-    const userIds = profiles.map((p) => p.id);
+    // Preserve admin-specified order when in custom mode
+    const orderedProfiles = useCustom
+      ? setting.member_ids.map((id) => profiles.find((p) => p.id === id)).filter(Boolean)
+      : profiles;
+
+    const userIds = orderedProfiles.map((p) => p.id);
 
     const [cohortResult, headshotResult] = await Promise.all([
       adminClient
@@ -53,7 +74,7 @@ async function fetchCommunitySnapshot() {
       (headshotResult.data || []).map((row) => [row.user_id, row.headshot_url || ""])
     );
 
-    return profiles.slice(0, 8).map((p) => ({
+    return orderedProfiles.slice(0, 8).map((p) => ({
       id: p.id,
       name: [p.title, p.first_name, p.surname].filter(Boolean).join(" ") || "PATNA Member",
       role: p.role_title || "",
@@ -115,26 +136,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div className="hero-stat-bar" aria-label="Key figures">
-          {homeStats.map((stat) => (
-            <div className="hero-stat-bar-cell" key={stat.label}>
-              <strong className="hero-stat-bar-num">{stat.value}</strong>
-              <span className="hero-stat-bar-lbl">{stat.label}</span>
-            </div>
-          ))}
-        </div>
       </section>
-
-      {/* ── MOMENT BAND ── */}
-      <div className="moment-band" role="note">
-        <span className="moment-band-pill">Historic Milestone</span>
-        <p className="moment-band-text">
-          <strong>April 2026 — Johannesburg:</strong> Africa's first-ever Continental Strategy for the Decarbonisation of Maritime Transport adopted at AU STC-T&amp;E 5th Session. PATNA served as lead technical consultant.
-        </p>
-        <Link className="moment-band-link" href="/insights">
-          Read the Report →
-        </Link>
-      </div>
 
       {/* ── PARTNERS ── */}
       <section className="section partners-marquee-section" aria-label="Partners and institutional affiliations">
