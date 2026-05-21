@@ -96,7 +96,7 @@ export default async function MemberProfilePage({ searchParams }) {
     redirect("/auth/login?next=/app/profile");
   }
 
-  const [{ data: cohorts }, { data: tags }, { data: currentCohorts }, { data: currentTags }, resolvedSearchParams, profileResult] =
+  const [{ data: cohorts }, { data: tags }, { data: currentCohorts }, { data: currentTags }, { data: countries }, resolvedSearchParams, profileResult] =
     await Promise.all([
       supabase.from("cohorts").select("id, name, slug").order("name"),
       supabase.from("domain_tags").select("id, name, slug").order("name"),
@@ -105,6 +105,7 @@ export default async function MemberProfilePage({ searchParams }) {
         .select("cohort_id, is_primary, cohorts!inner(name, slug)")
         .eq("user_id", user.id),
       supabase.from("user_tags").select("tag_id, domain_tags!inner(name, slug)").eq("user_id", user.id),
+      supabase.from("countries").select("code, name").eq("is_active", true).order("name"),
       searchParams,
       fetchMemberProfileView({ supabase, userId: user.id }),
     ]);
@@ -222,6 +223,7 @@ export default async function MemberProfilePage({ searchParams }) {
           }
           cohorts={cohorts}
           cohortProfile={member.cohortProfile}
+          countries={countries || []}
           currentCohorts={currentCohorts}
           currentTags={currentTags}
           flowMode="edit"

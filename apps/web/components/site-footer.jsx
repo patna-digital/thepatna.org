@@ -10,10 +10,15 @@ export function SiteFooter() {
         <div className="footer-top">
           <div className="footer-brand">
             <BrandLogo href="/" label="The PATNA Initiative" size="md" theme="footer" variant="full" />
+            <div className="footer-brand-full">
+              Professional African Technical Network Advisory Initiative
+            </div>
             <p>
-              PATNA connects evidence, coordination, and institutional action for African climate,
-              maritime, and energy transition leadership.
+              A non-profit organisation of African technical experts building the evidence,
+              coordination, and advisory capacity that Africa needs at the world&apos;s most
+              consequential climate negotiations.
             </p>
+            <p>www.thepatna.org · contact@thepatna.org</p>
           </div>
 
           {footerLinkGroups.map((group) => (
@@ -29,7 +34,7 @@ export function SiteFooter() {
         </div>
 
         <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} The PATNA Initiative · Built for African technical coordination, evidence, and collective positioning.</p>
+          <p>© {new Date().getFullYear()} PATNA Initiative. All rights reserved. · contact@thepatna.org</p>
           <div className="footer-langs">
             <LanguageSelector variant="compact" />
             <Link href="/contact">Contact</Link>

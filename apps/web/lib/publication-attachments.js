@@ -113,6 +113,25 @@ export function findPrimaryPublicationAttachment(attachments = []) {
   );
 }
 
+export function getPublicationAttachmentFileUrl(attachment = {}, { disposition = "attachment" } = {}) {
+  const resolvedDisposition = disposition === "inline" ? "inline" : "attachment";
+
+  if (attachment?.id) {
+    return `/api/publications/files/${encodeURIComponent(attachment.id)}?disposition=${resolvedDisposition}`;
+  }
+
+  // Legacy attachments without a DB id — serve via storage path if we can extract one
+  const storagePath =
+    normaliseStoredValue(attachment?.storage_path) ||
+    extractPublicationStoragePath(normaliseStoredValue(attachment?.file_url));
+
+  if (storagePath) {
+    return `/api/publications/files/serve?path=${encodeURIComponent(storagePath)}&disposition=${resolvedDisposition}`;
+  }
+
+  return normaliseStoredValue(attachment?.file_url);
+}
+
 export function getNextPrimaryAttachment(attachments = [], removedAttachmentId = "") {
   const remaining = orderPublicationAttachments(attachments).filter((attachment) => attachment.id !== removedAttachmentId);
   return remaining[0] || null;

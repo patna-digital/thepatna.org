@@ -4,6 +4,11 @@ import {
   PROFILE_AVAILABILITY_OPTIONS,
   PROFILE_VISIBILITY_OPTIONS,
 } from "@/lib/profile-form-options";
+import {
+  getCountryNameByCodeFromOptions,
+  resolveCountryOption,
+  toCountryOptions,
+} from "@/lib/countries";
 import { splitLanguages, STANDARD_LANGUAGE_OPTIONS } from "@/lib/profile-structured-fields";
 import { RelevantProjectsFields } from "@/components/relevant-projects-fields";
 
@@ -90,6 +95,7 @@ export function MemberProfileSectionFields({
   codeOfConductDownloadHref = "",
   cohortProfile,
   cohorts,
+  countries = [],
   currentCohorts,
   currentTags,
   ndaDownloadHref = "",
@@ -179,6 +185,15 @@ export function MemberProfileSectionFields({
   }
 
   if (sectionId === "organisation-cohort") {
+    const countryOptions = toCountryOptions(countries);
+    const selectedCountryCode =
+      profile?.country_code ||
+      resolveCountryOption({ countries, name: profile?.country_of_residence })?.code ||
+      "";
+    const selectedCountryName =
+      profile?.country_of_residence ||
+      getCountryNameByCodeFromOptions(selectedCountryCode, countries);
+
     return (
       <>
         <div className="two-column-grid member-profile-grid-gap">
@@ -193,11 +208,15 @@ export function MemberProfileSectionFields({
             />
           </Field>
           <Field label="Country of residence">
-            <input
-              defaultValue={profile?.country_of_residence || ""}
-              name="country_of_residence"
-              placeholder="Senegal"
-            />
+            <input name="country_of_residence" type="hidden" value={selectedCountryName || ""} />
+            <select defaultValue={selectedCountryCode} name="country_code">
+              <option value="">Select a country</option>
+              {countryOptions.map((country) => (
+                <option key={country.value} value={country.value}>
+                  {country.label}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="Primary cohort">
             <select defaultValue={primaryCohortSlug} name="primary_cohort_slug">

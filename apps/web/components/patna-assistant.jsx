@@ -8,7 +8,7 @@ import {
   mergeAssistantWorkflowEvent,
 } from "@/lib/assistant-workflow";
 
-const ASSISTANT_STORAGE_KEY = "patna-assistant-session-v2";
+const ASSISTANT_STORAGE_KEY = "patna-assistant-session-v3";
 
 function isStoredMessageList(value) {
   return Array.isArray(value) && value.every((item) =>
@@ -64,47 +64,72 @@ function AssistantWorkflowPanel({ workflow }) {
     return null;
   }
 
+  const visibleStages = (workflow.stages || []).filter((stage) =>
+    stage.status !== "pending" || stage.summary,
+  );
+  const hasActiveStage = visibleStages.some((stage) => stage.status === "in_progress");
+  const hasErrorStage = visibleStages.some((stage) => stage.status === "error");
+  const statusLabel = hasActiveStage ? "Working" : hasErrorStage ? "Review" : "Complete";
+
   return (
-    <div className="patna-assistant-workflow" aria-label="Assistant workflow">
-      {workflow.scopeSummary && (
-        <p className="patna-assistant-workflow-scope">{workflow.scopeSummary}</p>
-      )}
+    <details className="patna-assistant-workflow" aria-label="Assistant activity" open={hasActiveStage}>
+      <summary className="patna-assistant-workflow-summary">
+        <span>Assistant activity</span>
+        <span className={`patna-assistant-workflow-status is-${hasErrorStage ? "error" : hasActiveStage ? "active" : "complete"}`}>
+          {statusLabel}
+        </span>
+      </summary>
 
-      <div className="patna-assistant-workflow-stage-list">
-        {workflow.stages.map((stage) => (
-          <div
-            key={stage.id}
-            className={`patna-assistant-workflow-stage is-${stage.status || "pending"}`}
-          >
-            <div className="patna-assistant-workflow-stage-top">
-              <span className="patna-assistant-workflow-stage-label">{stage.label}</span>
-              <span className="patna-assistant-workflow-stage-status">
-                {stage.status === "in_progress"
-                  ? "In progress"
-                  : stage.status === "completed"
-                    ? "Done"
-                    : stage.status === "error"
-                      ? "Error"
-                      : "Pending"}
-              </span>
-            </div>
-            {stage.summary && (
-              <p className="patna-assistant-workflow-stage-summary">{stage.summary}</p>
-            )}
+      <div className="patna-assistant-workflow-body">
+        {workflow.scopeSummary && (
+          <p className="patna-assistant-workflow-scope">{workflow.scopeSummary}</p>
+        )}
+
+        {visibleStages.length > 0 && (
+          <div className="patna-assistant-workflow-stage-list">
+            {visibleStages.map((stage) => (
+              <div
+                key={stage.id}
+                className={`patna-assistant-workflow-stage is-${stage.status || "pending"}`}
+              >
+                <span className="patna-assistant-workflow-stage-dot" aria-hidden />
+                <div className="patna-assistant-workflow-stage-copy">
+                  <div className="patna-assistant-workflow-stage-top">
+                    <span className="patna-assistant-workflow-stage-label">{stage.label}</span>
+                    <span className="patna-assistant-workflow-stage-status">
+                      {stage.status === "in_progress"
+                        ? "In progress"
+                        : stage.status === "completed"
+                          ? "Done"
+                          : stage.status === "error"
+                            ? "Error"
+                            : "Pending"}
+                    </span>
+                  </div>
+                  {stage.summary && (
+                    <p className="patna-assistant-workflow-stage-summary">{stage.summary}</p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        )}
 
-      {workflow.sourceSummaries.length > 0 && (
-        <div className="patna-assistant-workflow-source-list">
-          {workflow.sourceSummaries.map((summary) => (
-            <span key={summary.key} className="patna-assistant-workflow-source-chip">
-              {summary.label}: {summary.hitCount}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
+        {workflow.sourceSummaries.length > 0 && (
+          <div className="patna-assistant-workflow-source-list" aria-label="Sources checked">
+            {workflow.sourceSummaries.map((summary) => (
+              <span key={summary.key} className="patna-assistant-workflow-source-chip">
+                {summary.label}: {summary.hitCount}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <p className="patna-assistant-workflow-review-note">
+          Review sources before relying on synthesis or guidance.
+        </p>
+      </div>
+    </details>
   );
 }
 
@@ -119,13 +144,13 @@ export function PatnaAssistant() {
   const [blockedScopes, setBlockedScopes] = useState([]);
   const [selectedScopeIds, setSelectedScopeIds] = useState(null);
   const [suggestedPrompts, setSuggestedPrompts] = useState([
-    "Summarise recent PATNA discussions",
+    "Help me find the right PATNA page for publications, events, and projects",
+    "Show the latest PATNA publications with links",
     "What events are coming up?",
-    "What are the latest PATNA publications?",
-    "Who in the member directory works on SIDS issues?",
+    "Find connections between projects, events, and publications",
   ]);
   const [welcomeMessage, setWelcomeMessage] = useState(
-    "Hello. I'm PATNA Assistant. I can search your PATNA discussions, published events, publications, and the member directory within your access scope.",
+    "Hello. I'm PATNA Assistant. I start with PATNA publications, events, and projects. Add more sources from Access only when a question needs them.",
   );
 
   const messagesEndRef = useRef(null);
@@ -133,6 +158,17 @@ export function PatnaAssistant() {
   const abortControllerRef = useRef(null);
 
   const hasSelectedScope = Array.isArray(selectedScopeIds) && selectedScopeIds.length > 0;
+  const selectedAccessScopes = accessScopes.filter((item) =>
+    Array.isArray(selectedScopeIds) && selectedScopeIds.includes(item.id)
+  );
+  const selectedScopeCount = selectedAccessScopes.length;
+  const defaultScopeCount = getDefaultScopeIds(accessScopes).length;
+  const hasExpandedSelection = selectedAccessScopes.some((item) =>
+    item.defaultChecked === false || item.kind === "external_source" || item.id === "source:members"
+  );
+  const accessGuidance = hasExpandedSelection || selectedScopeCount > defaultScopeCount
+    ? "Additional sources broaden retrieval and may mix member-visible profiles, space discussions, or meeting PDFs into the answer. Select only what this question needs, then review the activity log."
+    : "The default scope keeps retrieval focused on published PATNA records. Add Members, spaces, or MEPC/ISWG folders only when the question needs them.";
 
   function restoreSessionState() {
     if (typeof window === "undefined") {
@@ -489,7 +525,7 @@ export function PatnaAssistant() {
               <div className="patna-assistant-header-copy">
                 <p className="patna-assistant-title">PATNA Assistant</p>
                 <p className="patna-assistant-subtitle">
-                  Context-aware · Access-restricted
+                  Focused sources · Human review
                 </p>
               </div>
             </div>
@@ -531,6 +567,12 @@ export function PatnaAssistant() {
               <p className="patna-assistant-access-hint">
                 Checked items will be used the next time you ask a question.
               </p>
+              <div className="patna-assistant-access-guidance" role="note">
+                <p>
+                  Best for retrieval, summaries, connections, and platform navigation.
+                </p>
+                <p>{accessGuidance}</p>
+              </div>
               <div className="patna-assistant-access-list">
                 {accessScopes.map((item) => (
                   <label
@@ -579,14 +621,16 @@ export function PatnaAssistant() {
                         <p className="patna-assistant-bubble-copy">
                           {welcomeMessage}
                         </p>
-                        <p className="patna-assistant-bubble-copy">What would you like to explore today?</p>
+                        <p className="patna-assistant-bubble-copy">
+                          I am best for retrieval, summaries, connections, and navigation. Treat synthesis as guidance for human review.
+                        </p>
                       </div>
                     </div>
 
                     {suggestedPrompts.length > 0 && (
                       <div className="patna-assistant-prompts">
                         <p className="patna-assistant-section-label patna-assistant-prompts-label">
-                          Try asking
+                          Prompt templates
                         </p>
                         <div className="patna-assistant-prompt-list">
                           {suggestedPrompts.map((prompt) => (
@@ -653,7 +697,7 @@ export function PatnaAssistant() {
                     value={inputValue}
                     onChange={(event) => setInputValue(event.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask about PATNA discussions, members, events, publications…"
+                    placeholder="Ask about PATNA publications, events, projects, or navigation…"
                     rows={1}
                     disabled={isStreaming}
                     className="patna-assistant-input"
@@ -675,7 +719,7 @@ export function PatnaAssistant() {
                 </div>
                 <p className="patna-assistant-disclaimer">
                   {hasSelectedScope
-                    ? "Responses use only the PATNA sources that are currently checked in Access."
+                    ? "Responses use checked sources only. Review activity before relying on synthesis."
                     : "Select at least one checked source in Access before sending a message."}
                 </p>
               </div>

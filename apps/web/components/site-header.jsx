@@ -8,17 +8,15 @@ import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
 import { siteNavigation } from "@/lib/patna-data";
 
-// Maps nav href → translation key in the 'nav' namespace
+// Maps nav href to translation keys in the nav namespace.
 const NAV_KEY = {
   "/": "home",
   "/about": "about",
   "/projects": "projects",
-  "/publications": "publications",
+  "/insights": "insights",
   "/events": "events",
   "/community": "community",
   "/work-with-us": "workWithUs",
-  "/contact": "contact",
-  "/insights": "insights",
 };
 
 export function SiteHeader() {
@@ -40,7 +38,7 @@ export function SiteHeader() {
       <header className="site-header">
         <BrandLogo href="/" label="The PATNA Initiative" size="sm" variant="full" />
 
-        {/* Desktop nav — hidden on mobile via CSS */}
+        {/* Desktop nav hidden on mobile via CSS */}
         <nav className="site-nav" aria-label="Primary">
           {siteNavigation.map((item) => {
             const isActive =
@@ -54,12 +52,9 @@ export function SiteHeader() {
           })}
         </nav>
 
-        {/* Desktop actions — hidden on mobile via CSS */}
+        {/* Desktop actions hidden on mobile via CSS */}
         <div className="site-header-actions">
           <LanguageSelector variant="compact" />
-          <Link className="pill-link" href="/auth/login">
-            {t("auth.login")}
-          </Link>
           <Link className="primary-button" href="/community/join">
             {t("auth.join")}
           </Link>
@@ -104,9 +99,6 @@ export function SiteHeader() {
             );
           })}
           <div className="site-mobile-nav-actions">
-            <Link className="pill-link" href="/auth/login" onClick={() => setMenuOpen(false)}>
-              {t("auth.login")}
-            </Link>
             <Link className="primary-button" href="/community/join" onClick={() => setMenuOpen(false)}>
               {t("auth.join")}
             </Link>

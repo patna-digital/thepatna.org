@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import {
   LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
   FolderKanban, BookOpen, Wrench, Handshake, Network, Menu, X,
+  ChevronDown, Sparkles, ShieldCheck,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
@@ -15,7 +16,7 @@ import { memberNav } from "@/lib/patna-data";
 
 const ADMIN_ICON_MAP = {
   LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
-  FolderKanban, BookOpen, Wrench, Handshake, Network,
+  FolderKanban, BookOpen, Wrench, Handshake, Network, Sparkles, ShieldCheck,
 };
 
 const ADMIN_NAV_KEY = {
@@ -26,6 +27,10 @@ const ADMIN_NAV_KEY = {
   "/admin/events": "events",
   "/admin/insights": "publications",
 };
+
+function isItemActive(pathname, href) {
+  return href === "/admin" ? pathname === href : pathname.startsWith(href);
+}
 
 export function DashboardShell({
   title,
@@ -41,6 +46,17 @@ export function DashboardShell({
   const t = useTranslations();
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Track which collapsible groups are open — seed with the group containing the active route
+  const [openGroups, setOpenGroups] = useState(() => {
+    const open = new Set();
+    for (const group of navItems) {
+      if (group.collapsible && group.items.some((item) => isItemActive(pathname, item.href))) {
+        open.add(group.label);
+      }
+    }
+    return open;
+  });
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
@@ -62,6 +78,18 @@ export function DashboardShell({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [sidebarOpen]);
+
+  function toggleGroup(label) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }
 
   const footerLinks = [
     { href: "/app", label: "Community App" },
@@ -112,7 +140,7 @@ export function DashboardShell({
             label={brandLabel}
             showCopy={false}
             theme="sidebar"
-            variant="mark"
+            variant="full"
           />
           <div className="dashboard-sidebar-branding">
             <strong className="dashboard-sidebar-title">{brandLabel}</strong>
@@ -135,33 +163,60 @@ export function DashboardShell({
         ) : null}
 
         <nav aria-label="Admin navigation">
-          {navItems.map((group) => (
-            <div className="nav-group" key={group.label}>
-              <div className="nav-group-label">{group.label}</div>
-              {group.items.map((item) => {
-                const Icon = ADMIN_ICON_MAP[item.icon];
-                const isActive = mounted && (
-                  item.href === "/admin"
-                    ? pathname === item.href
-                    : pathname.startsWith(item.href)
-                );
-                return (
-                  <Link
-                    className={[isActive ? "active" : "", item.highlight ? "nav-item-highlight" : ""].filter(Boolean).join(" ")}
-                    href={item.href}
-                    key={item.href}
-                    onClick={() => setSidebarOpen(false)}
+          {navItems.map((group) => {
+            const isCollapsible = group.collapsible === true;
+            const isOpen = !isCollapsible || openGroups.has(group.label);
+
+            const items = group.items.map((item) => {
+              const Icon = ADMIN_ICON_MAP[item.icon];
+              const isActive = mounted && isItemActive(pathname, item.href);
+              return (
+                <Link
+                  className={[isActive ? "active" : "", item.highlight ? "nav-item-highlight" : ""].filter(Boolean).join(" ")}
+                  href={item.href}
+                  key={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <span className="nav-item-label">
+                    <span className="nav-item-icon">{Icon && <Icon size={15} />}</span>
+                    <span>{ADMIN_NAV_KEY[item.href] ? t(`member.${ADMIN_NAV_KEY[item.href]}`) : item.label}</span>
+                  </span>
+                  {item.badge ? <span className="badge">{item.badge}</span> : null}
+                </Link>
+              );
+            });
+
+            return (
+              <div className="nav-group" key={group.label}>
+                {isCollapsible ? (
+                  <button
+                    aria-expanded={isOpen}
+                    className="nav-group-toggle"
+                    onClick={() => toggleGroup(group.label)}
+                    type="button"
                   >
-                    <span className="nav-item-label">
-                      <span className="nav-item-icon">{Icon && <Icon size={15} />}</span>
-                      <span>{ADMIN_NAV_KEY[item.href] ? t(`member.${ADMIN_NAV_KEY[item.href]}`) : item.label}</span>
-                    </span>
-                    {item.badge ? <span className="badge">{item.badge}</span> : null}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+                    <span>{group.label}</span>
+                    <ChevronDown
+                      className={`nav-group-chevron${isOpen ? " is-open" : ""}`}
+                      size={12}
+                    />
+                  </button>
+                ) : (
+                  <div className="nav-group-label">{group.label}</div>
+                )}
+
+                {isCollapsible ? (
+                  <div className={`nav-group-items${isOpen ? " is-open" : ""}`} aria-hidden={!isOpen}>
+                    <div className="nav-group-items-inner">
+                      {items}
+                    </div>
+                  </div>
+                ) : (
+                  items
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">

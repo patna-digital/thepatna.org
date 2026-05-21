@@ -3,10 +3,12 @@ import { ProjectForm } from "../components/project-form";
 import { adminNav } from "@/lib/patna-data";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { fetchAdminSpaces } from "@/lib/spaces";
+import { fetchProjectEditorOptions } from "@/lib/projects";
 import { saveAdminProjectAction } from "../[projectId]/actions";
 
 const NOTICE_MESSAGES = {
   "missing-fields": "Title is required.",
+  "invalid-parent": "Parent project cannot create a circular project hierarchy.",
   error:            "Project creation failed. Please retry.",
 };
 
@@ -15,7 +17,10 @@ export default async function NewAdminProjectPage({ searchParams }) {
   const sp = await searchParams;
   const notice = typeof sp?.notice === "string" ? sp.notice : "";
 
-  const { spaces } = await fetchAdminSpaces({ supabase });
+  const [{ spaces }, editorOptionsResult] = await Promise.all([
+    fetchAdminSpaces({ supabase }),
+    fetchProjectEditorOptions({ supabase }),
+  ]);
 
   return (
     <DashboardShell
@@ -35,6 +40,7 @@ export default async function NewAdminProjectPage({ searchParams }) {
       <div className="form-card">
         <ProjectForm
           action={saveAdminProjectAction}
+          relationOptions={editorOptionsResult.options}
           spaces={spaces || []}
           submitLabel="Create project"
         />

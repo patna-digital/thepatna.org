@@ -13,3 +13,4 @@ build
 .env.production.local
 supabase/.temp
 package-lock.json
+.claude/

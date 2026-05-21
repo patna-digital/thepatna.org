@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
-import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
+import {
+  findPrimaryPublicationAttachment,
+  getPublicationAttachmentFileUrl,
+} from "@/lib/publication-attachments";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { fetchInsightBySlug } from "@/lib/insights";
@@ -31,6 +34,7 @@ export default async function MemberPublicationDetailPage({ params }) {
 
   const sidebarUser = frameData.sidebarUser || null;
   const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
+  const readHref = getPublicationAttachmentFileUrl(pdfAttachment, { disposition: "inline" });
   const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
@@ -66,12 +70,11 @@ export default async function MemberPublicationDetailPage({ params }) {
             {pdfAttachment && (
               <a
                 className="publication-download-btn publication-download-btn-lg"
-                download
-                href={pdfAttachment.file_url}
+                href={readHref}
                 rel="noreferrer"
                 target="_blank"
               >
-                {t("publicationUi.downloadPdf")}
+                {t("publicationUi.openPdf")}
               </a>
             )}
           </div>
@@ -95,18 +98,17 @@ export default async function MemberPublicationDetailPage({ params }) {
 
         {/* Footer */}
         <div className="publication-detail-footer">
-          <Link className="secondary-button" href="/app/publications">
+          <Link className="publication-back-link" href="/app/publications">
             {t("publicationUi.backToPublications")}
           </Link>
           {pdfAttachment && (
             <a
               className="primary-button"
-              download
-              href={pdfAttachment.file_url}
+              href={readHref}
               rel="noreferrer"
               target="_blank"
             >
-              {t("publicationUi.downloadPdf")}
+              {t("publicationUi.openPdf")}
             </a>
           )}
         </div>

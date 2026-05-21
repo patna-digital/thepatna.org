@@ -356,7 +356,7 @@ export async function fetchMemberProfileView({
     supabase
       .from("profiles")
       .select(
-        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
+        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, country_code, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
       )
       .eq("id", userId)
       .maybeSingle(),
@@ -541,7 +541,7 @@ export async function fetchActiveMemberDirectory({ adminClient, locale }) {
     adminClient
       .from("profiles")
       .select(
-        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
+        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, country_code, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
       )
       .in("id", memberIds)
       .eq("onboarding_status", "active")

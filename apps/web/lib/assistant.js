@@ -17,6 +17,7 @@ const SOURCE_FAMILY_LABELS = {
   comment: "Discussion Reply",
   content_item: "Publication",
   event: "Event",
+  project: "Project",
   profile: "Member Directory",
   community_application: "Application Queue",
   external_document: "Google Drive Document",
@@ -24,26 +25,37 @@ const SOURCE_FAMILY_LABELS = {
 
 const GLOBAL_SCOPE_CONFIG = [
   {
-    detail: "All published content",
+    defaultChecked: true,
+    detail: "Published reports, briefs, and insights",
     id: "source:insights",
-    label: "Insights Hub",
+    label: "Publications",
     sourceTypes: ["content_item"],
   },
   {
-    detail: "All community events",
+    defaultChecked: true,
+    detail: "Published PATNA events and calendar records",
     id: "source:events",
-    label: "Events & Calendar",
+    label: "Events",
     sourceTypes: ["event"],
   },
   {
-    detail: "Profiles (visibility-gated)",
+    defaultChecked: true,
+    detail: "Published project records and linked activities",
+    id: "source:projects",
+    label: "Projects",
+    sourceTypes: ["project"],
+  },
+  {
+    defaultChecked: false,
+    detail: "Opt-in: visible member profiles",
     id: "source:members",
-    label: "Member Directory",
+    label: "Members",
     sourceTypes: ["profile"],
   },
   {
     adminOnly: true,
-    detail: "Policy Cohort only — read",
+    defaultChecked: false,
+    detail: "Opt-in: application queue",
     id: "source:applications",
     label: "Admin / Applications",
     sourceTypes: ["community_application"],
@@ -52,10 +64,11 @@ const GLOBAL_SCOPE_CONFIG = [
 
 const SOURCE_TYPE_UI_LABELS = {
   community_application: "Admin / Applications",
-  content_item: "Insights Hub",
-  event: "Events & Calendar",
+  content_item: "Publications",
+  event: "Events",
   external_document: "Uploaded Documents",
-  profile: "Member Directory",
+  project: "Projects",
+  profile: "Members",
   thread: "Discussions",
   comment: "Discussions",
 };
@@ -562,6 +575,24 @@ function buildEventPath(event) {
   return event?.visibility === "restricted" ? `/admin/events/${event.id}` : "/app/events";
 }
 
+function buildProjectPath(project) {
+  return project?.slug ? `/projects/${project.slug}` : "/projects";
+}
+
+function formatAssistantList(values = [], limit = 4) {
+  const items = Array.isArray(values)
+    ? values.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+
+  if (!items.length) {
+    return "";
+  }
+
+  const visible = items.slice(0, limit);
+  const extraCount = items.length - visible.length;
+  return extraCount > 0 ? `${visible.join(", ")} +${extraCount} more` : visible.join(", ");
+}
+
 function buildCurrentDateLine() {
   return formatDateTime(new Date().toISOString()) || new Date().toISOString();
 }
@@ -664,9 +695,20 @@ export function buildAccessContext(accessScope) {
   const spaces = accessScope?.spaces || [];
   const externalSources = accessScope?.externalSources || [];
   const scopes = [
+    ...GLOBAL_SCOPE_CONFIG
+      .filter((item) => !item.adminOnly || accessScope?.canReadAdminContent)
+      .map((item) => ({
+        defaultChecked: item.defaultChecked !== false,
+        detail: item.detail,
+        enabled: true,
+        id: item.id,
+        kind: "source",
+        label: item.label,
+        sourceTypes: item.sourceTypes,
+      })),
     ...spaces.map((space) => ({
-      defaultChecked: true,
-      detail: "Space discussions",
+      defaultChecked: false,
+      detail: "Opt-in: space discussions and replies",
       enabled: true,
       id: `space:${space.id}`,
       kind: "space",
@@ -678,27 +720,16 @@ export function buildAccessContext(accessScope) {
       .filter((source) => source?.title)
       .sort((left, right) => String(left.title).localeCompare(String(right.title)))
       .map((source) => ({
-        defaultChecked: true,
+        defaultChecked: false,
         detail: source.indexedCount > 0
-          ? `Google Drive PDFs · ${source.indexedCount} indexed`
-          : "Google Drive PDFs",
+          ? `Opt-in: Google Drive PDFs · ${source.indexedCount} indexed`
+          : "Opt-in: Google Drive PDFs",
         enabled: true,
         externalSourceId: source.id,
         id: `external_source:${source.id}`,
         kind: "external_source",
         label: source.title,
         sourceTypes: ["external_document"],
-      })),
-    ...GLOBAL_SCOPE_CONFIG
-      .filter((item) => !item.adminOnly || accessScope?.canReadAdminContent)
-      .map((item) => ({
-        defaultChecked: true,
-        detail: item.detail,
-        enabled: true,
-        id: item.id,
-        kind: "source",
-        label: item.label,
-        sourceTypes: item.sourceTypes,
       })),
   ];
 
@@ -820,24 +851,13 @@ export function resolveSelectedAssistantScopes({
 }
 
 export function buildSuggestedPrompts(accessScope) {
-  const spaces = accessScope?.spaces || [];
-  const primarySpace = spaces[0] || null;
-  const cohortSpace = spaces.find((s) => s.space_type === "cohort") || primarySpace;
-  const workingGroup = spaces.find((s) => s.space_type === "working_group") || null;
-
   return [
-    cohortSpace
-      ? `Summarise recent ${cohortSpace.name} discussions`
-      : "Summarise recent PATNA discussions",
-    "What events do I have coming up?",
-    workingGroup
-      ? `Find Insights relevant to ${workingGroup.name}`
-      : "Find the latest PATNA Insights",
-    cohortSpace
-      ? `Who in my cohort works on SIDS issues?`
-      : "Who in the member directory works on SIDS issues?",
-    accessScope?.canReadAdminContent ? "Show me applications awaiting my review" : null,
-    "What is PATNA's position on the GHG levy?",
+    "Help me find the right PATNA page for publications, events, and projects",
+    "Show the latest PATNA publications with links",
+    "What events are coming up?",
+    "Summarise current PATNA projects by theme",
+    "Find connections between projects, events, and publications",
+    accessScope?.canReadAdminContent ? "Where do I manage PATNA assistant data sources?" : null,
   ]
     .filter(Boolean)
     .slice(0, 6);
@@ -847,13 +867,7 @@ export function buildWelcomeMessage(accessScope, profile = null) {
   const firstName = profile?.first_name?.trim() || null;
   const greeting = firstName ? `Hello, ${firstName}.` : "Hello.";
 
-  const spaces = accessScope?.spaces || [];
-  const hasWorkingGroups = spaces.some((s) => s.space_type === "working_group");
-  const activityPhrase = hasWorkingGroups
-    ? "community discussions, member profiles, events, insights, and working group activity"
-    : "community discussions, member profiles, events, and insights";
-
-  return `${greeting} I'm PATNA Assistant — I have access to ${activityPhrase} that you're permitted to view.`;
+  return `${greeting} I'm PATNA Assistant. I start with PATNA publications, events, and projects, and you can opt into more sources from Access when a question needs them.`;
 }
 
 export async function embedQuery(text) {
@@ -888,6 +902,7 @@ export function detectAssistantIntent(message) {
   const wantsApplications = /\bapplication|applications|invite|invites|interview|waitlist|declined|approved|candidature|candidatures\b/.test(text);
   const wantsMembers = /\bmember|members|directory|profile|profiles|who\b/.test(text);
   const wantsPublications = /\binsight|insights|publication|publications|report|reports|brief|briefs|article|articles|news\b/.test(text);
+  const wantsProjects = /\bproject|projects|programme|programmes|program|programs|workstream|workstreams|initiative|initiatives\b/.test(text);
   const wantsDiscussions = /\bdiscussion|discussions|thread|threads|space|spaces|reply|replies\b/.test(text);
   const wantsDocuments = /\bdocument|documents|submission|submissions|pdf|pdfs|agenda item\b/.test(text) || Boolean(documentReference);
   const wantsIndexedCatalog = /\bindexed|index|inventory|library|what do you have|which submissions|which documents|have indexed\b/.test(text);
@@ -898,10 +913,13 @@ export function detectAssistantIntent(message) {
   const wantsStatus = /\bstatus|pending|awaiting|approved|waitlist|declined|submitted|interviewing|en attente\b/.test(text);
   const wantsSummary = /\bsummarise|summarize|summary|recap|overview|position|what does|what is patna's position\b/.test(text);
   const wantsSearch = /\bfind|search|look up|who works on|works on|expertise|topic|theme\b/.test(text);
+  const wantsConnections = /\bconnect|connects|connected|connection|connections|relate|relates|related|relationship|relationships|link|links|linked\b/.test(text);
 
   const shouldUseStructured =
     wantsEvents ||
     wantsApplications ||
+    wantsProjects ||
+    wantsConnections ||
     wantsDocuments ||
     wantsCounts ||
     wantsStatus ||
@@ -928,6 +946,8 @@ export function detectAssistantIntent(message) {
     wantsLatest,
     wantsMembers,
     wantsPast,
+    wantsProjects,
+    wantsConnections,
     wantsPublications,
     wantsSearch,
     wantsSpecificDocument: Boolean(documentReference),
@@ -1125,8 +1145,22 @@ function buildPreferredSourceTypesForPlan(intent, activeScope) {
   if (intent.wantsMembers && isAssistantSourceTypeEnabled(activeScope, "profile")) {
     preferred.push("profile");
   }
+  if (intent.wantsProjects && isAssistantSourceTypeEnabled(activeScope, "project")) {
+    preferred.push("project");
+  }
   if (intent.wantsPublications && isAssistantSourceTypeEnabled(activeScope, "content_item")) {
     preferred.push("content_item");
+  }
+  if (intent.wantsConnections) {
+    if (isAssistantSourceTypeEnabled(activeScope, "project")) {
+      preferred.push("project");
+    }
+    if (isAssistantSourceTypeEnabled(activeScope, "content_item")) {
+      preferred.push("content_item");
+    }
+    if (isAssistantSourceTypeEnabled(activeScope, "event")) {
+      preferred.push("event");
+    }
   }
   if (intent.wantsDiscussions) {
     if (activeScope.selectedSpaceIds.length) {
@@ -1159,10 +1193,15 @@ export function buildAssistantQueryPlan({
     intent.shouldUseStructured
     || intent.wantsIndexedCatalog
     || (intent.wantsDocuments && activeScope.selectedExternalSourceIds.length > 0);
-  const shouldUseSearch =
+  const searchablePreferredSourceTypes = preferredSourceTypes.filter((sourceType) => sourceType !== "project");
+  const hasSearchableScope = preferredSourceTypes.length
+    ? searchablePreferredSourceTypes.length > 0
+    : buildSemanticSourceTypes(intent, accessScope, activeScope).length > 0;
+  const shouldUseSearch = hasSearchableScope && (
     intent.shouldUseSemantic
     || (intent.wantsDocuments && !intent.wantsIndexedCatalog)
-    || shouldUseDocumentLookup;
+    || shouldUseDocumentLookup
+  );
   const tasks = [];
 
   if (shouldUseDocumentLookup) {
@@ -1229,6 +1268,10 @@ function buildSemanticSourceTypes(intent, accessScope, activeScope) {
 
   if (intent.wantsMembers && !intent.wantsDiscussions && !intent.wantsPublications) {
     return isAssistantSourceTypeEnabled(activeScope, "profile") ? ["profile"] : [];
+  }
+
+  if (intent.wantsProjects && !intent.wantsPublications && !intent.wantsEvents && !intent.wantsDiscussions && !intent.wantsMembers) {
+    return [];
   }
 
   if (intent.wantsDiscussions && !intent.wantsPublications && !intent.wantsMembers) {
@@ -1393,6 +1436,7 @@ async function retrieveStructuredPublicationEvidence({ supabase, accessScope, ac
       intent.wantsLatest &&
       !intent.wantsEvents &&
       !intent.wantsApplications &&
+      !intent.wantsProjects &&
       !intent.wantsDiscussions &&
       !intent.wantsMembers
     )) ||
@@ -1451,6 +1495,147 @@ async function retrieveStructuredPublicationEvidence({ supabase, accessScope, ac
   )];
 }
 
+async function retrieveStructuredProjectEvidence({ supabase, activeScope, intent }) {
+  if (
+    (!intent.wantsProjects && !intent.wantsConnections && !(
+      intent.wantsLatest &&
+      !intent.wantsPublications &&
+      !intent.wantsEvents &&
+      !intent.wantsApplications &&
+      !intent.wantsDiscussions &&
+      !intent.wantsMembers
+    )) ||
+    !isAssistantSourceTypeEnabled(activeScope, "project")
+  ) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select(`
+      id,
+      title,
+      slug,
+      short_title,
+      summary,
+      body,
+      status,
+      status_label,
+      section,
+      project_type,
+      period_label,
+      partner_line,
+      tags,
+      updated_at,
+      project_countries(country, country_code),
+      project_workstreams(title, status, summary),
+      project_content_links(content_items(id, title, slug, content_type, publish_status, visibility, published_at)),
+      project_event_links(events(id, title, slug, event_type, display_date, starts_at, status, visibility))
+    `)
+    .eq("status", "published")
+    .order("section")
+    .order("sort_order");
+
+  if (error) {
+    console.error("retrieveStructuredProjectEvidence error:", error);
+    return [];
+  }
+
+  const terms = tokenizeSearchTerms(intent.rawMessage || "")
+    .filter((term) => !["project", "projects", "programme", "programmes", "program", "programs"].includes(term));
+  let projects = data || [];
+
+  if (terms.length) {
+    projects = projects.filter((project) =>
+      matchesAllTerms(
+        [
+          project.title,
+          project.short_title,
+          project.summary,
+          stripHtml(project.body || ""),
+          project.status_label,
+          project.section,
+          project.project_type,
+          project.period_label,
+          project.partner_line,
+          ...(Array.isArray(project.tags) ? project.tags : []),
+          ...(project.project_countries || []).map((country) => country.country),
+          ...(project.project_workstreams || []).map((workstream) => workstream.title),
+          ...(project.project_content_links || []).map((link) => link.content_items?.title),
+          ...(project.project_event_links || []).map((link) => link.events?.title),
+        ]
+          .filter(Boolean)
+          .join(" "),
+        terms,
+      ),
+    );
+  }
+
+  const visibleProjects = projects.slice(0, 6);
+
+  if (!visibleProjects.length) {
+    return [];
+  }
+
+  const snapshot = buildStructuredEvidence({
+    sourceType: "project",
+    sourceId: "snapshot",
+    title: "PATNA projects",
+    path: "/projects",
+    summary: `${visibleProjects.length} published project${visibleProjects.length === 1 ? "" : "s"} matched this request.`,
+    detailLines: visibleProjects.map((project) =>
+      [
+        project.title,
+        project.status_label ? `Status: ${project.status_label}` : "",
+        project.period_label ? `Period: ${project.period_label}` : "",
+        project.project_content_links?.length ? `${project.project_content_links.length} linked publication${project.project_content_links.length === 1 ? "" : "s"}` : "",
+        project.project_event_links?.length ? `${project.project_event_links.length} linked event${project.project_event_links.length === 1 ? "" : "s"}` : "",
+      ]
+        .filter(Boolean)
+        .join(" | "),
+    ),
+  });
+
+  return [
+    snapshot,
+    ...visibleProjects.map((project) => {
+      const linkedPublications = (project.project_content_links || [])
+        .map((link) => link.content_items?.title)
+        .filter(Boolean);
+      const linkedEvents = (project.project_event_links || [])
+        .map((link) => link.events?.title)
+        .filter(Boolean);
+      const countries = (project.project_countries || [])
+        .map((country) => country.country)
+        .filter(Boolean);
+      const workstreams = (project.project_workstreams || [])
+        .map((workstream) => workstream.title)
+        .filter(Boolean);
+
+      return buildStructuredEvidence({
+        sourceType: "project",
+        sourceId: project.id,
+        title: project.title,
+        path: buildProjectPath(project),
+        summary: truncateExcerptText(project.summary || project.body || "", 520),
+        detailLines: [
+          project.status_label ? `Status: ${project.status_label}` : "",
+          project.period_label ? `Period: ${project.period_label}` : "",
+          project.section ? `Section: ${project.section}` : "",
+          countries.length ? `Countries: ${formatAssistantList(countries)}` : "",
+          workstreams.length ? `Workstreams: ${formatAssistantList(workstreams)}` : "",
+          linkedPublications.length ? `Linked publications: ${formatAssistantList(linkedPublications, 3)}` : "",
+          linkedEvents.length ? `Linked events: ${formatAssistantList(linkedEvents, 3)}` : "",
+        ].filter(Boolean),
+        metadata: {
+          linked_events: linkedEvents,
+          linked_publications: linkedPublications,
+        },
+      });
+    }),
+  ];
+}
+
 async function retrieveStructuredDiscussionEvidence({ supabase, activeScope, intent }) {
   if (
     !intent.wantsDiscussions &&
@@ -1459,6 +1644,8 @@ async function retrieveStructuredDiscussionEvidence({ supabase, activeScope, int
       !intent.wantsPublications &&
       !intent.wantsEvents &&
       !intent.wantsApplications &&
+      !intent.wantsProjects &&
+      !intent.wantsMembers &&
       activeScope.selectedSpaceIds.length > 0
     )
   ) {
@@ -1672,15 +1859,16 @@ async function retrieveStructuredApplicationEvidence({ supabase, accessScope, ac
 }
 
 async function retrieveStructuredEvidence({ supabase, accessScope, activeScope, intent }) {
-  const [events, publications, discussions, members, applications] = await Promise.all([
+  const [events, publications, projects, discussions, members, applications] = await Promise.all([
     retrieveStructuredEventEvidence({ supabase, accessScope, activeScope, intent }),
     retrieveStructuredPublicationEvidence({ supabase, accessScope, activeScope, intent }),
+    retrieveStructuredProjectEvidence({ supabase, activeScope, intent }),
     retrieveStructuredDiscussionEvidence({ supabase, activeScope, intent }),
     retrieveStructuredMemberEvidence({ supabase, activeScope, intent }),
     retrieveStructuredApplicationEvidence({ supabase, accessScope, activeScope, intent }),
   ]);
 
-  return [...events, ...publications, ...discussions, ...members, ...applications];
+  return [...events, ...publications, ...projects, ...discussions, ...members, ...applications];
 }
 
 function resolveJoinedExternalSource(row) {
@@ -2365,6 +2553,9 @@ async function buildSearchToolResult({
 }) {
   const plan = queryPlan || buildAssistantQueryPlan({ accessScope, activeScope, message: query });
   const sourceTypesOverride = plan.preferredSourceTypes.length ? plan.preferredSourceTypes : null;
+  const searchableSourceTypesOverride = sourceTypesOverride
+    ? sourceTypesOverride.filter((sourceType) => sourceType !== "project")
+    : null;
   const scopedActiveScope = buildScopedActiveScope(activeScope, sourceTypesOverride);
   const intent = {
     ...detectAssistantIntent(query),
@@ -2379,7 +2570,7 @@ async function buildSearchToolResult({
           intent,
           limit: 8,
           message: query,
-          sourceTypesOverride,
+          sourceTypesOverride: searchableSourceTypesOverride,
         }),
         retrieveSemanticEvidence({
           supabase: semanticSupabase,
@@ -2388,7 +2579,7 @@ async function buildSearchToolResult({
           intent,
           limit: 8,
           message: query,
-          sourceTypesOverride,
+          sourceTypesOverride: searchableSourceTypesOverride,
         }),
       ])
     : [[], []];
@@ -2400,9 +2591,9 @@ async function buildSearchToolResult({
   return {
     kind: "search_results",
     summary: bundles.length
-      ? `Searched ${buildToolSummaryPrefix(sourceTypesOverride || [])} and found ${bundles.length} evidence bundle${bundles.length === 1 ? "" : "s"}.`
-      : `Searched ${buildToolSummaryPrefix(sourceTypesOverride || [])}, but no relevant evidence bundles were retrieved.`,
-    searchedSourceTypes: sourceTypesOverride || [],
+      ? `Searched ${buildToolSummaryPrefix(searchableSourceTypesOverride || [])} and found ${bundles.length} evidence bundle${bundles.length === 1 ? "" : "s"}.`
+      : `Searched ${buildToolSummaryPrefix(searchableSourceTypesOverride || [])}, but no relevant evidence bundles were retrieved.`,
+    searchedSourceTypes: searchableSourceTypesOverride || [],
     sourceSummaries,
     hitCount: bundles.length,
     empty: bundles.length === 0,
@@ -2511,7 +2702,7 @@ export function buildSystemPrompt({ profile, accessScope, activeScope = null }) 
   const availableLines = [
     spaceLines || "- No private PATNA spaces were resolved for this session.",
     accessScope?.canReadMemberContent
-      ? "- Member-wide PATNA data: published events, publications, and active visible member profiles."
+      ? "- Member-wide PATNA data: published events, publications, projects, and active visible member profiles."
       : "- Member-wide PATNA data is unavailable in this session.",
     accessScope?.canReadAdminContent
       ? "- Admin PATNA data: application queues and restricted PATNA records."
@@ -2531,7 +2722,7 @@ ${effectiveActiveScope.activeScopeLines.join("\n")}
 
 INSTRUCTIONS:
 1. Start with plan_patna_query for any substantive question so you understand the request and the best PATNA sources to inspect.
-2. Use get_patna_snapshot for deterministic counts, dates, statuses, recent items, and uploaded-document inventory.
+2. Use get_patna_snapshot for deterministic counts, dates, statuses, recent items, project links, and uploaded-document inventory.
 3. Use get_patna_document when the user names a specific document or asks to summarise one (e.g., "MEPC 84/6", "GHG Strategy brief"). It resolves exact document codes before fuzzy fallback.
 4. Use search_patna_documents for themes, comparisons, positions, and supporting evidence bundles.
 5. Tool results are structured JSON. Read the fields carefully:
@@ -2545,10 +2736,11 @@ INSTRUCTIONS:
 8. Never surface financial, HR, resume, compliance-document, or hidden-profile content.
 9. If the first retrieval is thin or not specific enough, call another relevant tool with a more targeted query.
 10. If you cannot find relevant evidence after two retrieval attempts, say so clearly and suggest the most relevant PATNA page or space to check.
-11. Keep answers concise and easy to scan. When you cite evidence include:
+11. Prioritise platform navigation, data retrieval, summaries, and connections between PATNA records. Offer synthesis and guidance as human-review support, not as a final organisational decision.
+12. Keep answers concise and easy to scan. When you cite evidence include:
    - Source: <source family>
    - Link: [Open in PATNA](<PATNA path>) — always use markdown links, not raw paths.
-12. PATNA is your only domain. Decline general knowledge questions unrelated to PATNA platform data.`;
+13. PATNA is your only domain. Decline general knowledge questions unrelated to PATNA platform data.`;
 }
 
 function buildEvidenceLinkLabel(evidence) {
@@ -2564,6 +2756,10 @@ function buildEvidenceLinkLabel(evidence) {
 
   if (path.startsWith("/app/events") || path.startsWith("/events")) {
     return "Open event";
+  }
+
+  if (path.startsWith("/projects")) {
+    return "Open project";
   }
 
   if (path.startsWith("/app/members")) {
@@ -2675,7 +2871,7 @@ export const ASSISTANT_TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional filter: one or more of thread, comment, content_item, event, profile, community_application, external_document.",
+            "Optional filter: one or more of thread, comment, content_item, event, project, profile, community_application, external_document.",
         },
       },
       required: ["query"],
@@ -2696,7 +2892,7 @@ export const ASSISTANT_TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional filter: one or more of thread, comment, content_item, event, profile, external_document. Omit to search all accessible sources.",
+            "Optional filter: one or more of thread, comment, content_item, event, profile, external_document. Projects are checked through get_patna_snapshot. Omit to search all accessible indexed sources.",
         },
       },
       required: ["query"],

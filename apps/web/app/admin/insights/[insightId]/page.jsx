@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
-import { requireAdminContext } from "@/lib/supabase/access";
+import { requirePublicationManagerContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchInsightBySlug, fetchInsightTags } from "@/lib/insights";
 import { InsightForm } from "../components/insight-form";
@@ -18,7 +18,7 @@ import { PublicationFilesManager } from "@/components/admin/publication-files-ma
 import { orderPublicationAttachments } from "@/lib/publication-attachments";
 
 export default async function EditInsightPage({ params }) {
-  await requireAdminContext();
+  await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
   const { insightId } = await params;
 

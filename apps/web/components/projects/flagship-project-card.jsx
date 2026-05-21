@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatProjectType, getProjectHref } from "@/lib/projects";
+import { formatProjectType, getProjectHref } from "@/lib/project-config";
 
 const STATUS_CHIP = {
   Active:    "chip-success",
@@ -20,6 +20,7 @@ export function FlagshipProjectCard({ project }) {
     deliverables = [],
     highlights = [],
     tags = [],
+    child_projects = [],
     linked_space,
   } = project;
 
@@ -78,6 +79,21 @@ export function FlagshipProjectCard({ project }) {
           <div className="flagship-project-tags">
             {tags.map((tag, i) => (
               <span className="flagship-project-tag" key={i}>{tag}</span>
+            ))}
+          </div>
+        )}
+
+        {child_projects.length > 0 && (
+          <div className="project-card-children">
+            <span className="project-card-children-label">Child projects / work packages</span>
+            {child_projects.slice(0, 4).map((childProject) => (
+              <Link
+                className="project-card-child-link"
+                href={getProjectHref(childProject.slug)}
+                key={childProject.id || childProject.slug}
+              >
+                {childProject.short_title || childProject.title}
+              </Link>
             ))}
           </div>
         )}

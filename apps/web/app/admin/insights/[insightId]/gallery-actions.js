@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireAdminContext } from "@/lib/supabase/access";
+import { requirePublicationManagerContext } from "@/lib/supabase/access";
 import { uploadContentImage } from "@/lib/content-images";
 
 export async function addInsightGalleryImageAction(formData) {
-  const { user } = await requireAdminContext();
+  const { user } = await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const contentId = String(formData.get("content_id") || "").trim();
@@ -47,7 +47,7 @@ export async function addInsightGalleryImageAction(formData) {
 }
 
 export async function removeInsightGalleryImageAction(formData) {
-  await requireAdminContext();
+  await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const imageId   = String(formData.get("image_id") || "").trim();

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { formatContentType } from "@/lib/content-types";
-import { findPrimaryPublicationAttachment } from "@/lib/publication-attachments";
 
 const TYPE_CHIP_CLASSES = {
   report: "chip-neutral",
@@ -25,8 +24,6 @@ export function MemberPublicationsList({ publications }) {
   return (
     <div className="publications-list-grid">
       {publications.map((pub) => {
-        const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
-
         return (
           <article key={pub.id} className="publication-list-card">
             <Link
@@ -73,23 +70,18 @@ export function MemberPublicationsList({ publications }) {
               )}
 
               <div className="publication-list-card-footer">
-                {pub.tags?.slice(0, 3).map((tag) => (
+                {pub.tags?.slice(0, 2).map((tag) => (
                   <span className="status-chip chip-neutral" key={tag.slug}>
                     {tag.name}
                   </span>
                 ))}
-                {pdfAttachment && (
-                  <a
-                    className="publication-download-btn"
-                    download
-                    href={pdfAttachment.file_url}
-                    rel="noreferrer"
-                    target="_blank"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {t("publicationUi.download")}
-                  </a>
-                )}
+                <Link
+                  className="publication-download-btn"
+                  href={`/app/publications/${pub.slug}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {t("publicationUi.readPublication")}
+                </Link>
               </div>
             </div>
           </article>

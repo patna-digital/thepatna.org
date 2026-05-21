@@ -2,22 +2,15 @@
 
 import { useState } from "react";
 
-/**
- * Drop-in replacement for the plain URL inputs in admin forms.
- * Shows a preview of the current image. When a new file is selected, previews it
- * locally before upload. The actual upload happens when the parent form is submitted.
- *
- * Props:
- *   currentUrl  - existing image URL from DB (displayed as preview)
- *   currentAlt  - existing alt text
- */
 export function CoverImageUpload({ currentUrl = "", currentAlt = "" }) {
   const [preview, setPreview] = useState(currentUrl);
+  const [fileName, setFileName] = useState("");
 
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (file) {
       setPreview(URL.createObjectURL(file));
+      setFileName(file.name);
     }
   }
 
@@ -26,27 +19,33 @@ export function CoverImageUpload({ currentUrl = "", currentAlt = "" }) {
       {preview ? (
         <div className="cover-image-preview">
           <img alt={currentAlt || "Cover image preview"} src={preview} />
+          <span className="form-hint" style={{ display: "block", marginTop: "0.35rem" }}>Cover image</span>
         </div>
       ) : null}
 
-      {/* Hidden input preserves the existing URL when no new file is chosen */}
       <input name="cover_image_url" type="hidden" value={currentUrl} />
 
       <div className="form-field">
-        <label className="form-label" htmlFor="cover_image_file">
-          Cover image
-        </label>
-        <input
-          accept="image/jpeg,image/png,image/webp"
-          id="cover_image_file"
-          name="cover_image_file"
-          onChange={handleFileChange}
-          type="file"
-        />
-        <span className="form-hint">JPEG, PNG, or WebP · max 10 MB</span>
+        <label className="form-label">Cover image</label>
+        <div className="file-upload-row">
+          <label className="file-upload-trigger">
+            <span>{preview ? "Replace image" : "Choose file"}</span>
+            <input
+              accept="image/jpeg,image/png,image/webp"
+              name="cover_image_file"
+              onChange={handleFileChange}
+              type="file"
+            />
+          </label>
+          {fileName ? (
+            <span className="file-upload-name">{fileName}</span>
+          ) : (
+            <span className="file-upload-name">JPEG, PNG, or WebP · max 10 MB</span>
+          )}
+        </div>
       </div>
 
-      <div className="form-field" style={{ marginTop: "0.5rem" }}>
+      <div className="form-field">
         <label className="form-label" htmlFor="cover_image_alt">
           Alt text
         </label>
