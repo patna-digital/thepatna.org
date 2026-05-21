@@ -15238,14 +15238,14 @@ body.patna-assistant-body-locked {
   transform: translate(-50%, -50%);
   border: none;
   pointer-events: none;
-  opacity: 0.28;
+  opacity: 0.55;
 }
 
 .hero-video-overlay {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(160deg, rgba(3, 10, 20, 0.90) 0%, rgba(3, 20, 48, 0.78) 55%, rgba(2, 22, 50, 0.86) 100%);
+  background: linear-gradient(160deg, rgba(3, 10, 20, 0.65) 0%, rgba(3, 15, 35, 0.60) 50%, rgba(2, 22, 50, 0.65) 100%);
 }
 
 /* Dot pattern overlay */
@@ -15273,7 +15273,7 @@ body.patna-assistant-body-locked {
 .hero-video-inner {
   width: min(820px, calc(100vw - 96px));
   margin: 0 auto;
-  padding: 9rem 0 6rem;
+  padding: 6rem 0 3.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15307,12 +15307,18 @@ body.patna-assistant-body-locked {
 .hero-video-h1 {
   margin: 0 0 1.25rem;
   font-family: var(--serif);
-  font-size: clamp(2.8rem, 5.5vw, 4.6rem);
   font-weight: 500;
-  line-height: 1.07;
+  line-height: 1.18;
   letter-spacing: -0.01em;
   color: var(--white);
-  max-width: 16ch;
+  max-width: 100%;
+}
+
+/* Higher specificity to beat .hero h1 at globals.css:825 */
+.hero-video-home .hero-video-h1 {
+  font-size: clamp(1.8rem, 2.5vw, 2.8rem);
+  max-width: 100%;
+  margin: 0 0 1.25rem;
 }
 
 .hero-video-h1 em {
@@ -15351,6 +15357,26 @@ body.patna-assistant-body-locked {
   color: var(--white);
 }
 
+/* Re-assert CTA hierarchy on dark hero — wins over base .primary-button/.secondary-button */
+.hero-video-home .hero-video-primary {
+  background: var(--patna-blue);
+  border-color: var(--patna-blue);
+  color: var(--white);
+}
+.hero-video-home .hero-video-primary:hover {
+  background: var(--blue-mid);
+  border-color: var(--blue-mid);
+}
+.hero-video-home .hero-video-secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.88);
+}
+.hero-video-home .hero-video-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.65);
+  color: var(--white);
+}
+
 /* ── HERO STAT BAR (v3) ───────────────────────────────────── */
 .hero-stat-bar {
   position: relative;
@@ -15386,7 +15412,7 @@ body.patna-assistant-body-locked {
 .hero-stat-bar-lbl {
   font-size: 11px;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.58);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1.4;
@@ -16739,10 +16765,22 @@ body.patna-assistant-body-locked {
 @media (max-width: 640px) {
   .hero-video-inner {
     padding: 5rem 0 4rem;
+    width: calc(100vw - 48px);
   }
 
-  .hero-video-h1 {
-    font-size: 2.1rem;
+  .hero-video-home .hero-video-h1 {
+    font-size: 1.75rem;
+  }
+
+  .hero-video-inner .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-video-inner .hero-actions a {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
   }
 
   .hero-stat-bar {

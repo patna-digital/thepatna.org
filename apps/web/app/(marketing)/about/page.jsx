@@ -21,12 +21,22 @@ function getInitials(name) {
 export default async function AboutPage() {
   return (
     <>
-      <section className="about-hero-v3" aria-label="About PATNA">
-        <div className="about-hero-v3-inner">
-          <div className="about-hero-v3-eyebrow">About PATNA</div>
-          <h1>Building Africa's institutional capacity at the frontier of global climate governance.</h1>
-          <p>
-            The Professional African Technical Network Advisory (PATNA) Initiative is a non-profit organisation of more than 100 African technical experts, policymakers, researchers, and maritime professionals. Our mandate is Pan-African, covering all 54 AU member states. Our mission is to enable Africa to shape the rules of the global energy transition.
+      <section className="sub-page-hero" aria-label="About PATNA">
+        <div className="sub-page-hero-bg" aria-hidden="true">
+          <img
+            src="https://images.unsplash.com/photo-1523365280197-f1783db9fe62?w=1600&h=700&fit=crop&q=80"
+            alt=""
+          />
+        </div>
+        <div className="sub-page-hero-overlay" aria-hidden="true" />
+        <div className="sub-page-hero-dot" aria-hidden="true" />
+        <div className="sub-page-hero-inner">
+          <div className="sub-page-hero-eyebrow">About PATNA</div>
+          <h1 className="sub-page-hero-title">
+            Building Africa's <em>institutional capacity</em>
+          </h1>
+          <p className="sub-page-hero-sub">
+            The Professional African Technical Network Advisory (PATNA) Initiative is a non-profit organisation of more than 100 African technical experts, policymakers, researchers, and maritime professionals — enabling Africa to shape the rules of the global energy transition.
           </p>
         </div>
       </section>

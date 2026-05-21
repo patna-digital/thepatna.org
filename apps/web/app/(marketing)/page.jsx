@@ -83,21 +83,21 @@ export default async function HomePage() {
       {/* ── HERO ── */}
       <section className="hero hero-video-home" aria-label="PATNA hero">
         <div className="hero-video-wrap" aria-hidden="true">
-          <iframe
-            src="https://www.canva.com/design/DAGpKRRoMc0/pmmffpju8mqva4y/view?embed"
+          <video
             className="hero-video-iframe"
-            allow="autoplay"
-            loading="lazy"
-            title=""
+            src="https://idupqjzvkpsscyjetmll.supabase.co/storage/v1/object/sign/videos/PATNA%20Website%20Hero%20Video.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2JlYThjMS04YjhmLTRkOTEtOTgxYy1hNmIzYjZhMmNhMmYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ2aWRlb3MvUEFUTkEgV2Vic2l0ZSBIZXJvIFZpZGVvLm1wNCIsImlhdCI6MTc3OTMwMDQwNiwiZXhwIjoyMDk0NjYwNDA2fQ.0_OVRMLqKN_8bmn8pjy4ISPT5haH1kNcXTiB4s0ekg4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
           />
         </div>
         <div className="hero-video-overlay" aria-hidden="true" />
 
         <div className="hero-video-content">
           <div className="hero-video-inner">
-            <p className="eyebrow hero-eyebrow">
-              The Professional African Technical Network Advisory Initiative
-            </p>
+            <p className="eyebrow hero-eyebrow">The PATNA Initiative</p>
             <h1 className="hero-video-h1">
               Where African expertise meets the world's most consequential climate &amp; energy transition decisions.
             </h1>
