@@ -7,34 +7,6 @@ import { getTranslations } from "next-intl/server";
 import { deleteAdminServiceRequestAction } from "./actions";
 import { getAdminNavWithPipelineBadges } from "@/lib/admin-pipeline-badges";
 
-const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "new", label: "New" },
-  { key: "in_progress", label: "In Progress" },
-  { key: "review", label: "Review" },
-  { key: "completed", label: "Completed" },
-  { key: "cancelled", label: "Cancelled" },
-];
-
-const REQUEST_TYPE_FILTERS = [
-  { key: "all", label: "All Types" },
-  { key: "technical", label: "Technical" },
-  { key: "research", label: "Research" },
-  { key: "content", label: "Content" },
-  { key: "events", label: "Events" },
-  { key: "partnership", label: "Partnership" },
-  { key: "training", label: "Training" },
-];
-
-function getNoticeMessage(notice) {
-  const messages = {
-    saved: "Service request saved.",
-    deleted: "Service request deleted.",
-    error: "Operation failed. Please retry.",
-  };
-  return messages[notice] || "";
-}
-
 function buildServiceRequestsPath({ status, requestType, search }) {
   const params = new URLSearchParams();
   if (status && status !== "all") params.set("status", status);
@@ -48,6 +20,25 @@ export default async function AdminServiceRequestsPage({ searchParams }) {
   const { supabase } = await requireAdminContext();
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations();
+
+  const STATUS_FILTERS = [
+    { key: "all", label: t("admin.serviceRequests.filters.status.all") },
+    { key: "new", label: t("admin.serviceRequests.filters.status.new") },
+    { key: "in_progress", label: t("admin.serviceRequests.filters.status.inProgress") },
+    { key: "review", label: t("admin.serviceRequests.filters.status.review") },
+    { key: "completed", label: t("admin.serviceRequests.filters.status.completed") },
+    { key: "cancelled", label: t("admin.serviceRequests.filters.status.cancelled") },
+  ];
+
+  const REQUEST_TYPE_FILTERS = [
+    { key: "all", label: t("admin.serviceRequests.filters.type.all") },
+    { key: "technical", label: t("admin.serviceRequests.filters.type.technical") },
+    { key: "research", label: t("admin.serviceRequests.filters.type.research") },
+    { key: "content", label: t("admin.serviceRequests.filters.type.content") },
+    { key: "events", label: t("admin.serviceRequests.filters.type.events") },
+    { key: "partnership", label: t("admin.serviceRequests.filters.type.partnership") },
+    { key: "training", label: t("admin.serviceRequests.filters.type.training") },
+  ];
 
   const statusFilter = typeof resolvedSearchParams?.status === "string" ? resolvedSearchParams.status : "all";
   const requestTypeFilter = typeof resolvedSearchParams?.requestType === "string" ? resolvedSearchParams.requestType : "all";

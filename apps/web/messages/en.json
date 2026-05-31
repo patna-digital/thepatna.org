@@ -640,7 +640,8 @@
         "saved": "Service request saved.",
         "deleted": "Service request deleted.",
         "error": "Operation failed. Please retry.",
-        "emptyState": "No service requests found. Add one to get started."
+        "emptyState": "No service requests found. Add one to get started.",
+        "deleteConfirm": "Delete this service request? This cannot be undone."
       }
     },
     "partnershipLeads": {
@@ -702,7 +703,62 @@
         "saved": "Partnership lead saved.",
         "deleted": "Partnership lead deleted.",
         "error": "Operation failed. Please retry.",
-        "emptyState": "No partnership leads found. Add one to get started."
+        "emptyState": "No partnership leads found. Add one to get started.",
+        "deleteConfirm": "Delete this partnership lead? This cannot be undone."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "Organisation Name",
+          "contactPerson": "Contact Person",
+          "contactEmail": "Contact Email",
+          "orgType": "Organisation Type",
+          "selectOrgType": "Select organisation type",
+          "focusAreas": "Focus Areas",
+          "budgetRange": "Budget Range (Optional)",
+          "successDefinition": "Success Definition (Optional)",
+          "supportType": "Support Type (Optional)",
+          "selectSupportType": "Select support type",
+          "status": "Status",
+          "assignedTo": "Assigned To (Optional)",
+          "unassigned": "Unassigned"
+        },
+        "orgTypes": {
+          "ngo": "NGO/Non-profit",
+          "government": "Government",
+          "academic": "Academic/Research",
+          "private": "Private Sector",
+          "foundation": "Foundation",
+          "multilateral": "Multilateral"
+        },
+        "statusOptions": {
+          "new": "New",
+          "contacted": "Contacted",
+          "in_discussion": "In Discussion",
+          "proposal_sent": "Proposal Sent",
+          "negotiation": "Negotiation",
+          "closed_won": "Closed Won",
+          "closed_lost": "Closed Lost"
+        },
+        "supportTypes": {
+          "financial": "Financial",
+          "technical": "Technical Assistance",
+          "capacity_building": "Capacity Building",
+          "advocacy": "Advocacy Support",
+          "research": "Research Collaboration"
+        },
+        "submit": {
+          "saving": "Saving…",
+          "creating": "Creating…",
+          "save": "Save Changes",
+          "create": "Save Lead",
+          "cancel": "Cancel",
+          "delete": "Delete"
+        },
+        "feedback": {
+          "saved": "Partnership lead saved successfully.",
+          "error": "Something went wrong — please try again.",
+          "deleteConfirm": "Delete this partnership lead? This cannot be undone."
+        }
       }
     },
     "collaborationLeads": {
@@ -763,7 +819,51 @@
         "saved": "Collaboration lead saved.",
         "deleted": "Collaboration lead deleted.",
         "error": "Operation failed. Please retry.",
-        "emptyState": "No collaboration leads found. Add one to get started."
+        "emptyState": "No collaboration leads found. Add one to get started.",
+        "deleteConfirm": "Delete this collaboration lead? This cannot be undone."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "Organisation Name",
+          "contactPerson": "Contact Person",
+          "contactEmail": "Contact Email",
+          "collaborationType": "Collaboration Type",
+          "selectCollabType": "Select collaboration type",
+          "status": "Status",
+          "proposalSummary": "Proposal Summary",
+          "assignedTo": "Assigned To (Optional)",
+          "unassigned": "Unassigned"
+        },
+        "collabTypes": {
+          "research": "Research",
+          "content": "Content",
+          "events": "Events",
+          "training": "Training",
+          "advocacy": "Advocacy",
+          "technical": "Technical Assistance"
+        },
+        "statusOptions": {
+          "new": "New",
+          "contacted": "Contacted",
+          "in_discussion": "In Discussion",
+          "proposal_sent": "Proposal Sent",
+          "negotiation": "Negotiation",
+          "agreed": "Agreed",
+          "declined": "Declined"
+        },
+        "submit": {
+          "saving": "Saving…",
+          "creating": "Creating…",
+          "save": "Save Changes",
+          "create": "Save Lead",
+          "cancel": "Cancel",
+          "delete": "Delete"
+        },
+        "feedback": {
+          "saved": "Collaboration lead saved successfully.",
+          "error": "Something went wrong — please try again.",
+          "deleteConfirm": "Delete this collaboration lead? This cannot be undone."
+        }
       }
     }
   }

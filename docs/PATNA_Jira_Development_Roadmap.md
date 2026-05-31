@@ -483,9 +483,9 @@
 
 | Story ID | User Story | Priority | Estimate | Status |
 |---|---|---|---|---|
-| US-10-08 | As a member, I want to switch the interface language and have all admin and member pages rendered in that language so that non-English speakers can use the platform comfortably. | P1 | XL | ⚙️ In Progress |
+| US-10-08 | As a member, I want to switch the interface language and have all admin and member pages rendered in that language so that non-English speakers can use the platform comfortably. | P1 | XL | ✅ Done |
 | US-10-09 | As an editor, I want to publish content in multiple languages so that PATNA's knowledge output reaches a broader audience. | P2 | XL | 🔲 Backlog |
-| US-10-10 | As an admin, I want all admin pipeline pages (service requests, partnership leads, collaboration leads) to use the translation function so that they are fully localisable. | P2 | M | 📋 Planned |
+| US-10-10 | As an admin, I want all admin pipeline pages (service requests, partnership leads, collaboration leads) to use the translation function so that they are fully localisable. | P2 | M | ✅ Done |
 
 ---
 

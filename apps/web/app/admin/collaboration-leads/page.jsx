@@ -8,36 +8,6 @@ import { getTranslations } from "next-intl/server";
 import { deleteAdminCollaborationLeadAction } from "./actions";
 import { getAdminNavWithPipelineBadges } from "@/lib/admin-pipeline-badges";
 
-const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "new", label: "New" },
-  { key: "contacted", label: "Contacted" },
-  { key: "in_discussion", label: "In Discussion" },
-  { key: "proposal_sent", label: "Proposal Sent" },
-  { key: "negotiation", label: "Negotiation" },
-  { key: "agreed", label: "Agreed" },
-  { key: "declined", label: "Declined" },
-];
-
-const COLLABORATION_TYPE_FILTERS = [
-  { key: "all", label: "All Types" },
-  { key: "research", label: "Research" },
-  { key: "content", label: "Content" },
-  { key: "events", label: "Events" },
-  { key: "training", label: "Training" },
-  { key: "advocacy", label: "Advocacy" },
-  { key: "technical", label: "Technical Assistance" },
-];
-
-function getNoticeMessage(notice) {
-  const messages = {
-    saved: "Collaboration lead saved.",
-    deleted: "Collaboration lead deleted.",
-    error: "Operation failed. Please retry.",
-  };
-  return messages[notice] || "";
-}
-
 function buildCollaborationLeadsPath({ status, collabType, search }) {
   const params = new URLSearchParams();
   if (status && status !== "all") params.set("status", status);
@@ -51,6 +21,27 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
   const { supabase } = await requireAdminContext();
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations();
+
+  const STATUS_FILTERS = [
+    { key: "all", label: t("admin.collaborationLeads.filters.status.all") },
+    { key: "new", label: t("admin.collaborationLeads.filters.status.new") },
+    { key: "contacted", label: t("admin.collaborationLeads.filters.status.contacted") },
+    { key: "in_discussion", label: t("admin.collaborationLeads.filters.status.inDiscussion") },
+    { key: "proposal_sent", label: t("admin.collaborationLeads.filters.status.proposalSent") },
+    { key: "negotiation", label: t("admin.collaborationLeads.filters.status.negotiation") },
+    { key: "agreed", label: t("admin.collaborationLeads.filters.status.agreed") },
+    { key: "declined", label: t("admin.collaborationLeads.filters.status.declined") },
+  ];
+
+  const COLLABORATION_TYPE_FILTERS = [
+    { key: "all", label: t("admin.collaborationLeads.filters.collabType.all") },
+    { key: "research", label: t("admin.collaborationLeads.filters.collabType.research") },
+    { key: "content", label: t("admin.collaborationLeads.filters.collabType.content") },
+    { key: "events", label: t("admin.collaborationLeads.filters.collabType.events") },
+    { key: "training", label: t("admin.collaborationLeads.filters.collabType.training") },
+    { key: "advocacy", label: t("admin.collaborationLeads.filters.collabType.advocacy") },
+    { key: "technical", label: t("admin.collaborationLeads.filters.collabType.technical") },
+  ];
 
   const statusFilter = typeof resolvedSearchParams?.status === "string" ? resolvedSearchParams.status : "all";
   const collabTypeFilter = typeof resolvedSearchParams?.collabType === "string" ? resolvedSearchParams.collabType : "all";

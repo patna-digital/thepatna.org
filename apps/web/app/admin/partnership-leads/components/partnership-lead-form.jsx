@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { parseOptionalText } from "@/lib/partnership-leads";
 
 function SubmitButton({ isEdit }) {
   const { pending } = useFormStatus();
+  const t = useTranslations("admin.partnershipLeads.forms.submit");
   return (
     <button
       type="submit"
@@ -14,12 +15,13 @@ function SubmitButton({ isEdit }) {
       className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50 form-submit-btn"
     >
       {pending && <span className="form-submit-spinner" aria-hidden="true" />}
-      {pending ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save Changes" : "Save Lead"}
+      {pending ? (isEdit ? t("saving") : t("creating")) : isEdit ? t("save") : t("create")}
     </button>
   );
 }
 
-export default function PartnershipLeadForm({ action, deleteAction, cancelHref = "/admin/partnership-leads", lead, redirectTo, notice }) {
+export default function PartnershipLeadForm({ action, deleteAction, cancelHref = "/admin/partnership-leads", lead, notice }) {
+  const t = useTranslations("admin.partnershipLeads.forms");
   const isEdit = Boolean(lead?.id);
   const [formData, setFormData] = useState({
     organisation: lead?.organisation || "",
@@ -45,18 +47,18 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
 
       {notice === "saved" && (
         <div className="form-feedback-banner success" role="status">
-          ✓ Partnership lead saved successfully.
+          ✓ {t("feedback.saved")}
         </div>
       )}
       {notice === "error" && (
         <div className="form-feedback-banner error" role="alert">
-          ✕ Something went wrong — please try again.
+          ✕ {t("feedback.error")}
         </div>
       )}
 
       <div>
         <label htmlFor="organisation" className="block text-sm font-medium mb-1">
-          Organisation Name
+          {t("labels.organisation")}
         </label>
         <input
           id="organisation"
@@ -71,7 +73,7 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
 
       <div>
         <label htmlFor="name" className="block text-sm font-medium mb-1">
-          Contact Person
+          {t("labels.contactPerson")}
         </label>
         <input
           id="name"
@@ -86,7 +88,7 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
 
       <div>
         <label htmlFor="email" className="block text-sm font-medium mb-1">
-          Contact Email
+          {t("labels.contactEmail")}
         </label>
         <input
           id="email"
@@ -102,7 +104,7 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="org_type" className="block text-sm font-medium mb-1">
-            Organisation Type
+            {t("labels.orgType")}
           </label>
           <select
             id="org_type"
@@ -111,19 +113,19 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
             onChange={handleChange}
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
-            <option value="">Select organisation type</option>
-            <option value="ngo">NGO/Non-profit</option>
-            <option value="government">Government</option>
-            <option value="academic">Academic/Research</option>
-            <option value="private">Private Sector</option>
-            <option value="foundation">Foundation</option>
-            <option value="multilateral">Multilateral</option>
+            <option value="">{t("labels.selectOrgType")}</option>
+            <option value="ngo">{t("orgTypes.ngo")}</option>
+            <option value="government">{t("orgTypes.government")}</option>
+            <option value="academic">{t("orgTypes.academic")}</option>
+            <option value="private">{t("orgTypes.private")}</option>
+            <option value="foundation">{t("orgTypes.foundation")}</option>
+            <option value="multilateral">{t("orgTypes.multilateral")}</option>
           </select>
         </div>
 
         <div>
           <label htmlFor="status" className="block text-sm font-medium mb-1">
-            Status
+            {t("labels.status")}
           </label>
           <select
             id="status"
@@ -132,20 +134,20 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
             onChange={handleChange}
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="in_discussion">In Discussion</option>
-            <option value="proposal_sent">Proposal Sent</option>
-            <option value="negotiation">Negotiation</option>
-            <option value="closed_won">Closed Won</option>
-            <option value="closed_lost">Closed Lost</option>
+            <option value="new">{t("statusOptions.new")}</option>
+            <option value="contacted">{t("statusOptions.contacted")}</option>
+            <option value="in_discussion">{t("statusOptions.in_discussion")}</option>
+            <option value="proposal_sent">{t("statusOptions.proposal_sent")}</option>
+            <option value="negotiation">{t("statusOptions.negotiation")}</option>
+            <option value="closed_won">{t("statusOptions.closed_won")}</option>
+            <option value="closed_lost">{t("statusOptions.closed_lost")}</option>
           </select>
         </div>
       </div>
 
       <div>
         <label htmlFor="focus_areas" className="block text-sm font-medium mb-1">
-          Focus Areas
+          {t("labels.focusAreas")}
         </label>
         <textarea
           id="focus_areas"
@@ -160,7 +162,7 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="budget_range" className="block text-sm font-medium mb-1">
-            Budget Range (Optional)
+            {t("labels.budgetRange")}
           </label>
           <input
             id="budget_range"
@@ -174,7 +176,7 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
 
         <div>
           <label htmlFor="success_definition" className="block text-sm font-medium mb-1">
-            Success Definition (Optional)
+            {t("labels.successDefinition")}
           </label>
           <input
             id="success_definition"
@@ -190,7 +192,7 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="support_type" className="block text-sm font-medium mb-1">
-            Support Type (Optional)
+            {t("labels.supportType")}
           </label>
           <select
             id="support_type"
@@ -199,18 +201,18 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
             onChange={handleChange}
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
-            <option value="">Select support type</option>
-            <option value="financial">Financial</option>
-            <option value="technical">Technical Assistance</option>
-            <option value="capacity_building">Capacity Building</option>
-            <option value="advocacy">Advocacy Support</option>
-            <option value="research">Research Collaboration</option>
+            <option value="">{t("labels.selectSupportType")}</option>
+            <option value="financial">{t("supportTypes.financial")}</option>
+            <option value="technical">{t("supportTypes.technical")}</option>
+            <option value="capacity_building">{t("supportTypes.capacity_building")}</option>
+            <option value="advocacy">{t("supportTypes.advocacy")}</option>
+            <option value="research">{t("supportTypes.research")}</option>
           </select>
         </div>
 
         <div>
           <label htmlFor="assigned_to_user_id" className="block text-sm font-medium mb-1">
-            Assigned To (Optional)
+            {t("labels.assignedTo")}
           </label>
           <select
             id="assigned_to_user_id"
@@ -219,14 +221,14 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
             onChange={handleChange}
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
-            <option value="">Unassigned</option>
+            <option value="">{t("labels.unassigned")}</option>
           </select>
         </div>
       </div>
 
       <div className="flex justify-end space-x-3">
         <Link href={cancelHref} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-          Cancel
+          {t("submit.cancel")}
         </Link>
         {isEdit && deleteAction && (
           <form action={deleteAction} style={{ display: "inline" }}>
@@ -235,12 +237,12 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
               type="submit"
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
               onClick={(e) => {
-                if (!window.confirm("Delete this partnership lead? This cannot be undone.")) {
+                if (!window.confirm(t("feedback.deleteConfirm"))) {
                   e.preventDefault();
                 }
               }}
             >
-              Delete
+              {t("submit.delete")}
             </button>
           </form>
         )}

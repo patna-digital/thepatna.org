@@ -499,6 +499,288 @@
     "pipelinesTitle": "Gasodutos",
     "pipelinesComingSoon": "(Em breve)",
     "pipelinesText": "Acompanhe solicitações de serviço, oportunidades de parceria e propostas de colaboração no site público.",
-    "pipelinesNotAvailable": "Não disponível"
+    "pipelinesNotAvailable": "Não disponível",
+    "serviceRequests": {
+      "title": "Pedidos de serviço",
+      "subtitle": "Gerir os pedidos de serviço com acompanhamento de estado, atribuição e gestão de prioridades.",
+      "spotlightLabel": "Pedidos de serviço",
+      "spotlightTitle": "Acompanhar e gerir pedidos de serviço",
+      "spotlightBody": "Monitorize os pedidos de serviço recebidos, atribua-os a membros da equipa e acompanhe o progresso até à conclusão.",
+      "summary": {
+        "total": "Total de pedidos",
+        "new": "Novo",
+        "inProgress": "Em progresso",
+        "completed": "Concluído"
+      },
+      "filters": {
+        "status": {
+          "all": "Todos",
+          "new": "Novo",
+          "inProgress": "Em progresso",
+          "review": "Em revisão",
+          "completed": "Concluído",
+          "cancelled": "Cancelado"
+        },
+        "type": {
+          "all": "Todos os tipos",
+          "technical": "Técnico",
+          "research": "Investigação",
+          "content": "Conteúdo",
+          "events": "Eventos",
+          "partnership": "Parceria",
+          "training": "Formação"
+        }
+      },
+      "actions": {
+        "addRequest": "+ Adicionar pedido",
+        "viewDetails": "Ver detalhes",
+        "editRequest": "Editar pedido",
+        "deleteRequest": "Eliminar pedido",
+        "search": "Pesquisar",
+        "clearFilters": "Limpar filtros",
+        "showingFiltered": "A mostrar {count} de {total} pedidos de serviço"
+      },
+      "table": {
+        "headers": {
+          "requester": "Solicitante",
+          "organisation": "Organização",
+          "type": "Tipo",
+          "details": "Detalhes",
+          "status": "Estado",
+          "assigned": "Atribuído",
+          "created": "Criado",
+          "actions": "Ações"
+        }
+      },
+      "messages": {
+        "saved": "Pedido de serviço guardado.",
+        "deleted": "Pedido de serviço eliminado.",
+        "error": "Operação falhou. Por favor, tente novamente.",
+        "emptyState": "Nenhum pedido de serviço encontrado. Adicione um para começar.",
+        "deleteConfirm": "Eliminar este pedido de serviço? Esta ação não pode ser revertida."
+      }
+    },
+    "partnershipLeads": {
+      "title": "Oportunidades de parceria",
+      "subtitle": "Gerir oportunidades de parceria com acompanhamento de estado, atribuição e previsão de receitas.",
+      "spotlightLabel": "Oportunidades de parceria",
+      "spotlightTitle": "Gerir o pipeline de desenvolvimento de parcerias",
+      "spotlightBody": "Acompanhe oportunidades de parceria potenciais, gira o alcance e monitorize a progressão no funil.",
+      "summary": {
+        "total": "Total de oportunidades",
+        "new": "Novo",
+        "inDiscussion": "Em discussão",
+        "closedWon": "Fechado ganho"
+      },
+      "filters": {
+        "status": {
+          "all": "Todos",
+          "new": "Novo",
+          "contacted": "Contactado",
+          "inDiscussion": "Em discussão",
+          "proposalSent": "Proposta enviada",
+          "negotiation": "Negociação",
+          "closedWon": "Fechado ganho",
+          "closedLost": "Fechado perdido"
+        },
+        "orgType": {
+          "all": "Todos os tipos",
+          "ngo": "ONG/Sem fins lucrativos",
+          "government": "Governo",
+          "academic": "Académico/Investigação",
+          "private": "Sector privado",
+          "foundation": "Fundação",
+          "multilateral": "Multilateral"
+        }
+      },
+      "actions": {
+        "addLead": "+ Adicionar oportunidade",
+        "viewDetails": "Ver detalhes",
+        "editLead": "Editar oportunidade",
+        "deleteLead": "Eliminar oportunidade",
+        "search": "Pesquisar",
+        "clearFilters": "Limpar filtros",
+        "showingFiltered": "A mostrar {count} de {total} oportunidades de parceria"
+      },
+      "table": {
+        "headers": {
+          "organisation": "Organização",
+          "contact": "Contacto",
+          "type": "Tipo",
+          "focusAreas": "Áreas de foco",
+          "status": "Estado",
+          "assigned": "Atribuído",
+          "value": "Valor",
+          "created": "Criado",
+          "actions": "Ações"
+        }
+      },
+      "messages": {
+        "saved": "Oportunidade de parceria guardada.",
+        "deleted": "Oportunidade de parceria eliminada.",
+        "error": "Operação falhou. Por favor, tente novamente.",
+        "emptyState": "Nenhuma oportunidade de parceria encontrada. Adicione uma para começar.",
+        "deleteConfirm": "Eliminar esta oportunidade de parceria? Esta ação não pode ser revertida."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "Nome da organização",
+          "contactPerson": "Pessoa de contacto",
+          "contactEmail": "E-mail de contacto",
+          "orgType": "Tipo de organização",
+          "selectOrgType": "Selecionar tipo de organização",
+          "focusAreas": "Áreas de foco",
+          "budgetRange": "Intervalo orçamental (opcional)",
+          "successDefinition": "Definição de sucesso (opcional)",
+          "supportType": "Tipo de apoio (opcional)",
+          "selectSupportType": "Selecionar tipo de apoio",
+          "status": "Estado",
+          "assignedTo": "Atribuído a (opcional)",
+          "unassigned": "Não atribuído"
+        },
+        "orgTypes": {
+          "ngo": "ONG/Sem fins lucrativos",
+          "government": "Governo",
+          "academic": "Académico/Investigação",
+          "private": "Sector privado",
+          "foundation": "Fundação",
+          "multilateral": "Multilateral"
+        },
+        "statusOptions": {
+          "new": "Novo",
+          "contacted": "Contactado",
+          "in_discussion": "Em discussão",
+          "proposal_sent": "Proposta enviada",
+          "negotiation": "Negociação",
+          "closed_won": "Fechado ganho",
+          "closed_lost": "Fechado perdido"
+        },
+        "supportTypes": {
+          "financial": "Financeiro",
+          "technical": "Assistência técnica",
+          "capacity_building": "Reforço de capacidades",
+          "advocacy": "Advocacia",
+          "research": "Colaboração em investigação"
+        },
+        "submit": {
+          "saving": "A guardar…",
+          "creating": "A criar…",
+          "save": "Guardar alterações",
+          "create": "Guardar oportunidade",
+          "cancel": "Cancelar",
+          "delete": "Eliminar"
+        },
+        "feedback": {
+          "saved": "Oportunidade de parceria guardada com sucesso.",
+          "error": "Algo correu mal — por favor, tente novamente.",
+          "deleteConfirm": "Eliminar esta oportunidade de parceria? Esta ação não pode ser revertida."
+        }
+      }
+    },
+    "collaborationLeads": {
+      "title": "Oportunidades de colaboração",
+      "subtitle": "Gerir oportunidades de colaboração com acompanhamento de estado, atribuição e monitorização de resultados.",
+      "spotlightLabel": "Oportunidades de colaboração",
+      "spotlightTitle": "Gerir oportunidades de colaboração",
+      "spotlightBody": "Acompanhe oportunidades de colaboração potenciais com parceiros, gira discussões e monitorize a progressão.",
+      "summary": {
+        "total": "Total de oportunidades",
+        "new": "Novo",
+        "inDiscussion": "Em discussão",
+        "agreed": "Acordado"
+      },
+      "filters": {
+        "status": {
+          "all": "Todos",
+          "new": "Novo",
+          "contacted": "Contactado",
+          "inDiscussion": "Em discussão",
+          "proposalSent": "Proposta enviada",
+          "negotiation": "Negociação",
+          "agreed": "Acordado",
+          "declined": "Recusado"
+        },
+        "collabType": {
+          "all": "Todos os tipos",
+          "research": "Investigação",
+          "content": "Conteúdo",
+          "events": "Eventos",
+          "training": "Formação",
+          "advocacy": "Advocacia",
+          "technical": "Assistência técnica"
+        }
+      },
+      "actions": {
+        "addLead": "+ Adicionar oportunidade",
+        "viewDetails": "Ver detalhes",
+        "editLead": "Editar oportunidade",
+        "deleteLead": "Eliminar oportunidade",
+        "search": "Pesquisar",
+        "clearFilters": "Limpar filtros",
+        "showingFiltered": "A mostrar {count} de {total} oportunidades de colaboração"
+      },
+      "table": {
+        "headers": {
+          "organisation": "Organização",
+          "contact": "Contacto",
+          "type": "Tipo",
+          "proposal": "Proposta",
+          "status": "Estado",
+          "assigned": "Atribuído",
+          "created": "Criado",
+          "actions": "Ações"
+        }
+      },
+      "messages": {
+        "saved": "Oportunidade de colaboração guardada.",
+        "deleted": "Oportunidade de colaboração eliminada.",
+        "error": "Operação falhou. Por favor, tente novamente.",
+        "emptyState": "Nenhuma oportunidade de colaboração encontrada. Adicione uma para começar.",
+        "deleteConfirm": "Eliminar esta oportunidade de colaboração? Esta ação não pode ser revertida."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "Nome da organização",
+          "contactPerson": "Pessoa de contacto",
+          "contactEmail": "E-mail de contacto",
+          "collaborationType": "Tipo de colaboração",
+          "selectCollabType": "Selecionar tipo de colaboração",
+          "status": "Estado",
+          "proposalSummary": "Resumo da proposta",
+          "assignedTo": "Atribuído a (opcional)",
+          "unassigned": "Não atribuído"
+        },
+        "collabTypes": {
+          "research": "Investigação",
+          "content": "Conteúdo",
+          "events": "Eventos",
+          "training": "Formação",
+          "advocacy": "Advocacia",
+          "technical": "Assistência técnica"
+        },
+        "statusOptions": {
+          "new": "Novo",
+          "contacted": "Contactado",
+          "in_discussion": "Em discussão",
+          "proposal_sent": "Proposta enviada",
+          "negotiation": "Negociação",
+          "agreed": "Acordado",
+          "declined": "Recusado"
+        },
+        "submit": {
+          "saving": "A guardar…",
+          "creating": "A criar…",
+          "save": "Guardar alterações",
+          "create": "Guardar oportunidade",
+          "cancel": "Cancelar",
+          "delete": "Eliminar"
+        },
+        "feedback": {
+          "saved": "Oportunidade de colaboração guardada com sucesso.",
+          "error": "Algo correu mal — por favor, tente novamente.",
+          "deleteConfirm": "Eliminar esta oportunidade de colaboração? Esta ação não pode ser revertida."
+        }
+      }
+    }
   }
 }

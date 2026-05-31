@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
-
-function formatDateLabel(value) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
-}
+import { useLocale, useTranslations } from "next-intl";
 
 export function AdminServiceRequestsList({ serviceRequests, deleteAction, sortBy = "created_at", sortDir = "desc" }) {
   const t = useTranslations("admin.serviceRequests");
+  const locale = useLocale();
+
+  function formatDateLabel(value) {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
+  }
 
   if (serviceRequests.length === 0) {
     return <p className="empty-state">{t("messages.emptyState")}</p>;
@@ -86,7 +87,7 @@ export function AdminServiceRequestsList({ serviceRequests, deleteAction, sortBy
                       className="icon-button"
                       title={t("actions.deleteRequest")}
                       onClick={(e) => {
-                        if (!window.confirm("Delete this service request? This cannot be undone.")) {
+                        if (!window.confirm(t("messages.deleteConfirm"))) {
                           e.preventDefault();
                         }
                       }}

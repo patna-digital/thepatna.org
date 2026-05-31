@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
-
-function formatDate(value) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
-}
+import { useLocale, useTranslations } from "next-intl";
 
 export function AdminPartnershipLeadsList({ partnershipLeads, deleteAction, sortBy = "created_at", sortDir = "desc" }) {
   const t = useTranslations("admin.partnershipLeads");
+  const locale = useLocale();
+
+  function formatDate(value) {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
+  }
 
   if (partnershipLeads.length === 0) {
     return <p className="empty-state">{t("messages.emptyState")}</p>;
@@ -90,7 +91,7 @@ export function AdminPartnershipLeadsList({ partnershipLeads, deleteAction, sort
                       className="icon-button"
                       title={t("actions.deleteLead")}
                       onClick={(e) => {
-                        if (!window.confirm("Delete this partnership lead? This cannot be undone.")) {
+                        if (!window.confirm(t("messages.deleteConfirm"))) {
                           e.preventDefault();
                         }
                       }}

@@ -1,10 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export function AdminCollaborationLeadsList({ collaborationLeads, deleteAction, sortBy = "created_at", sortDir = "desc" }) {
   const t = useTranslations("admin.collaborationLeads");
+  const locale = useLocale();
+
+  function formatDate(value) {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
+  }
 
   if (collaborationLeads.length === 0) {
     return <p className="empty-state">{t("messages.emptyState")}</p>;
@@ -78,7 +84,7 @@ export function AdminCollaborationLeadsList({ collaborationLeads, deleteAction, 
                 "-"
               )}
             </td>
-            <td>{lead.created_at ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(lead.created_at)) : "-"}</td>
+            <td>{formatDate(lead.created_at)}</td>
             <td className="actions-cell">
               <div className="action-buttons">
                 <Link href={`/admin/collaboration-leads/${lead.id}`} className="icon-button" title={t("actions.viewDetails")}>👁️</Link>
@@ -91,7 +97,7 @@ export function AdminCollaborationLeadsList({ collaborationLeads, deleteAction, 
                       className="icon-button"
                       title={t("actions.deleteLead")}
                       onClick={(e) => {
-                        if (!window.confirm("Delete this collaboration lead? This cannot be undone.")) {
+                        if (!window.confirm(t("messages.deleteConfirm"))) {
                           e.preventDefault();
                         }
                       }}

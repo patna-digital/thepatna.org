@@ -7,36 +7,6 @@ import { getTranslations } from "next-intl/server";
 import { deleteAdminPartnershipLeadAction } from "./actions";
 import { getAdminNavWithPipelineBadges } from "@/lib/admin-pipeline-badges";
 
-const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "new", label: "New" },
-  { key: "contacted", label: "Contacted" },
-  { key: "in_discussion", label: "In Discussion" },
-  { key: "proposal_sent", label: "Proposal Sent" },
-  { key: "negotiation", label: "Negotiation" },
-  { key: "closed_won", label: "Closed Won" },
-  { key: "closed_lost", label: "Closed Lost" },
-];
-
-const ORG_TYPE_FILTERS = [
-  { key: "all", label: "All Types" },
-  { key: "ngo", label: "NGO/Non-profit" },
-  { key: "government", label: "Government" },
-  { key: "academic", label: "Academic/Research" },
-  { key: "private", label: "Private Sector" },
-  { key: "foundation", label: "Foundation" },
-  { key: "multilateral", label: "Multilateral" },
-];
-
-function getNoticeMessage(notice) {
-  const messages = {
-    saved: "Partnership lead saved.",
-    deleted: "Partnership lead deleted.",
-    error: "Operation failed. Please retry.",
-  };
-  return messages[notice] || "";
-}
-
 function buildPartnershipLeadsPath({ status, orgType, search }) {
   const params = new URLSearchParams();
   if (status && status !== "all") params.set("status", status);
@@ -50,6 +20,27 @@ export default async function AdminPartnershipLeadsPage({ searchParams }) {
   const { supabase } = await requireAdminContext();
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations();
+
+  const STATUS_FILTERS = [
+    { key: "all", label: t("admin.partnershipLeads.filters.status.all") },
+    { key: "new", label: t("admin.partnershipLeads.filters.status.new") },
+    { key: "contacted", label: t("admin.partnershipLeads.filters.status.contacted") },
+    { key: "in_discussion", label: t("admin.partnershipLeads.filters.status.inDiscussion") },
+    { key: "proposal_sent", label: t("admin.partnershipLeads.filters.status.proposalSent") },
+    { key: "negotiation", label: t("admin.partnershipLeads.filters.status.negotiation") },
+    { key: "closed_won", label: t("admin.partnershipLeads.filters.status.closedWon") },
+    { key: "closed_lost", label: t("admin.partnershipLeads.filters.status.closedLost") },
+  ];
+
+  const ORG_TYPE_FILTERS = [
+    { key: "all", label: t("admin.partnershipLeads.filters.orgType.all") },
+    { key: "ngo", label: t("admin.partnershipLeads.filters.orgType.ngo") },
+    { key: "government", label: t("admin.partnershipLeads.filters.orgType.government") },
+    { key: "academic", label: t("admin.partnershipLeads.filters.orgType.academic") },
+    { key: "private", label: t("admin.partnershipLeads.filters.orgType.private") },
+    { key: "foundation", label: t("admin.partnershipLeads.filters.orgType.foundation") },
+    { key: "multilateral", label: t("admin.partnershipLeads.filters.orgType.multilateral") },
+  ];
 
   const statusFilter = typeof resolvedSearchParams?.status === "string" ? resolvedSearchParams.status : "all";
   const orgTypeFilter = typeof resolvedSearchParams?.orgType === "string" ? resolvedSearchParams.orgType : "all";
