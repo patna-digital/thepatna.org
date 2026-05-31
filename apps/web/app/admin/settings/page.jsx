@@ -22,7 +22,11 @@ async function fetchSettingsData() {
       .order("first_name", { ascending: true }),
   ]);
 
+  if (settingsResult.error && settingsResult.error.code !== "PGRST116") {
+    console.error("[AdminSettings] site_settings fetch error:", settingsResult.error);
+  }
   const setting = settingsResult.data?.value || { mode: "default", member_ids: [] };
+  const dbMissing = settingsResult.error?.code === "PGRST205";
 
   const [cohortResult] = await Promise.all([
     adminClient
@@ -43,12 +47,12 @@ async function fetchSettingsData() {
     cohort: cohortByUser.get(p.id) || "",
   }));
 
-  return { setting, allMembers };
+  return { setting, allMembers, dbMissing };
 }
 
 export default async function AdminSettingsPage() {
   await requireAdminContext();
-  const { setting, allMembers } = await fetchSettingsData();
+  const { setting, allMembers, dbMissing } = await fetchSettingsData();
 
   return (
     <DashboardShell
@@ -60,6 +64,12 @@ export default async function AdminSettingsPage() {
       subtitle="Control how content appears on the public-facing website."
     >
       <div className="admin-settings-page">
+        {dbMissing && (
+          <div className="form-feedback-banner error" role="alert" style={{ marginBottom: "1.5rem" }}>
+            <strong>Database setup required:</strong> the <code>site_settings</code> table is missing.
+            Run migration <code>0052_site_settings.sql</code> in the Supabase dashboard SQL editor, then reload this page.
+          </div>
+        )}
 
         <div className="admin-section">
           <div className="admin-section-header">

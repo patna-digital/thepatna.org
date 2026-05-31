@@ -36,9 +36,16 @@ export function FeaturedMembersPicker({ allMembers, initialMode, initialIds }) {
     fd.set("member_ids", JSON.stringify(selectedIds));
     startTransition(async () => {
       try {
-        await saveFeaturedMembersAction(fd);
-        setNotice({ type: "success", text: "Settings saved." });
-      } catch {
+        const result = await saveFeaturedMembersAction(fd);
+        if (result?.ok) {
+          setNotice({ type: "success", text: "Settings saved." });
+        } else {
+          const msg = result?.error ?? "Save failed. Please try again.";
+          console.error("[FeaturedMembersPicker] save error:", result);
+          setNotice({ type: "error", text: msg });
+        }
+      } catch (err) {
+        console.error("[FeaturedMembersPicker] unexpected error:", err);
         setNotice({ type: "error", text: "Save failed. Please try again." });
       }
     });

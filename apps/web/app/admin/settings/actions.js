@@ -23,7 +23,10 @@ export async function saveFeaturedMembersAction(formData) {
       { onConflict: "key" }
     );
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[saveFeaturedMembersAction] Supabase error:", error);
+    return { ok: false, error: error.message, code: error.code };
+  }
 
   revalidatePath("/");
   return { ok: true };
