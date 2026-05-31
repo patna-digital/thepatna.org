@@ -40,6 +40,7 @@ export default async function MemberPublicationDetailPage({ params }) {
   return (
     <MemberWorkspaceShell
       eyebrow={t("publicationUi.eyebrow")}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       title={pub.title}
       subtitle={typeLabel}

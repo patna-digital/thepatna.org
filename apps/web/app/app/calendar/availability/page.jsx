@@ -39,6 +39,7 @@ export default async function AvailabilityPage() {
     <MemberWorkspaceShell
       eyebrow="Calendar"
       headerActions={headerActions}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle="Set when you are available for bookings"
       title="Availability"

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
+import { NotificationBell } from "@/components/notification-bell";
 import { memberNav } from "@/lib/patna-data";
 
 const MEMBER_ICON_MAP = {
@@ -43,6 +44,7 @@ export function MemberWorkspaceShell({
   headerActions = null,
   sidebarUser = null,
   rightRail = null,
+  notificationUserId = null,
   children,
   navItems = memberNav,
 }) {
@@ -88,6 +90,9 @@ export function MemberWorkspaceShell({
         <span className="mob-topbar-brand">PATNA Community</span>
         <div className="mob-topbar-controls">
           <LanguageSelector variant="compact" />
+          {notificationUserId && (
+            <NotificationBell userId={notificationUserId} />
+          )}
           <button
             aria-controls="member-sidebar"
             aria-expanded={sidebarOpen}
@@ -185,6 +190,11 @@ export function MemberWorkspaceShell({
             </Link>
           </div>
           <div className="sidebar-utility-nav">
+            {notificationUserId && (
+              <div className="sidebar-notification-bell">
+                <NotificationBell userId={notificationUserId} />
+              </div>
+            )}
             {settingsItem ? (
               <Link
                 className={`sidebar-utility-link${isSettingsActive ? " active" : ""}`}

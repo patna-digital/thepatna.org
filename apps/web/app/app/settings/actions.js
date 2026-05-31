@@ -9,6 +9,15 @@ import {
   VALID_PROFILE_AVAILABILITY_STATUSES,
   VALID_PROFILE_VISIBILITY_SETTINGS,
 } from "@/lib/profile-form-options";
+import { updatePreferences } from "@/lib/notifications";
+
+const VALID_DIGEST_FREQUENCIES = ["daily", "weekly", "never"];
+const BOOLEAN_PREF_KEYS = [
+  "email_digest_enabled",
+  "email_mentions_enabled",
+  "email_broadcasts_enabled",
+  "inapp_mentions_enabled",
+];
 
 export async function updateVisibilitySettingAction(formData) {
   const { user, supabase } = await getCurrentUserContext();
@@ -117,6 +126,55 @@ export async function updateTimezoneAction(formData) {
 
   revalidatePath("/app/settings");
   return { ok: true };
+}
+
+export async function updateNotificationPreferenceAction(formData) {
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
+  if (!user || !supabase) return { ok: false, error: "Unauthorized" };
+
+  const key = String(formData.get("key") || "").trim();
+  const value = formData.get("value");
+
+  if (!BOOLEAN_PREF_KEYS.includes(key)) {
+    return { ok: false, error: "Invalid preference key" };
+  }
+
+  // Checkbox: "on" when checked, absent when unchecked
+  const boolValue = value === "on" || value === "true";
+
+  try {
+    await updatePreferences({ supabase, userId: user.id, prefs: { [key]: boolValue } });
+    revalidatePath("/app/settings");
+    return { ok: true };
+  } catch (err) {
+    console.error("updateNotificationPreferenceAction error:", err);
+    return { ok: false, error: "Failed to save preference" };
+  }
+}
+
+export async function updateDigestFrequencyAction(formData) {
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
+  if (!user || !supabase) return { ok: false, error: "Unauthorized" };
+
+  const frequency = String(formData.get("email_digest_frequency") || "").trim();
+  if (!VALID_DIGEST_FREQUENCIES.includes(frequency)) {
+    return { ok: false, error: "Invalid frequency" };
+  }
+
+  try {
+    await updatePreferences({ supabase, userId: user.id, prefs: { email_digest_frequency: frequency } });
+    revalidatePath("/app/settings");
+    return { ok: true };
+  } catch (err) {
+    console.error("updateDigestFrequencyAction error:", err);
+    return { ok: false, error: "Failed to save frequency" };
+  }
 }
 
 export async function requestPasswordResetAction() {

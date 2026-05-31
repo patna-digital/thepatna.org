@@ -47,6 +47,7 @@ export default async function EditThreadPage({ params }) {
           ← Back to thread
         </Link>
       }
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle="Update the title or body of this thread."
       title="Edit Thread"

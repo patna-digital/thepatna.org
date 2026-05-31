@@ -29,10 +29,11 @@
     "lucide-react": "^1.7.0",
     "next": "latest",
     "next-intl": "^4.9.0",
+    "pdf-parse": "^1.1.1",
     "react": "latest",
     "react-dom": "latest",
     "react-simple-maps": "^3.0.0",
-    "pdf-parse": "^1.1.1",
+    "resend": "^6.12.4",
     "world-atlas": "^2.0.2"
   }
 }

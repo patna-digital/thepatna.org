@@ -52,6 +52,7 @@ export default async function MemberEventSubmitPage({ searchParams }) {
   return (
     <MemberWorkspaceShell
       eyebrow={t("appEvents.eyebrow")}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={t("appEvents.submitSubtitle")}
       title={t("appEvents.submitTitle")}

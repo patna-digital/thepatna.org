@@ -50,6 +50,7 @@ export default async function ThreadPage({ params }) {
           ← {space.name}
         </Link>
       }
+      notificationUserId={user.id}
       headerActions={
         canEdit ? (
           <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -93,6 +94,7 @@ export default async function ThreadPage({ params }) {
         {space.isMember && (
           <CommentForm
             action={createCommentAction}
+            spaceId={space.id}
             spaceSlug={slug}
             threadId={threadId}
           />

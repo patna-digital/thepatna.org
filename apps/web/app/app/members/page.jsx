@@ -36,6 +36,7 @@ export default async function MembersPage() {
     <MemberWorkspaceShell
       eyebrow={t("members.eyebrow")}
       headerActions={<span className="member-lock-chip">{t("members.membersOnly")}</span>}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={t("members.subtitle", { count: members.length, cohortCount })}
       title={t("members.title")}

@@ -86,6 +86,7 @@ export default async function CalendarSettingsPage({ searchParams }) {
     <MemberWorkspaceShell
       eyebrow="Calendar"
       headerActions={headerActions}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle="Manage your calendar connections and booking preferences"
       title="Calendar Settings"

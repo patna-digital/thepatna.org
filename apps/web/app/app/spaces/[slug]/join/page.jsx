@@ -42,6 +42,7 @@ export default async function JoinSpacePage({ params, searchParams }) {
   return (
     <MemberWorkspaceShell
       eyebrow="My Spaces"
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={spaceType}
       title={spaceName}

@@ -781,6 +781,42 @@
           "deleteConfirm": "Eliminar esta oportunidade de colaboração? Esta ação não pode ser revertida."
         }
       }
+    },
+    "notifications": {
+      "title": "Notificações",
+      "subtitle": "Componha e envie anúncios para os membros da comunidade.",
+      "newBroadcast": "Novo comunicado",
+      "history": "Histórico de comunicados",
+      "empty": "Nenhum comunicado enviado.",
+      "sent": "Comunicado enviado com sucesso.",
+      "error": "Falha ao enviar. Por favor, tente novamente.",
+      "missingFields": "O assunto e a mensagem são obrigatórios."
+    }
+  },
+  "notifications": {
+    "title": "Notificações",
+    "empty": "Está tudo em dia",
+    "markAllRead": "Marcar tudo como lido",
+    "preferences": {
+      "title": "Preferências de notificação",
+      "description": "Escolha como e quando a PATNA o notifica.",
+      "emailMentions": "Enviar email quando mencionado",
+      "emailMentionsHint": "Receba um email quando alguém o @mencionar.",
+      "emailBroadcasts": "Anúncios da plataforma",
+      "emailBroadcastsHint": "Anúncios importantes da equipa PATNA.",
+      "inappMentions": "Alertas de menção na app",
+      "inappMentionsHint": "Mostrar um badge no sino de notificações.",
+      "activityDigest": "Resumo de atividade",
+      "activityDigestHint": "Resumo por email da atividade nos seus espaços.",
+      "digestFrequency": "Frequência do resumo",
+      "daily": "Diário",
+      "weekly": "Semanal",
+      "never": "Desativado"
+    },
+    "types": {
+      "mention": "mencionou-o em",
+      "admin_broadcast": "Anúncio",
+      "space_activity": "Nova atividade em"
     }
   }
 }

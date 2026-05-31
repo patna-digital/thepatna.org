@@ -39,6 +39,7 @@ export default async function MemberPublicationsPage({ searchParams }) {
   return (
     <MemberWorkspaceShell
       eyebrow={t("publications.appLabel")}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={t("publications.appSubtitle", { count: publications?.length || 0 })}
       title={t("publications.appTitle")}

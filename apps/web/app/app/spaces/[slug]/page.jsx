@@ -117,6 +117,7 @@ export default async function SpacePage({ params }) {
       eyebrow={spaceTypeFmt}
       headerActions={headerActions}
       rightRail={rightRail}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={space.description || ""}
       title={space.name}

@@ -15,6 +15,8 @@ import {
   buildSpaceJoinRequestContext,
   buildSpaceJoinRequestDetails,
 } from "@/lib/space-join-requests";
+import { detectMentions, createMentionNotification } from "@/lib/notifications";
+import { fetchSpaceMemberNames } from "@/lib/spaces";
 
 // ── Join request ──────────────────────────────────────────────────────────────
 
@@ -111,8 +113,8 @@ export async function requestJoinAction(formData) {
 // ── Thread actions ────────────────────────────────────────────────────────────
 
 export async function createThreadAction(formData) {
-  const { supabase, user } = await getCurrentUserContext({
-    includeProfile: false,
+  const { supabase, user, profile } = await getCurrentUserContext({
+    includeProfile: true,
     includeRoles: false,
   });
 
@@ -145,6 +147,18 @@ export async function createThreadAction(formData) {
   } catch (assistantError) {
     console.error("createThreadAction assistant sync error:", assistantError);
   }
+
+  // Dispatch @mention notifications (fire-and-forget, non-fatal)
+  dispatchMentionNotifications({
+    supabase,
+    authorId: user.id,
+    authorName: [profile?.first_name, profile?.surname].filter(Boolean).join(" ") || user.email,
+    body,
+    spaceId,
+    spaceSlug: slug,
+    threadId: data.id,
+    threadTitle: title,
+  }).catch((err) => console.error("Thread mention notifications failed:", err));
 
   revalidatePath(`/app/spaces/${slug}`);
   redirect(`/app/spaces/${slug}/threads/${data.id}`);
@@ -239,8 +253,8 @@ export async function deleteThreadAction(formData) {
 // ── Comment actions ───────────────────────────────────────────────────────────
 
 export async function createCommentAction(formData) {
-  const { supabase, user } = await getCurrentUserContext({
-    includeProfile: false,
+  const { supabase, user, profile } = await getCurrentUserContext({
+    includeProfile: true,
     includeRoles: false,
   });
 
@@ -250,6 +264,7 @@ export async function createCommentAction(formData) {
 
   const threadId  = formData.get("threadId");
   const spaceSlug = formData.get("spaceSlug");
+  const spaceId   = formData.get("spaceId");
   const body      = String(formData.get("body") || "").trim();
 
   if (!body || !threadId) {
@@ -271,6 +286,31 @@ export async function createCommentAction(formData) {
     await syncCommentAssistantDocument({ commentId: data.id });
   } catch (assistantError) {
     console.error("createCommentAction assistant sync error:", assistantError);
+  }
+
+  // Dispatch @mention notifications if we have spaceId context
+  if (spaceId) {
+    // Fetch thread title for notification copy
+    supabase
+      .from("threads")
+      .select("title")
+      .eq("id", threadId)
+      .single()
+      .then(({ data: thread }) => {
+        return dispatchMentionNotifications({
+          supabase,
+          authorId: user.id,
+          authorName: [profile?.first_name, profile?.surname].filter(Boolean).join(" ") || user.email,
+          body,
+          commentId: data.id,
+          commentExcerpt: body.slice(0, 200),
+          spaceId,
+          spaceSlug,
+          threadId,
+          threadTitle: thread?.title ?? "a thread",
+        });
+      })
+      .catch((err) => console.error("Comment mention notifications failed:", err));
   }
 
   revalidatePath(`/app/spaces/${spaceSlug}/threads/${threadId}`);
@@ -315,6 +355,51 @@ export async function updateCommentAction(formData) {
 
   revalidatePath(`/app/spaces/${spaceSlug}/threads/${threadId}`);
   redirect(`/app/spaces/${spaceSlug}/threads/${threadId}#replies`);
+}
+
+// ── Shared mention helper ─────────────────────────────────────────────────────
+
+async function dispatchMentionNotifications({
+  supabase,
+  authorId,
+  authorName,
+  body,
+  commentId = null,
+  commentExcerpt = null,
+  spaceId,
+  spaceSlug,
+  threadId,
+  threadTitle,
+}) {
+  // Quick bail if no @ in body — avoids unnecessary DB queries
+  if (!body.includes("@")) return;
+
+  const [members, { data: spaceRow }] = await Promise.all([
+    fetchSpaceMemberNames({ supabase, spaceId }),
+    supabase.from("spaces").select("name").eq("id", spaceId).single(),
+  ]);
+
+  const mentionedIds = detectMentions(body, members);
+  if (!mentionedIds.length) return;
+
+  await Promise.allSettled(
+    mentionedIds
+      .filter((id) => id !== authorId) // never self-notify
+      .map((recipientId) =>
+        createMentionNotification({
+          recipientId,
+          senderId: authorId,
+          senderName: authorName,
+          spaceId,
+          spaceSlug,
+          spaceTitle: spaceRow?.name ?? spaceSlug,
+          threadId,
+          threadTitle,
+          commentId,
+          commentExcerpt,
+        })
+      )
+  );
 }
 
 export async function deleteCommentAction(formData) {

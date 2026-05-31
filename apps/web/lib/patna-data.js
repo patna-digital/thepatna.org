@@ -791,6 +791,7 @@ export const adminNav = [
     collapsible: true,
     items: [
       { href: "/admin/assistant", label: "AI Assistant", icon: "Sparkles" },
+      { href: "/admin/notifications", label: "Notifications", icon: "Bell" },
       { href: "/admin/admins", label: "Admins", icon: "ShieldCheck" },
       { href: "/admin/settings", label: "Website Settings", icon: "Globe" },
     ],

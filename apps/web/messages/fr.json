@@ -781,6 +781,42 @@
           "deleteConfirm": "Supprimer ce prospect de collaboration ? Cette action est irréversible."
         }
       }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Rédigez et envoyez des annonces aux membres de la communauté.",
+      "newBroadcast": "Nouvelle annonce",
+      "history": "Historique des annonces",
+      "empty": "Aucune annonce envoyée.",
+      "sent": "Annonce envoyée avec succès.",
+      "error": "Échec de l'envoi. Veuillez réessayer.",
+      "missingFields": "L'objet et le message sont requis."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Vous êtes à jour",
+    "markAllRead": "Tout marquer comme lu",
+    "preferences": {
+      "title": "Préférences de notification",
+      "description": "Choisissez comment et quand PATNA vous notifie.",
+      "emailMentions": "M'envoyer un email lors d'une mention",
+      "emailMentionsHint": "Recevez un email quand quelqu'un vous @mentionne.",
+      "emailBroadcasts": "Annonces de la plateforme",
+      "emailBroadcastsHint": "Annonces importantes de l'équipe PATNA.",
+      "inappMentions": "Alertes de mention en app",
+      "inappMentionsHint": "Afficher un badge dans la cloche de notification.",
+      "activityDigest": "Résumé d'activité",
+      "activityDigestHint": "Résumé par email de l'activité dans vos espaces.",
+      "digestFrequency": "Fréquence du résumé",
+      "daily": "Quotidien",
+      "weekly": "Hebdomadaire",
+      "never": "Désactivé"
+    },
+    "types": {
+      "mention": "vous a mentionné dans",
+      "admin_broadcast": "Annonce",
+      "space_activity": "Nouvelle activité dans"
     }
   }
 }

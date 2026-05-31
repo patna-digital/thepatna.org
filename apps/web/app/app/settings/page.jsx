@@ -12,12 +12,16 @@ import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { SettingsCard } from "./components/settings-card";
 import { SettingsSelect } from "./components/settings-select";
-import { 
-  updateVisibilitySettingAction, 
+import { NotificationPreferencesCard } from "./components/notification-preferences-card";
+import {
+  updateVisibilitySettingAction,
   updateAvailabilityStatusAction,
   updateTimezoneAction,
   requestPasswordResetAction,
+  updateNotificationPreferenceAction,
+  updateDigestFrequencyAction,
 } from "./actions";
+import { getOrCreatePreferences } from "@/lib/notifications";
 
 // Timezone options (common timezones)
 const TIMEZONE_OPTIONS = [
@@ -58,7 +62,10 @@ export default async function SettingsPage({ searchParams }) {
     redirect("/auth/login?next=/app/settings");
   }
 
-  const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
+  const [frameData, notifPrefs] = await Promise.all([
+    fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
+    getOrCreatePreferences(supabase, user.id),
+  ]);
 
   // Allow navigation even with incomplete profile
   const member = frameData.member || {};
@@ -71,6 +78,7 @@ export default async function SettingsPage({ searchParams }) {
   return (
     <MemberWorkspaceShell
       eyebrow="Workspace"
+      notificationUserId={user.id}
       sidebarUser={sidebarUser}
       subtitle="Manage your profile visibility, availability, and account preferences. Changes are saved immediately."
       title="Settings"
@@ -239,18 +247,12 @@ export default async function SettingsPage({ searchParams }) {
               </div>
             </article>
 
-            {/* Notifications - Coming Soon */}
-            <article className="dashboard-card member-setting-card member-setting-card-muted">
-              <span className="tag">Upcoming</span>
-              <h3>Notifications</h3>
-              <p>Email preferences, digest settings, and discussion alerts.</p>
-              <div className="settings-coming-soon">
-                <span className="settings-coming-soon-badge">Coming soon</span>
-                <p className="settings-coming-soon-text">
-                  Notification controls will be available once PATNA messaging is launched.
-                </p>
-              </div>
-            </article>
+            {/* Notification Preferences */}
+            <NotificationPreferencesCard
+              preferences={notifPrefs}
+              updateDigestFrequencyAction={updateDigestFrequencyAction}
+              updatePreferenceAction={updateNotificationPreferenceAction}
+            />
           </div>
         </section>
       </div>

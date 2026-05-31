@@ -781,6 +781,42 @@
           "deleteConfirm": "هل تريد حذف فرصة التعاون هذه؟ لا يمكن التراجع عن هذا الإجراء."
         }
       }
+    },
+    "notifications": {
+      "title": "الإشعارات",
+      "subtitle": "إنشاء وإرسال إعلانات لأعضاء المجتمع.",
+      "newBroadcast": "إعلان جديد",
+      "history": "سجل الإعلانات",
+      "empty": "لم يتم إرسال أي إعلانات بعد.",
+      "sent": "تم إرسال الإعلان بنجاح.",
+      "error": "فشل الإرسال. يرجى المحاولة مرة أخرى.",
+      "missingFields": "الموضوع والرسالة مطلوبان."
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "empty": "أنت على اطلاع بكل شيء",
+    "markAllRead": "تعليم الكل كمقروء",
+    "preferences": {
+      "title": "تفضيلات الإشعارات",
+      "description": "اختر كيف ومتى تتلقى إشعارات PATNA.",
+      "emailMentions": "إرسال بريد إلكتروني عند الإشارة إليّ",
+      "emailMentionsHint": "تلقّ بريداً إلكترونياً عندما يذكرك أحدهم في موضوع.",
+      "emailBroadcasts": "إعلانات المنصة",
+      "emailBroadcastsHint": "إعلانات مهمة من فريق PATNA.",
+      "inappMentions": "تنبيهات الإشارة داخل التطبيق",
+      "inappMentionsHint": "عرض شارة في جرس الإشعارات عند الإشارة إليك.",
+      "activityDigest": "ملخص النشاط",
+      "activityDigestHint": "ملخص بريد إلكتروني لنشاط مساحاتك.",
+      "digestFrequency": "تكرار الملخص",
+      "daily": "يومي",
+      "weekly": "أسبوعي",
+      "never": "إيقاف"
+    },
+    "types": {
+      "mention": "أشار إليك في",
+      "admin_broadcast": "إعلان",
+      "space_activity": "نشاط جديد في"
     }
   }
 }

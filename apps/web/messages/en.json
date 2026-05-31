@@ -865,6 +865,42 @@
           "deleteConfirm": "Delete this collaboration lead? This cannot be undone."
         }
       }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Compose and send announcements to community members.",
+      "newBroadcast": "New broadcast",
+      "history": "Broadcast history",
+      "empty": "No broadcasts sent yet.",
+      "sent": "Broadcast sent successfully.",
+      "error": "Failed to send broadcast. Please try again.",
+      "missingFields": "Subject and message are required."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "You're all caught up",
+    "markAllRead": "Mark all read",
+    "preferences": {
+      "title": "Notification preferences",
+      "description": "Choose how and when PATNA notifies you.",
+      "emailMentions": "Email me when mentioned",
+      "emailMentionsHint": "Receive an email when someone @mentions you in a thread.",
+      "emailBroadcasts": "Platform announcements",
+      "emailBroadcastsHint": "Important platform-wide announcements from the PATNA team.",
+      "inappMentions": "In-app mention alerts",
+      "inappMentionsHint": "Show a badge in the notification bell when you are mentioned.",
+      "activityDigest": "Activity digest",
+      "activityDigestHint": "Email summary of activity in your spaces.",
+      "digestFrequency": "Digest frequency",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "never": "Off"
+    },
+    "types": {
+      "mention": "mentioned you in",
+      "admin_broadcast": "Announcement",
+      "space_activity": "New activity in"
     }
   }
 }

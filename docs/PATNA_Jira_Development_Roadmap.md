@@ -462,10 +462,10 @@
 
 | Story ID | User Story | Priority | Estimate | Status |
 |---|---|---|---|---|
-| US-10-01 | As a member, I want to receive email digests of activity in my spaces so that I stay informed without checking the platform daily. | P1 | XL | 🔲 Backlog |
-| US-10-02 | As a member, I want to receive an in-app notification when someone mentions me in a thread so that I can respond promptly. | P1 | L | 🔲 Backlog |
-| US-10-03 | As a member, I want to manage my notification preferences (frequency, types, channels) so that I receive only what is relevant to me. | P1 | L | 🔲 Backlog |
-| US-10-04 | As an admin, I want to send targeted notifications to selected members so that I can broadcast important announcements to specific cohorts. | P1 | L | 🔲 Backlog |
+| US-10-01 | As a member, I want to receive email digests of activity in my spaces so that I stay informed without checking the platform daily. | P1 | XL | ✅ Done |
+| US-10-02 | As a member, I want to receive an in-app notification when someone mentions me in a thread so that I can respond promptly. | P1 | L | ✅ Done |
+| US-10-03 | As a member, I want to manage my notification preferences (frequency, types, channels) so that I receive only what is relevant to me. | P1 | L | ✅ Done |
+| US-10-04 | As an admin, I want to send targeted notifications to selected members so that I can broadcast important announcements to specific cohorts. | P1 | L | ✅ Done |
 
 ---
 
