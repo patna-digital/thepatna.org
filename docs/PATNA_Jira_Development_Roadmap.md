@@ -400,10 +400,10 @@
 |---|---|---|---|---|
 | US-08-17 | As an admin, I want consistent search placement in all admin toolbars so that I always know where to look. | P1 | M | ✅ Done |
 | US-08-18 | As an admin, I want filter tabs consolidated into a single row so that the interface is less cluttered and more scannable. | P1 | M | ✅ Done |
-| US-08-19 | As an admin, I want clear visual feedback during form submissions (loading spinners, success, error) so that I know whether my action succeeded. | P1 | M | 📋 Planned |
-| US-08-20 | As an admin, I want skeleton loading states on data tables so that long data fetches feel responsive. | P2 | M | 🔲 Backlog |
-| US-08-21 | As an admin, I want sticky table headers when scrolling long lists so that column labels remain visible. | P2 | S | 🔲 Backlog |
-| US-08-22 | As an admin, I want keyboard shortcuts for common actions so that power users can navigate without the mouse. | P3 | L | 🔲 Backlog |
+| US-08-19 | As an admin, I want clear visual feedback during form submissions (loading spinners, success, error) so that I know whether my action succeeded. | P1 | M | ✅ Done |
+| US-08-20 | As an admin, I want skeleton loading states on data tables so that long data fetches feel responsive. | P2 | M | ✅ Done |
+| US-08-21 | As an admin, I want sticky table headers when scrolling long lists so that column labels remain visible. | P2 | S | ✅ Done |
+| US-08-22 | As an admin, I want keyboard shortcuts for common actions so that power users can navigate without the mouse. | P3 | L | ✅ Done |
 
 ---
 

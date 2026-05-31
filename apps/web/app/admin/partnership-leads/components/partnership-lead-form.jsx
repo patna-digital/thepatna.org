@@ -5,8 +5,21 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { parseOptionalText } from "@/lib/partnership-leads";
 
-export default function PartnershipLeadForm({ action, deleteAction, cancelHref = "/admin/partnership-leads", lead, redirectTo, notice }) {
+function SubmitButton({ isEdit }) {
   const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50 form-submit-btn"
+    >
+      {pending && <span className="form-submit-spinner" aria-hidden="true" />}
+      {pending ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save Changes" : "Save Lead"}
+    </button>
+  );
+}
+
+export default function PartnershipLeadForm({ action, deleteAction, cancelHref = "/admin/partnership-leads", lead, redirectTo, notice }) {
   const isEdit = Boolean(lead?.id);
   const [formData, setFormData] = useState({
     organisation: lead?.organisation || "",
@@ -23,17 +36,24 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
-
 
   return (
     <form action={action} className="space-y-6">
       {isEdit && <input type="hidden" name="lead_id" value={lead.id} />}
+
+      {notice === "saved" && (
+        <div className="form-feedback-banner success" role="status">
+          ✓ Partnership lead saved successfully.
+        </div>
+      )}
+      {notice === "error" && (
+        <div className="form-feedback-banner error" role="alert">
+          ✕ Something went wrong — please try again.
+        </div>
+      )}
+
       <div>
         <label htmlFor="organisation" className="block text-sm font-medium mb-1">
           Organisation Name
@@ -200,16 +220,12 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
             <option value="">Unassigned</option>
-            {/* Member options would be populated here */}
           </select>
         </div>
       </div>
 
       <div className="flex justify-end space-x-3">
-        <Link
-          href={cancelHref}
-          className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-        >
+        <Link href={cancelHref} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
           Cancel
         </Link>
         {isEdit && deleteAction && (
@@ -217,7 +233,6 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
             <input type="hidden" name="lead_id" value={lead.id} />
             <button
               type="submit"
-              disabled={pending}
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
               onClick={(e) => {
                 if (!window.confirm("Delete this partnership lead? This cannot be undone.")) {
@@ -229,13 +244,7 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
             </button>
           </form>
         )}
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50"
-        >
-          {pending ? "Saving..." : isEdit ? "Save Changes" : "Save Lead"}
-        </button>
+        <SubmitButton isEdit={isEdit} />
       </div>
     </form>
   );

@@ -13,6 +13,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
+import { AdminKeyboardShortcuts } from "@/components/admin-keyboard-shortcuts";
 
 const ADMIN_ICON_MAP = {
   LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
@@ -275,6 +276,7 @@ export function DashboardShell({
           </footer>
         </div>
       </main>
+      <AdminKeyboardShortcuts />
     </div>
   );
 }
