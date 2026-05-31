@@ -190,11 +190,6 @@ export function MemberWorkspaceShell({
             </Link>
           </div>
           <div className="sidebar-utility-nav">
-            {notificationUserId && (
-              <div className="sidebar-notification-bell">
-                <NotificationBell userId={notificationUserId} />
-              </div>
-            )}
             {settingsItem ? (
               <Link
                 className={`sidebar-utility-link${isSettingsActive ? " active" : ""}`}

@@ -443,6 +443,21 @@
 
 ---
 
+### Feature: F-08-7 — Website People Profiles (Admin-Managed)
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-08-33 | As an admin, I want to manage Board of Directors, Secretariat, and Research Contributor profiles in the admin workspace so that the About page always reflects current and accurate people data. | P1 | M | ✅ Done |
+| US-08-34 | As an admin, I want to upload and crop a square profile photo for each person so that About page headshots look polished and consistent. | P1 | M | ✅ Done |
+| US-08-35 | As an admin, I want to add a LinkedIn URL to each profile so that visitors can connect directly with board members and researchers. | P2 | S | ✅ Done |
+| US-08-36 | As an admin, I want to control display order and visibility of each profile so that I can show or hide people without deleting their data. | P1 | S | ✅ Done |
+| US-08-37 | As an admin, I want profile records to exist independently of member accounts so that external board members and UCL researchers can be managed without being platform members. | P1 | S | ✅ Done |
+| US-08-38 | As a developer, I want existing Board, Secretariat, and Research Leadership data seeded from the website on migration so that no manual re-entry is required. | P1 | S | ✅ Done |
+| US-08-39 | As a visitor, I want the About page to display live DB content with graceful static fallback so that the page never breaks even before the migration runs. | P1 | S | ✅ Done |
+| US-10-20 | As a member, I want the notification bell removed from the sidebar (it is already in the page header) so that the UI is uncluttered and the bell is in a consistent position across all pages. | P2 | S | ✅ Done |
+
+---
+
 ## EP-09: PATNA AI Assistant
 
 **Goal:** Provide members and admins with an intelligent, context-aware assistant that can query PATNA's knowledge base (discussions, publications, events, insights) while fully respecting role-based access controls.
