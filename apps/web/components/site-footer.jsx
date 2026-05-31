@@ -14,9 +14,9 @@ export function SiteFooter() {
               Professional African Technical Network Advisory Initiative
             </div>
             <p>
-              A non-profit organisation of African technical experts building the evidence,
-              coordination, and advisory capacity that Africa needs at the world&apos;s most
-              consequential climate negotiations.
+              PATNA is Africa&apos;s technical and diplomatic institution for maritime
+              decarbonisation — building the evidence, capacity, and coalition strength for
+              African countries to lead in global climate governance.
             </p>
             <p>www.thepatna.org · contact@thepatna.org</p>
           </div>

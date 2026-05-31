@@ -342,28 +342,28 @@ export const cohortSummary = [
     title: "Academic Cohort",
     icon: "A",
     summary:
-      "Researchers and analysts generating evidence, technical framing, and long-range strategic insight.",
+      "Researchers, academics, and university partners advancing Africa-specific evidence on maritime decarbonisation, port economics, and blue economy transitions.",
   },
   {
     slug: "policy",
     title: "Policy Cohort",
     icon: "P",
     summary:
-      "Officials and advisers shaping negotiating positions, domestic policy links, and coalition strategy.",
+      "Technical advisors, diplomats, and policymakers connecting PATNA's evidence to the national and international policy processes where it has the most impact.",
   },
   {
     slug: "industry",
     title: "Industry Cohort",
     icon: "I",
     summary:
-      "Practitioners connecting policy ambition to port operations, shipping realities, and implementation.",
+      "Private-sector innovators and operators — from shipping companies and port authorities to clean technology providers — ensuring PATNA's work reflects commercial realities alongside policy ambitions.",
   },
   {
     slug: "civil-society",
     title: "Civil Society Cohort",
     icon: "C",
     summary:
-      "Advocates and organisers grounding transitions in justice, participation, and social legitimacy.",
+      "Civil society organisations ensuring that communities most affected by the maritime transition, particularly coastal, fishing, and trade-dependent populations, remain visible in global policy conversations.",
   },
 ];
 
@@ -413,37 +413,37 @@ export const communityStructures = [
     title: "Board of Trustees",
     type: "Governance",
     summary:
-      "Provides strategic oversight, accountability, and long-term direction for PATNA's public mission and institutional growth.",
+      "PATNA's Board of Trustees provides strategic governance, financial oversight, and institutional accountability, guided by leaders with decades of experience across African maritime policy, environmental law, and international negotiations.",
   },
   {
     title: "PATNA Secretariat",
     type: "Operations",
     summary:
-      "Coordinates convenings, programme delivery, member communications, and the day-to-day systems that keep the network active.",
+      "The PATNA Secretariat coordinates the network's daily operations, manages programme delivery, and maintains PATNA's partnerships with the African Union, IMO delegations, academic institutions, and funders.",
   },
   {
     title: "Academic Cohort",
     type: "Cohort",
     summary:
-      "Researchers and universities advancing evidence-based insight, technical analysis, and knowledge exchange across Africa.",
+      "The Academia cohort brings together researchers, universities, and research institutions from across Africa whose work directly informs PATNA's policy outputs, country reports, and IMO submissions.",
   },
   {
     title: "Policy Cohort",
     type: "Cohort",
     summary:
-      "Technical advisers and policymakers shaping national, regional, and international climate and maritime governance.",
+      "The Policy cohort includes national maritime administrators, climate negotiators, and regional governance specialists who connect PATNA's evidence to the policy processes where it can have the greatest impact.",
   },
   {
     title: "Industry Cohort",
     type: "Cohort",
     summary:
-      "Private-sector and practitioner voices connecting policy ambition to operational realities in shipping, ports, and blue economy systems.",
+      "The Industries cohort brings private-sector perspectives — from shipping operators and port authorities to clean technology providers — ensuring PATNA's work reflects commercial realities alongside policy ambitions.",
   },
   {
     title: "Civil Society Cohort",
     type: "Cohort",
     summary:
-      "Civil society leaders ensuring climate justice, participation, and community interests remain part of transition strategy.",
+      "The Civil Society cohort ensures that PATNA's work remains grounded in the lived realities of African communities — particularly coastal, fishing, and trade-dependent populations facing the steepest costs of the maritime transition.",
   },
 ];
 

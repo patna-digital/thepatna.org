@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { AdminPartnershipLeadsList } from "@/components/admin-partnership-leads-list";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { adminNav } from "@/lib/patna-data";
 import { buildPartnershipLeadSummary, fetchAdminPartnershipLeads, filterAdminPartnershipLeads } from "@/lib/partnership-leads";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { getTranslations } from "next-intl/server";
+import { deleteAdminPartnershipLeadAction } from "./actions";
+import { getAdminNavWithPipelineBadges } from "@/lib/admin-pipeline-badges";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
@@ -54,13 +55,20 @@ export default async function AdminPartnershipLeadsPage({ searchParams }) {
   const orgTypeFilter = typeof resolvedSearchParams?.orgType === "string" ? resolvedSearchParams.orgType : "all";
   const search = typeof resolvedSearchParams?.search === "string" ? resolvedSearchParams.search : "";
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
+  const sortBy = typeof resolvedSearchParams?.sortBy === "string" ? resolvedSearchParams.sortBy : "created_at";
+  const sortDir = resolvedSearchParams?.sortDir === "asc" ? "asc" : "desc";
 
-  const { partnershipLeads, error } = await fetchAdminPartnershipLeads({ supabase });
+  const [{ partnershipLeads, error }, navItems] = await Promise.all([
+    fetchAdminPartnershipLeads({ supabase }),
+    getAdminNavWithPipelineBadges(supabase),
+  ]);
   const summary = buildPartnershipLeadSummary(partnershipLeads);
   const filteredPartnershipLeads = filterAdminPartnershipLeads(partnershipLeads, {
     status: statusFilter,
     orgType: orgTypeFilter,
     search,
+    sortBy,
+    sortDir,
   });
 
   return (
@@ -68,7 +76,7 @@ export default async function AdminPartnershipLeadsPage({ searchParams }) {
       brandHref="/admin"
       brandLabel={t("admin.brandLabel")}
       eyebrow={t("admin.eyebrow")}
-      navItems={adminNav}
+      navItems={navItems}
       spotlight={{
         label: t("admin.partnershipLeads.spotlightLabel"),
         title: t("admin.partnershipLeads.spotlightTitle"),
@@ -164,7 +172,12 @@ export default async function AdminPartnershipLeadsPage({ searchParams }) {
       </article>
 
        {/* Partnership Leads List */}
-       <AdminPartnershipLeadsList partnershipLeads={filteredPartnershipLeads} />
+       <AdminPartnershipLeadsList
+         partnershipLeads={filteredPartnershipLeads}
+         deleteAction={deleteAdminPartnershipLeadAction}
+         sortBy={sortBy}
+         sortDir={sortDir}
+       />
     </DashboardShell>
   );
 }

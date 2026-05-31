@@ -5,19 +5,20 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { parseOptionalText } from "@/lib/partnership-leads";
 
-export default function PartnershipLeadForm({ action, redirectTo, notice }) {
+export default function PartnershipLeadForm({ action, deleteAction, cancelHref = "/admin/partnership-leads", lead, redirectTo, notice }) {
   const { pending } = useFormStatus();
+  const isEdit = Boolean(lead?.id);
   const [formData, setFormData] = useState({
-    organisation: "",
-    name: "",
-    email: "",
-    org_type: "",
-    focus_areas: "",
-    budget_range: "",
-    status: "new",
-    assigned_to_user_id: "",
-    success_definition: "",
-    support_type: "",
+    organisation: lead?.organisation || "",
+    name: lead?.name || "",
+    email: lead?.email || "",
+    org_type: lead?.org_type || "",
+    focus_areas: lead?.focus_areas || "",
+    budget_range: lead?.budget_range || "",
+    status: lead?.status || "new",
+    assigned_to_user_id: lead?.assigned_to_user_id || "",
+    success_definition: lead?.success_definition || "",
+    support_type: lead?.support_type || "",
   });
 
   const handleChange = (e) => {
@@ -32,6 +33,7 @@ export default function PartnershipLeadForm({ action, redirectTo, notice }) {
 
   return (
     <form action={action} className="space-y-6">
+      {isEdit && <input type="hidden" name="lead_id" value={lead.id} />}
       <div>
         <label htmlFor="organisation" className="block text-sm font-medium mb-1">
           Organisation Name
@@ -204,20 +206,35 @@ export default function PartnershipLeadForm({ action, redirectTo, notice }) {
       </div>
 
       <div className="flex justify-end space-x-3">
-        <button
-          type="button"
-          onClick={() => window.history.back()}
-          disabled={pending}
-          className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+        <Link
+          href={cancelHref}
+          className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
         >
           Cancel
-        </button>
+        </Link>
+        {isEdit && deleteAction && (
+          <form action={deleteAction} style={{ display: "inline" }}>
+            <input type="hidden" name="lead_id" value={lead.id} />
+            <button
+              type="submit"
+              disabled={pending}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
+              onClick={(e) => {
+                if (!window.confirm("Delete this partnership lead? This cannot be undone.")) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              Delete
+            </button>
+          </form>
+        )}
         <button
           type="submit"
           disabled={pending}
           className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50"
         >
-          {pending ? "Saving..." : "Save Lead"}
+          {pending ? "Saving..." : isEdit ? "Save Changes" : "Save Lead"}
         </button>
       </div>
     </form>

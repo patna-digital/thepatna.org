@@ -5,16 +5,17 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { parseOptionalText } from "@/lib/collaboration-leads";
 
-export default function CollaborationLeadForm({ action, redirectTo, notice }) {
+export default function CollaborationLeadForm({ action, deleteAction, cancelHref = "/admin/collaboration-leads", lead, redirectTo, notice }) {
   const { pending } = useFormStatus();
+  const isEdit = Boolean(lead?.id);
   const [formData, setFormData] = useState({
-    organisation: "",
-    name: "",
-    email: "",
-    collaboration_type: "",
-    proposal: "",
-    status: "new",
-    assigned_to_user_id: "",
+    organisation: lead?.organisation || "",
+    name: lead?.name || "",
+    email: lead?.email || "",
+    collaboration_type: lead?.collaboration_type || "",
+    proposal: lead?.proposal || "",
+    status: lead?.status || "new",
+    assigned_to_user_id: lead?.assigned_to_user_id || "",
   });
 
   const handleChange = (e) => {
@@ -29,6 +30,7 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
 
   return (
     <form action={action} className="space-y-6">
+      {isEdit && <input type="hidden" name="lead_id" value={lead.id} />}
       <div>
         <label htmlFor="organisation" className="block text-sm font-medium mb-1">
           Organisation Name
@@ -155,20 +157,32 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
       </div>
 
       <div className="flex justify-end space-x-3">
-        <button
-          type="button"
-          onClick={() => window.history.back()}
-          disabled={pending}
-          className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-        >
+        <Link href={cancelHref} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
           Cancel
-        </button>
+        </Link>
+        {isEdit && deleteAction && (
+          <form action={deleteAction} style={{ display: "inline" }}>
+            <input type="hidden" name="lead_id" value={lead.id} />
+            <button
+              type="submit"
+              disabled={pending}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
+              onClick={(e) => {
+                if (!window.confirm("Delete this collaboration lead? This cannot be undone.")) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              Delete
+            </button>
+          </form>
+        )}
         <button
           type="submit"
           disabled={pending}
           className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50"
         >
-          {pending ? "Saving..." : "Save Lead"}
+          {pending ? "Saving..." : isEdit ? "Save Changes" : "Save Lead"}
         </button>
       </div>
     </form>

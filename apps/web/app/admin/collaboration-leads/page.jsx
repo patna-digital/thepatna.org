@@ -5,6 +5,8 @@ import { adminNav } from "@/lib/patna-data";
 import { buildCollaborationLeadSummary, fetchAdminCollaborationLeads, filterAdminCollaborationLeads } from "@/lib/collaboration-leads";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { getTranslations } from "next-intl/server";
+import { deleteAdminCollaborationLeadAction } from "./actions";
+import { getAdminNavWithPipelineBadges } from "@/lib/admin-pipeline-badges";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
@@ -54,13 +56,20 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
   const collabTypeFilter = typeof resolvedSearchParams?.collabType === "string" ? resolvedSearchParams.collabType : "all";
   const search = typeof resolvedSearchParams?.search === "string" ? resolvedSearchParams.search : "";
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
+  const sortBy = typeof resolvedSearchParams?.sortBy === "string" ? resolvedSearchParams.sortBy : "created_at";
+  const sortDir = resolvedSearchParams?.sortDir === "asc" ? "asc" : "desc";
 
-  const { collaborationLeads, error } = await fetchAdminCollaborationLeads({ supabase });
+  const [{ collaborationLeads, error }, navItems] = await Promise.all([
+    fetchAdminCollaborationLeads({ supabase }),
+    getAdminNavWithPipelineBadges(supabase),
+  ]);
   const summary = buildCollaborationLeadSummary(collaborationLeads);
   const filteredCollaborationLeads = filterAdminCollaborationLeads(collaborationLeads, {
     status: statusFilter,
     collabType: collabTypeFilter,
     search,
+    sortBy,
+    sortDir,
   });
 
   return (
@@ -68,7 +77,7 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
       brandHref="/admin"
       brandLabel={t("admin.brandLabel")}
       eyebrow={t("admin.eyebrow")}
-      navItems={adminNav}
+      navItems={navItems}
       spotlight={{
         label: t("admin.collaborationLeads.spotlightLabel"),
         title: t("admin.collaborationLeads.spotlightTitle"),
@@ -164,7 +173,12 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
       </article>
 
        {/* Collaboration Leads List */}
-       <AdminCollaborationLeadsList collaborationLeads={filteredCollaborationLeads} />
+       <AdminCollaborationLeadsList
+         collaborationLeads={filteredCollaborationLeads}
+         deleteAction={deleteAdminCollaborationLeadAction}
+         sortBy={sortBy}
+         sortDir={sortDir}
+       />
     </DashboardShell>
   );
 }

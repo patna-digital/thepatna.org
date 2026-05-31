@@ -1,5 +1,5 @@
 import { MarketingPageHero } from "@/components/marketing-page-hero";
-import { contactDetails } from "@/lib/patna-data";
+import { PartnershipEnquiryForm } from "./partnership-enquiry-form";
 
 export const metadata = {
   title: "Explore Partnership",
@@ -11,13 +11,6 @@ export default function PartnershipPage() {
   return (
     <>
       <MarketingPageHero
-        actions={[
-          {
-            href: `mailto:${contactDetails.email}?subject=PATNA%20Partnership%20Enquiry`,
-            label: "Email partnership enquiry",
-            variant: "primary",
-          },
-        ]}
         label="Explore Partnership"
         subtitle="Share strategic priorities, funding interests, and potential programme alignment with PATNA."
         title="Start a partnership conversation"
@@ -37,23 +30,11 @@ export default function PartnershipPage() {
             </article>
 
             <article className="content-card">
-              <h3>How to get started</h3>
-              <p>
-                Introduce your organisation, the area of shared interest, and what success would
-                look like from your side.
+              <h3>Send a partnership enquiry</h3>
+              <p className="muted-note">
+                PATNA will route your enquiry to the right programme or leadership contact and respond directly.
               </p>
-              <div className="stack">
-                <a
-                  className="primary-button"
-                  href={`mailto:${contactDetails.email}?subject=PATNA%20Partnership%20Enquiry`}
-                >
-                  Email PATNA
-                </a>
-                <p className="muted-note">
-                  Partnership enquiries are currently handled directly by email so PATNA can route
-                  each conversation to the right programme or leadership contact.
-                </p>
-              </div>
+              <PartnershipEnquiryForm />
             </article>
           </div>
         </div>

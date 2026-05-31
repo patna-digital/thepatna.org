@@ -80,6 +80,9 @@
 | US-01-07 | As an organisation, I want to submit a service request so that PATNA can assess whether it can provide research or policy support. | P0 | M | ✅ Done |
 | US-01-08 | As a collaborator, I want to submit a collaboration lead so that PATNA can consider joint initiatives. | P1 | M | ✅ Done |
 | US-01-09 | As a visitor, I want to contact PATNA directly so that I can ask questions not covered by the other forms. | P1 | S | ✅ Done |
+| US-01-10i | As a potential partner, I want to fill in a web form (not just email) on the Partnership page so that my enquiry is captured in the admin pipeline immediately. | P1 | M | ✅ Done |
+| US-01-11i | As an organisation requesting support, I want to fill in a structured web form so that PATNA receives all the context they need to triage and respond. | P1 | M | ✅ Done |
+| US-01-12i | As a collaborator, I want to submit my proposal via a web form so that the PATNA team can review and track it without relying on email. | P1 | M | ✅ Done |
 
 ---
 
@@ -363,8 +366,8 @@
 | US-08-03 | As an admin, I want to perform bulk actions on selected members (e.g., send communication) so that I can manage groups efficiently. | P1 | L | ✅ Done |
 | US-08-04 | As an admin, I want to export the member list as a CSV so that I can use member data in external tools. | P1 | M | ✅ Done |
 | US-08-05 | As an admin, I want to view and edit an individual member's profile including cohort assignment so that I can correct data or update status. | P0 | M | ✅ Done |
-| US-08-06 | As an admin, I want a bulk action confirmation modal so that destructive communications are not sent accidentally. | P1 | M | 📋 Planned |
-| US-08-07 | As an admin, I want server-side search on the member list so that searches remain fast as membership grows. | P1 | M | 📋 Planned |
+| US-08-06 | As an admin, I want a bulk action confirmation modal so that destructive communications are not sent accidentally. | P1 | M | ✅ Done |
+| US-08-07 | As an admin, I want server-side search on the member list so that searches remain fast as membership grows. | P1 | M | ✅ Done |
 
 ---
 
@@ -384,10 +387,10 @@
 | US-08-10 | As an admin, I want to view all inbound service requests with their status and type so that I can triage and respond. | P0 | M | ✅ Done |
 | US-08-11 | As an admin, I want to view all partnership leads and update their status so that I can track relationship progress. | P0 | M | ✅ Done |
 | US-08-12 | As an admin, I want to view all collaboration leads and update their status so that I can manage collaborative opportunities. | P0 | M | ✅ Done |
-| US-08-13 | As an admin, I want to delete a pipeline record (service request, lead) so that I can remove spam or duplicate submissions. | P1 | S | 📋 Planned |
-| US-08-14 | As an admin, I want to sort pipeline tables by column so that I can order items by date, status, or type. | P2 | M | 🔲 Backlog |
-| US-08-15 | As an admin, I want badge counts on pipeline nav items showing new/unactioned items so that I can see at a glance where attention is needed. | P2 | S | 🔲 Backlog |
-| US-08-16 | As an admin, I want all admin pipeline pages to use the translation function (i18n) consistently so that the admin interface is fully localisable. | P2 | M | 📋 Planned |
+| US-08-13 | As an admin, I want to delete a pipeline record (service request, lead) so that I can remove spam or duplicate submissions. | P1 | S | ✅ Done |
+| US-08-14 | As an admin, I want to sort pipeline tables by column so that I can order items by date, status, or type. | P2 | M | ✅ Done |
+| US-08-15 | As an admin, I want badge counts on pipeline nav items showing new/unactioned items so that I can see at a glance where attention is needed. | P2 | S | ✅ Done |
+| US-08-16 | As an admin, I want all admin pipeline pages to use the translation function (i18n) consistently so that the admin interface is fully localisable. | P2 | M | ✅ Done |
 
 ---
 
@@ -514,11 +517,11 @@
 
 | Status | Story Count |
 |---|---|
-| ✅ Done | 82 |
-| ⚙️ In Progress | 4 |
-| 📋 Planned | 19 |
+| ✅ Done | 92 |
+| ⚙️ In Progress | 3 |
+| 📋 Planned | 14 |
 | 🔲 Backlog | 23 |
-| **Total** | **128** |
+| **Total** | **132** |
 
 ### Priority Backlog (Planned + Backlog, P0–P1 only)
 
@@ -530,8 +533,6 @@
 | US-04-12 | Booking confirmation emails | EP-04 | P1 |
 | US-08-06 | Bulk action confirmation modal | EP-08 | P1 |
 | US-08-07 | Server-side admin member search | EP-08 | P1 |
-| US-08-13 | Delete pipeline records | EP-08 | P1 |
-| US-08-16 | i18n for pipeline pages | EP-08 | P2 |
 | US-08-19 | Loading states on form submissions | EP-08 | P1 |
 | US-09-05 | Assistant access scope visualisation | EP-09 | P2 |
 | US-09-12 | Assistant query audit logs | EP-09 | P1 |
@@ -574,3 +575,4 @@ Legend: ████ = Shipped  ⚙⚙ = In Progress  ░░░░ = Planned/Bac
 | Version | Date | Author | Summary |
 |---|---|---|---|
 | 1.0 | May 2026 | Product Team | Initial document generated from codebase and planning review |
+| 1.1 | May 2026 | Engineering | Completed F-08-3: delete, column sort, badge counts, i18n in pipeline tables; added detail/edit pages for partnership and collaboration leads; replaced mailto links with structured web forms on all three /work-with-us pages (F-01-2 improvement) |

@@ -116,9 +116,9 @@
     "whoPara2": "Operating through a structured cohort model across academic, policy, industry, and civil society streams, PATNA serves as a trusted intermediary between world-class research institutions and African delegations — translating complex regulatory proposals into decision-ready briefings for national capitals and IMO negotiators.",
     "visionMission": "Vision and mission",
     "visionLabel": "Vision:",
-    "visionText": "To be the leading coalition of African technical experts advancing innovative, inclusive, and Africa-centred solutions for climate action and energy transition across interconnected systems.",
+    "visionText": "To be Africa's renowned technical and diplomatic institution for maritime decarbonisation, energy transition, and climate governance through which the continent speaks with one voice, on its own terms, in every room where global rules are made.",
     "missionLabel": "Mission:",
-    "missionText": "To amplify Africa's voice in global maritime decarbonisation through coordinated, evidence-based engagement — ensuring that international frameworks reflect Africa's realities, constraints, and aspirations.",
+    "missionText": "To generate, coordinate, and apply Africa-owned evidence and technical expertise, ensuring that African countries enter global maritime, energy transition, and climate negotiations with the research, capacity, and coalition strength to shape outcomes.",
     "coreValues": "Core values",
     "orgLabel": "How the network is organised",
     "orgTitle": "Four core constituencies shape PATNA's public community",
@@ -169,8 +169,8 @@
     "structureTitle": "Board, secretariat, cohorts, and collaborative pathways",
     "structureSubtitle": "The PATNA community is more than a login surface. It is the public structure through which governance, coordination, and contribution happen.",
     "joinLabel": "Applications open",
-    "joinTitle": "Ready to shape Africa's maritime future?",
-    "joinPara": "Join more than 100 specialists already collaborating through PATNA's cohorts, convenings, and shared evidence work.",
+    "joinTitle": "Ready to contribute to Africa's maritime transition?",
+    "joinPara": "Join a network of over 100 experts, policymakers, and practitioners already shaping the continent's position in global climate governance.",
     "btnStartApplication": "Start application",
     "btnMemberLogin": "Existing member login"
   },
@@ -208,7 +208,7 @@
     "readProjectPage": "Read project page",
     "flagshipLabel": "Flagship Programmes",
     "flagshipTitle": "The LEAP project series",
-    "flagshipSubtitle": "Foundational multi-phase programmes that built the evidence base, negotiation capacity, and institutional architecture underpinning African engagement at the IMO.",
+    "flagshipSubtitle": "PATNA's flagship programme builds Africa's technical and diplomatic capacity to shape the global rules governing shipping and energy transition, from IMO Net-Zero negotiations to international climate finance mechanisms. Now in its third phase.",
     "conveningLabel": "Regional Convenings",
     "conveningTitle": "Summits, workshops, and diplomatic forums",
     "conveningSubtitle": "High-level gatherings that translate technical evidence into coordinated African positions — and build the relationships that make collective action possible.",
@@ -275,8 +275,8 @@
   },
   "insights": {
     "label": "Insights",
-    "subtitle": "Reports, commentary, and technical outputs from PATNA's public archive.",
-    "title": "Insights and evidence from PATNA's work",
+    "subtitle": "Research reports, policy briefs, session analyses, and technical publications — PATNA's full knowledge output from across Africa's maritime decarbonisation journey.",
+    "title": "Research reports, policy briefs, session analyses, and technical outputs from PATNA",
     "latestLabel": "Latest from PATNA",
     "latestTitle": "Reports, articles, and event outputs",
     "latestSubtitle": "Browse recent PATNA publications, commentary, and technical outputs from the live archive.",
@@ -694,6 +694,7 @@
           "status": "Status",
           "assigned": "Assigned",
           "value": "Value",
+          "created": "Created",
           "actions": "Actions"
         }
       },
@@ -754,6 +755,7 @@
           "proposal": "Proposal",
           "status": "Status",
           "assigned": "Assigned",
+          "created": "Created",
           "actions": "Actions"
         }
       },

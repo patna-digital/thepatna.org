@@ -124,34 +124,30 @@ export function buildCollaborationLeadSummary(collaborationLeads) {
   };
 }
 
-export function filterAdminCollaborationLeads(collaborationLeads, { status = "all", collabType = "all", search = "" }) {
+export function filterAdminCollaborationLeads(collaborationLeads, { status = "all", collabType = "all", search = "", sortBy = "created_at", sortDir = "desc" }) {
   const normalisedSearch = String(search || "").trim().toLowerCase();
 
-  return collaborationLeads.filter((lead) => {
-    if (status !== "all" && lead.status !== status) {
-      return false;
-    }
+  const filtered = collaborationLeads.filter((lead) => {
+    if (status !== "all" && lead.status !== status) return false;
+    if (collabType !== "all" && lead.collaboration_type !== collabType) return false;
+    if (!normalisedSearch) return true;
 
-    if (collabType !== "all" && lead.collaboration_type !== collabType) {
-      return false;
-    }
-
-    if (!normalisedSearch) {
-      return true;
-    }
-
-    const haystack = [
-      lead.organisation,
-      lead.name,
-      lead.email,
-      lead.proposal,
-      lead.collaboration_type,
-    ]
+    const haystack = [lead.organisation, lead.name, lead.email, lead.proposal, lead.collaboration_type]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
 
     return haystack.includes(normalisedSearch);
+  });
+
+  const VALID_SORT_COLS = ["organisation", "collaboration_type", "status", "created_at"];
+  const col = VALID_SORT_COLS.includes(sortBy) ? sortBy : "created_at";
+  const asc = sortDir === "asc";
+
+  return [...filtered].sort((a, b) => {
+    const av = String(a[col] || "").toLowerCase();
+    const bv = String(b[col] || "").toLowerCase();
+    return asc ? av.localeCompare(bv) : bv.localeCompare(av);
   });
 }
 

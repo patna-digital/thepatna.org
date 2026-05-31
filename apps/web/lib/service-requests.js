@@ -123,37 +123,30 @@ export function buildServiceRequestSummary(serviceRequests) {
   };
 }
 
-export function filterAdminServiceRequests(serviceRequests, { status = "all", requestType = "all", search = "" }) {
+export function filterAdminServiceRequests(serviceRequests, { status = "all", requestType = "all", search = "", sortBy = "created_at", sortDir = "desc" }) {
   const normalisedSearch = String(search || "").trim().toLowerCase();
 
-  return serviceRequests.filter((request) => {
-    if (status !== "all" && request.status !== status) {
-      return false;
-    }
+  const filtered = serviceRequests.filter((request) => {
+    if (status !== "all" && request.status !== status) return false;
+    if (requestType !== "all" && request.request_type !== requestType) return false;
+    if (!normalisedSearch) return true;
 
-    if (requestType !== "all" && request.request_type !== requestType) {
-      return false;
-    }
-
-    if (!normalisedSearch) {
-      return true;
-    }
-
-    const haystack = [
-      request.requester_name,
-      request.requester_email,
-      request.organisation,
-      request.details,
-      request.request_type,
-      request.country,
-      request.decision_context,
-      request.timeline,
-    ]
+    const haystack = [request.requester_name, request.requester_email, request.organisation, request.details, request.request_type, request.country, request.decision_context, request.timeline]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
 
     return haystack.includes(normalisedSearch);
+  });
+
+  const VALID_SORT_COLS = ["requester_name", "organisation", "request_type", "status", "created_at"];
+  const col = VALID_SORT_COLS.includes(sortBy) ? sortBy : "created_at";
+  const asc = sortDir === "asc";
+
+  return [...filtered].sort((a, b) => {
+    const av = String(a[col] || "").toLowerCase();
+    const bv = String(b[col] || "").toLowerCase();
+    return asc ? av.localeCompare(bv) : bv.localeCompare(av);
   });
 }
 

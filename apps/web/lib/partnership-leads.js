@@ -124,37 +124,30 @@ export function buildPartnershipLeadSummary(partnershipLeads) {
   };
 }
 
-export function filterAdminPartnershipLeads(partnershipLeads, { status = "all", orgType = "all", search = "" }) {
+export function filterAdminPartnershipLeads(partnershipLeads, { status = "all", orgType = "all", search = "", sortBy = "created_at", sortDir = "desc" }) {
   const normalisedSearch = String(search || "").trim().toLowerCase();
 
-  return partnershipLeads.filter((lead) => {
-    if (status !== "all" && lead.status !== status) {
-      return false;
-    }
+  const filtered = partnershipLeads.filter((lead) => {
+    if (status !== "all" && lead.status !== status) return false;
+    if (orgType !== "all" && lead.org_type !== orgType) return false;
+    if (!normalisedSearch) return true;
 
-    if (orgType !== "all" && lead.org_type !== orgType) {
-      return false;
-    }
-
-    if (!normalisedSearch) {
-      return true;
-    }
-
-    const haystack = [
-      lead.organisation,
-      lead.name,
-      lead.email,
-      lead.focus_areas,
-      lead.budget_range,
-      lead.success_definition,
-      lead.support_type,
-      lead.org_type,
-    ]
+    const haystack = [lead.organisation, lead.name, lead.email, lead.focus_areas, lead.budget_range, lead.success_definition, lead.support_type, lead.org_type]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
 
     return haystack.includes(normalisedSearch);
+  });
+
+  const VALID_SORT_COLS = ["organisation", "org_type", "status", "created_at"];
+  const col = VALID_SORT_COLS.includes(sortBy) ? sortBy : "created_at";
+  const asc = sortDir === "asc";
+
+  return [...filtered].sort((a, b) => {
+    const av = String(a[col] || "").toLowerCase();
+    const bv = String(b[col] || "").toLowerCase();
+    return asc ? av.localeCompare(bv) : bv.localeCompare(av);
   });
 }
 
