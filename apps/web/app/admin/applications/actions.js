@@ -9,6 +9,8 @@ import { getSiteUrl } from "@/lib/env";
 import { provisionMemberFromApplication } from "@/lib/member-provisioning";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
+import { sendEmail } from "@/lib/email/resend";
+import { assignmentEmailHtml } from "@/lib/email/templates/assignment";
 
 function createAuditInviteRow({ createdByUserId, email, method, userId }) {
   return {
@@ -59,6 +61,168 @@ export async function reviewApplicationAction(formData) {
   }
 
   redirect("/admin/applications?notice=saved");
+}
+
+/**
+ * Assign an application to an admin — creates an in-app notification and
+ * sends an email to the assignee.
+ */
+export async function assignApplicationAction(formData) {
+  const { supabase, user: currentAdmin } = await requireAdminContext();
+  const adminClient = createSupabaseAdminClient();
+
+  const applicationId = String(formData.get("application_id") || "").trim();
+  const assigneeId = String(formData.get("assigned_to_user_id") || "").trim();
+  const assignmentNotes = String(formData.get("assignment_notes") || "").trim();
+
+  if (!applicationId || !assigneeId) {
+    redirect("/admin/applications?notice=missing-fields");
+  }
+
+  // Load application + assigner profile in parallel
+  const [{ data: application }, { data: assigner }, { data: assignee }] = await Promise.all([
+    adminClient
+      .from("community_applications")
+      .select("id, first_name, surname, submitted_by_email, status")
+      .eq("id", applicationId)
+      .maybeSingle(),
+    adminClient
+      .from("profiles")
+      .select("id, first_name, surname, email")
+      .eq("id", currentAdmin.id)
+      .maybeSingle(),
+    adminClient
+      .from("profiles")
+      .select("id, first_name, surname, email")
+      .eq("id", assigneeId)
+      .maybeSingle(),
+  ]);
+
+  if (!application || !assignee) {
+    redirect("/admin/applications?notice=error");
+  }
+
+  const { error: updateError } = await adminClient
+    .from("community_applications")
+    .update({
+      assigned_to_user_id: assigneeId,
+      assignment_notes: assignmentNotes || null,
+      assigned_at: new Date().toISOString(),
+    })
+    .eq("id", applicationId);
+
+  if (updateError) {
+    redirect("/admin/applications?notice=error");
+  }
+
+  const applicantName = [application.first_name, application.surname].filter(Boolean).join(" ") || application.submitted_by_email;
+  const assignerName = [assigner?.first_name, assigner?.surname].filter(Boolean).join(" ") || "An admin";
+  const assigneeName = [assignee.first_name, assignee.surname].filter(Boolean).join(" ") || assignee.email;
+
+  const siteUrl = getSiteUrl();
+  const applicationLink = `${siteUrl}/admin/applications`;
+
+  // Create in-app notification for the assignee
+  await adminClient.from("notifications").insert({
+    recipient_id: assigneeId,
+    type: "task_assignment",
+    title: `Application assigned to you: ${applicantName}`,
+    body: assignmentNotes
+      ? assignmentNotes.slice(0, 200)
+      : `${assignerName} has assigned an applicant review to you.`,
+    link: "/admin/applications",
+    metadata: {
+      application_id: applicationId,
+      assigner_id: currentAdmin.id,
+      assigner_name: assignerName,
+      applicant_name: applicantName,
+    },
+  });
+
+  // Send email notification to assignee
+  if (assignee.email) {
+    try {
+      await sendEmail({
+        to: assignee.email,
+        subject: `Application assigned to you: ${applicantName}`,
+        html: assignmentEmailHtml({
+          recipientName: assigneeName,
+          assignerName,
+          applicantName,
+          applicantEmail: application.submitted_by_email,
+          applicationStatus: application.status,
+          assignmentNotes,
+          applicationLink,
+        }),
+      });
+    } catch (emailError) {
+      // Non-fatal: in-app notification was created; log email failure
+      console.error("assignApplicationAction email error:", emailError);
+    }
+  }
+
+  redirect("/admin/applications?notice=assigned");
+}
+
+/**
+ * Save admin-assigned cohorts for an application (replaces single cohort field).
+ * Accepts: cohort_ids[] (array of cohort UUIDs) and primary_cohort_id.
+ */
+export async function updateApplicationCohortsAction(formData) {
+  const { supabase, user } = await requireAdminContext();
+
+  const applicationId = String(formData.get("application_id") || "").trim();
+  const primaryCohortId = String(formData.get("primary_cohort_id") || "").trim();
+  const rawCohortIds = formData.getAll("cohort_ids[]");
+  const cohortIds = rawCohortIds
+    .map((id) => String(id).trim())
+    .filter(Boolean);
+
+  if (!applicationId) {
+    redirect("/admin/applications?notice=missing-fields");
+  }
+
+  // Always include primary in the set
+  const allCohortIds = primaryCohortId
+    ? [...new Set([...cohortIds, primaryCohortId])]
+    : cohortIds;
+
+  // Replace all cohort assignments for this application
+  const { error: deleteError } = await supabase
+    .from("application_assigned_cohorts")
+    .delete()
+    .eq("application_id", applicationId);
+
+  if (deleteError) {
+    redirect("/admin/applications?notice=error");
+  }
+
+  if (allCohortIds.length > 0) {
+    const rows = allCohortIds.map((cohortId) => ({
+      application_id: applicationId,
+      cohort_id: cohortId,
+      is_primary: cohortId === primaryCohortId,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("application_assigned_cohorts")
+      .insert(rows);
+
+    if (insertError) {
+      redirect("/admin/applications?notice=error");
+    }
+  }
+
+  // Keep legacy assigned_cohort_id in sync with primary for backward compat
+  await supabase
+    .from("community_applications")
+    .update({
+      assigned_cohort_id: primaryCohortId || null,
+      reviewed_by_user_id: user.id,
+    })
+    .eq("id", applicationId);
+
+  redirect("/admin/applications?notice=cohorts-saved");
 }
 
 export async function approveAndInviteApplicationAction(formData) {

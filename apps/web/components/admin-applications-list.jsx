@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { applicationEngagementOptions, applicationExpertiseOptions } from "@/lib/patna-data";
 import {
   approveAndInviteApplicationAction,
+  assignApplicationAction,
   resendApplicationInviteAction,
   reviewApplicationAction,
   sendPasswordResetLinkAction,
+  updateApplicationCohortsAction,
 } from "../app/admin/applications/actions";
 
 const STATUS_OPTIONS = ["submitted", "interviewing", "approved", "waitlist", "declined"];
@@ -64,38 +66,239 @@ function getSearchText(app) {
     app.country,
     app.role_title,
     app.motivation_text,
+    app.assignee_name,
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 }
 
-function ApplicationRow({ application, cohorts, cohortsById }) {
+// ── Multi-cohort selector ────────────────────────────────────────────────────
+
+function MultiCohortSelector({ applicationId, cohorts, initialAssignedCohorts }) {
+  const [selected, setSelected] = useState(() => new Set(initialAssignedCohorts.map((c) => c.cohort_id)));
+  const [primaryId, setPrimaryId] = useState(() => initialAssignedCohorts.find((c) => c.is_primary)?.cohort_id || "");
+  const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+
+  function toggleCohort(cohortId) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(cohortId)) {
+        next.delete(cohortId);
+        if (primaryId === cohortId) setPrimaryId("");
+      } else {
+        next.add(cohortId);
+        if (!primaryId) setPrimaryId(cohortId);
+      }
+      return next;
+    });
+    setSaved(false);
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    // Ensure cohort_ids[] reflects current checked state (FormData from checkboxes)
+    startTransition(async () => {
+      await updateApplicationCohortsAction(fd);
+      setSaved(true);
+    });
+  }
+
+  return (
+    <form className="multicohort-form" onSubmit={handleSubmit}>
+      <input name="application_id" type="hidden" value={applicationId} />
+      <input name="primary_cohort_id" type="hidden" value={primaryId} />
+
+      <div className="app-row-section-header">Cohort assignment</div>
+      <div className="multicohort-grid">
+        {(cohorts || []).map((cohort) => {
+          const isSelected = selected.has(cohort.id);
+          const isPrimary = primaryId === cohort.id;
+          return (
+            <label
+              className={`multicohort-option${isSelected ? " is-selected" : ""}${isPrimary ? " is-primary" : ""}`}
+              key={cohort.id}
+            >
+              <input
+                checked={isSelected}
+                name="cohort_ids[]"
+                onChange={() => toggleCohort(cohort.id)}
+                type="checkbox"
+                value={cohort.id}
+              />
+              <span className="multicohort-option-name">{cohort.name}</span>
+              {isSelected && (
+                <button
+                  aria-label={isPrimary ? "Primary cohort" : `Set ${cohort.name} as primary`}
+                  className={`multicohort-primary-btn${isPrimary ? " is-active" : ""}`}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPrimaryId(cohort.id); setSaved(false); }}
+                  title={isPrimary ? "Primary cohort" : "Set as primary"}
+                  type="button"
+                >
+                  {isPrimary ? "Primary" : "Set primary"}
+                </button>
+              )}
+            </label>
+          );
+        })}
+      </div>
+
+      {selected.size > 0 && (
+        <p className="multicohort-summary">
+          <strong>{selected.size}</strong> cohort{selected.size !== 1 ? "s" : ""} selected
+          {primaryId ? ` · Primary: ${cohorts.find((c) => c.id === primaryId)?.name || "—"}` : ""}
+        </p>
+      )}
+
+      <div className="app-review-save-bar">
+        <button className="secondary-button" disabled={isPending} type="submit">
+          {isPending ? "Saving…" : saved ? "✓ Saved" : "Save cohorts"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ── Task assignment panel ────────────────────────────────────────────────────
+
+function AssignmentPanel({ application, admins }) {
+  const [open, setOpen] = useState(false);
+  const [assigneeId, setAssigneeId] = useState(application.assigned_to_user_id || "");
+  const [notes, setNotes] = useState(application.assignment_notes || "");
+  const [isPending, startTransition] = useTransition();
+  const [sent, setSent] = useState(false);
+
+  const currentAssignee = admins.find((a) => a.id === application.assigned_to_user_id);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!assigneeId) return;
+    const fd = new FormData(e.target);
+    startTransition(async () => {
+      await assignApplicationAction(fd);
+      setSent(true);
+      setOpen(false);
+    });
+  }
+
+  return (
+    <div className="assignment-panel">
+      <div className="app-row-section-header">
+        <span>Task assignment</span>
+        {currentAssignee && (
+          <span className="status-chip chip-muted" style={{ marginLeft: "auto" }}>
+            Assigned to {[currentAssignee.first_name, currentAssignee.surname].filter(Boolean).join(" ") || currentAssignee.email}
+          </span>
+        )}
+      </div>
+
+      {!open ? (
+        <div className="assignment-summary">
+          {currentAssignee ? (
+            <p className="assignment-current">
+              <strong>{[currentAssignee.first_name, currentAssignee.surname].filter(Boolean).join(" ")}</strong>
+              {application.assignment_notes ? ` — ${application.assignment_notes}` : ""}
+              {application.assigned_at ? (
+                <span className="assignment-meta"> · {formatShortDate(application.assigned_at)}</span>
+              ) : null}
+            </p>
+          ) : (
+            <p className="assignment-empty">Not assigned to anyone yet.</p>
+          )}
+          <button className="secondary-button" onClick={() => setOpen(true)} type="button">
+            {currentAssignee ? "Reassign" : "Assign to admin"}
+          </button>
+        </div>
+      ) : (
+        <form className="assignment-form" onSubmit={handleSubmit}>
+          <input name="application_id" type="hidden" value={application.id} />
+
+          <label className="form-label">
+            Assign to
+            <select
+              className="form-select"
+              name="assigned_to_user_id"
+              onChange={(e) => setAssigneeId(e.target.value)}
+              required
+              value={assigneeId}
+            >
+              <option value="">— select admin —</option>
+              {admins.map((admin) => (
+                <option key={admin.id} value={admin.id}>
+                  {[admin.first_name, admin.surname].filter(Boolean).join(" ") || admin.email}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="form-label">
+            Notes for assignee <span className="form-label-optional">(optional)</span>
+            <textarea
+              className="form-textarea"
+              maxLength={500}
+              name="assignment_notes"
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Specific action needed, deadline, or context…"
+              rows={3}
+              value={notes}
+            />
+          </label>
+
+          <div className="assignment-form-actions">
+            <button
+              className="primary-button"
+              disabled={isPending || !assigneeId}
+              type="submit"
+            >
+              {isPending ? "Assigning…" : sent ? "✓ Assigned" : "Assign & notify"}
+            </button>
+            <button
+              className="secondary-button"
+              onClick={() => setOpen(false)}
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+// ── Application row ──────────────────────────────────────────────────────────
+
+function ApplicationRow({ application, admins, cohorts, cohortsById, assignedCohortsMap }) {
   const expertise = getLabels(application.expertise_slugs, expertiseLabels, application.expertise_other_text);
   const engagement = getLabels(application.engagement_slugs, engagementLabels, application.engagement_other_text);
-  const assignedCohort = application.assigned_cohort_id
-    ? cohortsById.get(application.assigned_cohort_id)?.name || "Assigned cohort"
-    : null;
+
+  // Prefer new multi-cohort assignments, fall back to legacy single field
+  const assignedCohorts = assignedCohortsMap.get(application.id) || [];
+  const primaryCohort = assignedCohorts.find((c) => c.is_primary) ||
+    (application.assigned_cohort_id ? { cohort_id: application.assigned_cohort_id, is_primary: true } : null);
+  const primaryCohortName = primaryCohort ? (cohortsById.get(primaryCohort.cohort_id)?.name || "Assigned") : null;
+
   const chipClass = STATUS_CHIP[application.status] || "chip-neutral";
   const statusLabel = STATUS_LABELS[application.status] || application.status;
-  const fullName = `${application.first_name} ${application.surname}`.trim();
+  const fullName = `${application.first_name || ""} ${application.surname || ""}`.trim();
   const roleLine = [application.role_title, application.organisation, application.country]
     .filter(Boolean)
     .join(" · ");
   const submittedAt = application.submitted_at || application.created_at;
   const isNew = isNewApplication(submittedAt);
-
-  const [selectedStatus, setSelectedStatus] = useState(application.status);
-
-  const profile = application.member_profile;
   const isDeclined = application.status === "declined";
   const isApproved = application.status === "approved";
+
+  const [selectedStatus, setSelectedStatus] = useState(application.status);
   const willBeApproved = selectedStatus === "approved";
 
-  // Determine which invite action to show
+  const profile = application.member_profile;
+  const assignee = admins.find((a) => a.id === application.assigned_to_user_id);
+
   function InviteAction() {
     if (isDeclined) return null;
-
     if (!isApproved || !profile) {
       return (
         <form action={approveAndInviteApplicationAction} className="app-invite-form">
@@ -110,7 +313,6 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
         </form>
       );
     }
-
     if (profile.onboarding_status === "active") {
       return (
         <form action={sendPasswordResetLinkAction} className="app-invite-form">
@@ -118,14 +320,13 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
           <div className="app-invite-form-body">
             <div className="app-invite-form-copy">
               <strong>Send password reset</strong>
-              <span>Member is active. Sends a password reset link to their email.</span>
+              <span>Member is active. Sends a password reset link.</span>
             </div>
             <button className="secondary-button" type="submit">Send password reset</button>
           </div>
         </form>
       );
     }
-
     return (
       <form action={resendApplicationInviteAction} className="app-invite-form">
         <input name="application_id" type="hidden" value={application.id} />
@@ -150,9 +351,14 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
           </div>
           <div className="app-row-signals">
             {isNew ? <span className="status-chip chip-new">New</span> : null}
+            {assignee && (
+              <span className="status-chip chip-muted app-assignee-chip" title="Assigned to">
+                ↳ {[assignee.first_name, assignee.surname].filter(Boolean).join(" ") || assignee.email}
+              </span>
+            )}
             <span className={`status-chip ${chipClass}`}>{statusLabel}</span>
-            {assignedCohort ? (
-              <span className="status-chip chip-muted">{assignedCohort}</span>
+            {primaryCohortName ? (
+              <span className="status-chip chip-muted">{primaryCohortName}</span>
             ) : null}
             <span className="app-row-expand-hint">Review</span>
           </div>
@@ -166,12 +372,10 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
 
       <div className="app-row-detail">
 
-        {/* Motivation */}
         {application.motivation_text ? (
           <p className="app-row-detail-motivation">{application.motivation_text}</p>
         ) : null}
 
-        {/* Details */}
         <div className="app-row-section-header">Details</div>
         <div className="app-row-detail-grid">
           <div className="app-row-detail-field">
@@ -187,8 +391,8 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
             <p>{formatSourceLabel(application.source)}</p>
           </div>
           <div className="app-row-detail-field">
-            <strong>Cohort</strong>
-            <p>{assignedCohort || "Not assigned"}</p>
+            <strong>Primary cohort</strong>
+            <p>{primaryCohortName || "Not assigned"}</p>
           </div>
           <div className="app-row-detail-field">
             <strong>Consent: data</strong>
@@ -222,7 +426,7 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
           </>
         ) : null}
 
-        {/* ── Review panel ─────────────────────────────────────────────── */}
+        {/* ── Review panel ── */}
         {!isDeclined && (
           <div className="app-review-panel">
             <div className="app-row-section-header">Review</div>
@@ -235,16 +439,17 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
                   Status
                   <select
                     name="status"
-                    value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
+                    value={selectedStatus}
                   >
                     {STATUS_OPTIONS.map((s) => (
                       <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                     ))}
                   </select>
                 </label>
+                {/* Legacy single-cohort field kept for backward compat with provisioning */}
                 <label>
-                  Cohort
+                  Primary cohort (legacy)
                   <select defaultValue={application.assigned_cohort_id || ""} name="assigned_cohort_id">
                     <option value="">Not assigned</option>
                     {(cohorts || []).map((c) => (
@@ -259,7 +464,7 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
                 <textarea
                   defaultValue={application.review_notes || ""}
                   name="review_notes"
-                  placeholder="Add interview notes, decision rationale, or follow-up actions."
+                  placeholder="Interview notes, decision rationale, or follow-up actions."
                 />
               </label>
 
@@ -268,7 +473,18 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
               </div>
             </form>
 
-            {/* Invite action sits outside the review form to avoid nested <form> */}
+            {/* Multi-cohort assignment (additive, manages application_assigned_cohorts) */}
+            <MultiCohortSelector
+              applicationId={application.id}
+              cohorts={cohorts}
+              initialAssignedCohorts={assignedCohorts}
+            />
+
+            {/* Task assignment (assigns to admin + notifications) */}
+            {admins.length > 0 && (
+              <AssignmentPanel admins={admins} application={application} />
+            )}
+
             {(isApproved || willBeApproved) && (
               <div className="app-review-action-bar">
                 <InviteAction />
@@ -276,13 +492,14 @@ function ApplicationRow({ application, cohorts, cohortsById }) {
             )}
           </div>
         )}
-
       </div>
     </details>
   );
 }
 
-export function AdminApplicationsList({ applications, cohorts }) {
+// ── Main list ────────────────────────────────────────────────────────────────
+
+export function AdminApplicationsList({ admins = [], applications, assignedCohortsMap = new Map(), cohorts }) {
   const [search, setSearch] = useState("");
   const cohortsById = useMemo(() => new Map((cohorts || []).map((c) => [c.id, c])), [cohorts]);
 
@@ -307,12 +524,12 @@ export function AdminApplicationsList({ applications, cohorts }) {
   return (
     <div className="stack">
       <div className="admin-list-search">
-        <span className="admin-list-search-icon" aria-hidden="true">⌕</span>
+        <span aria-hidden="true" className="admin-list-search-icon">⌕</span>
         <input
-          type="search"
-          placeholder="Search by name, email, organisation, or country…"
-          value={search}
           onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, email, organisation, country, or assignee…"
+          type="search"
+          value={search}
         />
         {search ? (
           <span className="admin-list-search-count">
@@ -335,7 +552,9 @@ export function AdminApplicationsList({ applications, cohorts }) {
                   </div>
                   {group.items.map((application) => (
                     <ApplicationRow
+                      admins={admins}
                       application={application}
+                      assignedCohortsMap={assignedCohortsMap}
                       cohorts={cohorts}
                       cohortsById={cohortsById}
                       key={application.id}
@@ -346,7 +565,9 @@ export function AdminApplicationsList({ applications, cohorts }) {
             ) : (
               filtered.map((application) => (
                 <ApplicationRow
+                  admins={admins}
                   application={application}
+                  assignedCohortsMap={assignedCohortsMap}
                   cohorts={cohorts}
                   cohortsById={cohortsById}
                   key={application.id}

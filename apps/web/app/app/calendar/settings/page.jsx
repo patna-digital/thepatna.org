@@ -7,8 +7,8 @@ import { getCurrentUserContext } from "@/lib/supabase/access";
 import { CalendarSettingsClient } from "./calendar-settings-client";
 
 export const metadata = {
-  title: "Calendar Settings | PATNA",
-  description: "Manage your calendar connections and booking preferences",
+  title: "Calendar Sync | PATNA",
+  description: "Connect your calendars and manage booking preferences",
 };
 
 function getCalendarSettingsNotice(searchParams) {
@@ -77,9 +77,14 @@ export default async function CalendarSettingsPage({ searchParams }) {
   const notice = getCalendarSettingsNotice(resolvedSearchParams);
 
   const headerActions = (
-    <Link href="/app/calendar" className="secondary-button">
-      ← Back to Calendar
-    </Link>
+    <>
+      <Link href="/app/calendar" className="secondary-button">
+        View Calendar
+      </Link>
+      <Link href="/app/calendar/availability" className="secondary-button">
+        ← Availability
+      </Link>
+    </>
   );
 
   return (
@@ -88,8 +93,8 @@ export default async function CalendarSettingsPage({ searchParams }) {
       headerActions={headerActions}
       notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
-      subtitle="Manage your calendar connections and booking preferences"
-      title="Calendar Settings"
+      subtitle="Connect your calendars and configure booking preferences"
+      title="Calendar Sync"
     >
       <div className="calendar-settings-content">
         <CalendarSettingsClient

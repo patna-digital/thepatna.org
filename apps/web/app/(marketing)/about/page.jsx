@@ -1,10 +1,11 @@
 import Link from "next/link";
 import {
   storyTimeline,
-  boardMembers,
-  secretariatMembers,
-  researchLeadership,
+  boardMembers   as staticBoardMembers,
+  secretariatMembers as staticSecretariatMembers,
+  researchLeadership as staticResearchLeadership,
 } from "@/lib/patna-data";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "About",
@@ -12,13 +13,60 @@ export const metadata = {
     "Learn about PATNA's mission, vision, and Africa-centred approach to maritime decarbonisation, climate action, and energy transition.",
 };
 
-const TITLE_SKIP = new Set(["Dr", "Dr.", "Ambassador", "Amb", "Maj", "Gen", "(Rt)", "Prof", "Prof."]);
+const TITLE_SKIP = new Set(["Dr", "Dr.", "Ambassador", "Amb", "Maj", "Gen", "(Rt)", "Prof", "Prof.", "Assoc."]);
+const AVATAR_COLORS = ["#d6e8f7", "#dcf5ea", "#e8f5fd", "#fce7d6", "#ede9fe"];
+const AVATAR_TEXT_COLORS = ["#023d75", "#1a6b4a", "#03529d", "#92400e", "#5b21b6"];
 
-function getInitials(name) {
-  return name.split(" ").filter((w) => !TITLE_SKIP.has(w)).slice(0, 2).map((w) => w[0]).join("");
+function getInitials(name = "") {
+  return name.split(" ").filter((w) => !TITLE_SKIP.has(w)).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
+
+function isChairRole(title = "") {
+  return /chair/i.test(title);
+}
+
+/**
+ * Fetch active people grouped by section from the DB.
+ * Falls back to static patna-data arrays if the table is empty or unavailable.
+ */
+async function fetchPeopleProfiles() {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("people_profiles")
+      .select("id, section, full_name, title, organisation, bio, email, linkedin_url, photo_url, display_order")
+      .eq("is_active", true)
+      .order("section")
+      .order("display_order");
+
+    if (error || !data?.length) throw new Error("empty or unavailable");
+
+    const board       = data.filter((p) => p.section === "board");
+    const secretariat = data.filter((p) => p.section === "secretariat");
+    const research    = data.filter((p) => p.section === "research");
+    return { board, secretariat, research, fromDb: true };
+  } catch {
+    // Graceful fallback to static data (migration not yet run, or table empty)
+    return {
+      board: staticBoardMembers.map((m, i) => ({
+        id: String(i), full_name: m.name, title: m.title, organisation: m.org,
+        bio: m.bio, email: null, linkedin_url: null, photo_url: null,
+      })),
+      secretariat: staticSecretariatMembers.map((m, i) => ({
+        id: String(i), full_name: m.name, title: m.title, organisation: null,
+        bio: m.bio, email: m.contact, linkedin_url: null, photo_url: null,
+      })),
+      research: staticResearchLeadership.map((m, i) => ({
+        id: String(i), full_name: m.name, title: m.title, organisation: null,
+        bio: m.body, email: null, linkedin_url: null, photo_url: null,
+      })),
+      fromDb: false,
+    };
+  }
 }
 
 export default async function AboutPage() {
+  const { board, secretariat, research } = await fetchPeopleProfiles();
   return (
     <>
       <section className="sub-page-hero" aria-label="About PATNA">
@@ -129,18 +177,39 @@ export default async function AboutPage() {
           <div className="gov-subsection-title-v3">Board of Directors</div>
 
           <div className="board-grid-v3">
-            {boardMembers.map((member) => (
+            {board.map((member) => (
               <article
-                className={`board-card-v3${member.role === "co-chair" ? " chair-card" : ""}`}
-                key={member.name}
+                className={`board-card-v3${isChairRole(member.title) ? " chair-card" : ""}`}
+                key={member.id}
               >
                 <div className="board-avatar-v3">
-                  <span className="board-avatar-v3-fallback">{getInitials(member.name)}</span>
+                  {member.photo_url ? (
+                    <img
+                      alt={member.full_name}
+                      className="board-avatar-v3-photo"
+                      src={member.photo_url}
+                    />
+                  ) : (
+                    <span className="board-avatar-v3-fallback">{getInitials(member.full_name)}</span>
+                  )}
                 </div>
-                <div className="board-name-v3">{member.name}</div>
+                <div className="board-name-v3">
+                  {member.full_name}
+                  {member.linkedin_url && (
+                    <a
+                      aria-label={`${member.full_name} on LinkedIn`}
+                      className="people-linkedin-badge"
+                      href={member.linkedin_url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      in
+                    </a>
+                  )}
+                </div>
                 <div className="board-role-v3">{member.title}</div>
-                <div className="board-org-v3">{member.org}</div>
-                <p className="board-bio-v3">{member.bio}</p>
+                {member.organisation && <div className="board-org-v3">{member.organisation}</div>}
+                {member.bio && <p className="board-bio-v3">{member.bio}</p>}
               </article>
             ))}
           </div>
@@ -148,27 +217,48 @@ export default async function AboutPage() {
           <div className="gov-subsection-title-v3" style={{ marginTop: "1rem" }}>Secretariat</div>
 
           <div className="secretariat-grid-v3">
-            {secretariatMembers.map((member, i) => (
-              <article className="sec-card-v3" key={member.name}>
+            {secretariat.map((member, i) => (
+              <article className="sec-card-v3" key={member.id}>
                 <div
                   className="sec-avatar-v3"
-                  style={{
-                    background: i === 0 ? "#d6e8f7" : i === 1 ? "#dcf5ea" : "#e8f5fd",
-                  }}
+                  style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
                 >
-                  <span
-                    className="sec-avatar-v3-fallback"
-                    style={{ color: i === 0 ? "#023d75" : i === 1 ? "#1a6b4a" : "#03529d" }}
-                  >
-                    {member.initials}
-                  </span>
+                  {member.photo_url ? (
+                    <img
+                      alt={member.full_name}
+                      className="sec-avatar-v3-photo"
+                      src={member.photo_url}
+                    />
+                  ) : (
+                    <span
+                      className="sec-avatar-v3-fallback"
+                      style={{ color: AVATAR_TEXT_COLORS[i % AVATAR_TEXT_COLORS.length] }}
+                    >
+                      {getInitials(member.full_name)}
+                    </span>
+                  )}
                 </div>
                 <div className="sec-info-v3">
-                  <div className="sec-name-v3">{member.name}</div>
+                  <div className="sec-name-v3">
+                    {member.full_name}
+                    {member.linkedin_url && (
+                      <a
+                        aria-label={`${member.full_name} on LinkedIn`}
+                        className="people-linkedin-badge"
+                        href={member.linkedin_url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        in
+                      </a>
+                    )}
+                  </div>
                   <div className="sec-role-v3">{member.title}</div>
-                  <a className="sec-contact-v3" href={`mailto:${member.contact}`}>
-                    {member.contact}
-                  </a>
+                  {member.email && (
+                    <a className="sec-contact-v3" href={`mailto:${member.email}`}>
+                      {member.email}
+                    </a>
+                  )}
                 </div>
               </article>
             ))}
@@ -180,11 +270,32 @@ export default async function AboutPage() {
               The PATNA Initiative's research programme is anchored by a partnership with the UCL Energy Institute, London — one of the world's leading institutions for shipping decarbonisation research. The LEAP series was developed with UCL as the principal research partner. UCL's Shipping and Oceans Research Group provides the technical modelling, data analysis, and academic rigour that underpins PATNA's evidence outputs.
             </p>
             <div className="research-leadership-grid-v3">
-              {researchLeadership.map((leader) => (
-                <article className="research-card-v3" key={leader.name}>
-                  <h3>{leader.name}</h3>
+              {research.map((leader) => (
+                <article className="research-card-v3" key={leader.id}>
+                  {leader.photo_url && (
+                    <div className="research-card-avatar-v3">
+                      <img alt={leader.full_name} src={leader.photo_url} />
+                    </div>
+                  )}
+                  <h3>
+                    {leader.full_name}
+                    {leader.linkedin_url && (
+                      <a
+                        aria-label={`${leader.full_name} on LinkedIn`}
+                        className="people-linkedin-badge"
+                        href={leader.linkedin_url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        in
+                      </a>
+                    )}
+                  </h3>
                   <span>{leader.title}</span>
-                  <p>{leader.body}</p>
+                  {leader.organisation && (
+                    <span className="research-card-org-v3">{leader.organisation}</span>
+                  )}
+                  {leader.bio && <p>{leader.bio}</p>}
                 </article>
               ))}
             </div>

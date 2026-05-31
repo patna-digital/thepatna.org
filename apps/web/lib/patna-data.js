@@ -781,9 +781,18 @@ export const adminNav = [
     label: "Partnerships",
     collapsible: true,
     items: [
+      { href: "/admin/partners", label: "Partners", icon: "Building2" },
       { href: "/admin/service-requests", label: "Service Requests", icon: "Wrench" },
       { href: "/admin/partnership-leads", label: "Partnership Leads", icon: "Handshake" },
       { href: "/admin/collaboration-leads", label: "Collaboration Leads", icon: "Network" },
+    ],
+  },
+  {
+    label: "Website",
+    collapsible: true,
+    items: [
+      { href: "/admin/people", label: "People", icon: "UsersRound" },
+      { href: "/admin/settings", label: "Website Settings", icon: "Globe" },
     ],
   },
   {
@@ -793,7 +802,6 @@ export const adminNav = [
       { href: "/admin/assistant", label: "AI Assistant", icon: "Sparkles" },
       { href: "/admin/notifications", label: "Notifications", icon: "Bell" },
       { href: "/admin/admins", label: "Admins", icon: "ShieldCheck" },
-      { href: "/admin/settings", label: "Website Settings", icon: "Globe" },
     ],
   },
 ];

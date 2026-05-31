@@ -190,11 +190,6 @@ export function MemberWorkspaceShell({
             </Link>
           </div>
           <div className="sidebar-utility-nav">
-            {notificationUserId && (
-              <div className="sidebar-notification-bell">
-                <NotificationBell userId={notificationUserId} />
-              </div>
-            )}
             {settingsItem ? (
               <Link
                 className={`sidebar-utility-link${isSettingsActive ? " active" : ""}`}
@@ -217,6 +212,11 @@ export function MemberWorkspaceShell({
       {/* ── Main content ────────────────────────────────────────────────── */}
       <main className="member-workspace-main">
         <div className="member-workspace-main-inner">
+          {notificationUserId && (
+            <div className="member-page-top-bell" aria-label="Notification controls">
+              <NotificationBell userId={notificationUserId} />
+            </div>
+          )}
           <header className="member-workspace-header">
             <div className="member-workspace-header-copy">
               {dateLabel ? <div className="member-workspace-date">{dateLabel}</div> : null}

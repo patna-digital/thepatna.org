@@ -48,7 +48,7 @@
 | [EP-07](#ep-07-projects--knowledge-graph) | Projects & Knowledge Graph | ✅ Done |
 | [EP-08](#ep-08-admin-operations-hub) | Admin Operations Hub | ⚙️ In Progress |
 | [EP-09](#ep-09-patna-ai-assistant) | PATNA AI Assistant | ⚙️ In Progress |
-| [EP-10](#ep-10-platform-hardening) | Platform Hardening | 📋 Planned |
+| [EP-10](#ep-10-platform-hardening) | Platform Hardening | ⚙️ In Progress |
 
 ---
 
@@ -148,6 +148,15 @@
 
 ---
 
+### Feature: F-02-4 — Admin & Partner Onboarding
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-02-14 | As a newly appointed admin, I want to receive a welcome email when the super admin grants my role so that I know immediately and have a direct link to the admin workspace. | P1 | S | ✅ Done |
+| US-02-15 | As an admin, I want the platform to support distinct onboarding flows for members (invite), admins (super admin grant + welcome email), and partners (admin-added or website form) so that each user type receives an appropriate welcome experience. | P1 | M | ✅ Done |
+
+---
+
 ## EP-03: Member Workspace
 
 **Goal:** Give members a rich, collaborative digital home for professional networking, knowledge sharing, and community participation.
@@ -197,9 +206,11 @@
 |---|---|---|---|---|
 | US-03-15 | As a member, I want to change my profile visibility and availability from the settings page so that I don't need to go into the full profile editor. | P0 | M | ✅ Done |
 | US-03-16 | As a member, I want to change my password from the settings page so that I can maintain account security. | P1 | S | ✅ Done |
-| US-03-17 | As a member, I want to manage notification preferences (email digest, mention alerts) so that I receive only the communications I want. | P2 | L | 🔲 Backlog |
+| US-03-17 | As a member, I want to manage notification preferences (email digest, mention alerts) so that I receive only the communications I want. | P2 | L | ✅ Done |
 | US-03-18 | As a member, I want to enable two-factor authentication so that my account is protected against unauthorised access. | P1 | L | 📋 Planned |
 | US-03-19 | As a member, I want to view an activity log of my recent actions so that I can audit my own engagement on the platform. | P3 | M | 🔲 Backlog |
+| US-03-20 | As a member, I want to see a breakdown of what information is visible under each directory visibility setting so that I can make an informed privacy choice. | P2 | S | ✅ Done |
+| US-03-21 | As a member, I want to navigate directly from the availability status setting to the availability schedule editor so that setup flows naturally without hunting through menus. | P2 | S | ✅ Done |
 
 ---
 
@@ -236,6 +247,7 @@
 | US-04-12 | As a member, I want booking confirmation emails sent to both parties so that we both have a record of the scheduled meeting. | P1 | M | 📋 Planned |
 | US-04-13 | As a member, I want conferencing links (Google Meet, Teams) automatically attached to bookings so that there is no extra setup required. | P1 | M | ✅ Done |
 | US-04-14 | As a member, I want timezone detection on my booking page so that international visitors see slots in their local time. | P0 | M | ✅ Done |
+| US-04-15 | As a member, I want the Calendar Sync page (formerly Calendar Settings) to be clearly named and include a direct "View Calendar" link so that the onboarding flow from availability → calendar sync → calendar view is seamless. | P2 | S | ✅ Done |
 
 ---
 
@@ -407,6 +419,45 @@
 
 ---
 
+### Feature: F-08-5 — Application Task Assignment
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-08-23 | As an admin, I want to assign an application review task to another admin so that work is distributed and no application sits unreviewed. | P1 | M | ✅ Done |
+| US-08-24 | As an assigned admin, I want to receive an in-app notification and email when an application is assigned to me so that I can act immediately without checking the queue manually. | P1 | S | ✅ Done |
+| US-08-25 | As an admin, I want to add assignment notes when delegating a review so that the assignee has full context without needing to ask. | P2 | S | ✅ Done |
+| US-08-26 | As an admin, I want to assign an applicant to multiple cohorts (specifying the primary cohort) so that interdisciplinary members are correctly placed across the community. | P1 | M | ✅ Done |
+
+---
+
+### Feature: F-08-6 — Partner Registry
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-08-27 | As an admin, I want to view all confirmed partners in a registry with tabs for each partnership pathway (institutional, collaboration, service) so that I can quickly navigate the partner landscape. | P1 | M | ✅ Done |
+| US-08-28 | As an admin, I want to add a new partner with full profile information (name, type, country, description, website, pathway, status, notes) so that the registry is comprehensive and accurate. | P1 | M | ✅ Done |
+| US-08-29 | As an admin, I want to upload and crop a partner logo to a fixed display ratio so that all logos look consistent across the site. | P2 | M | ✅ Done |
+| US-08-30 | As an admin, I want to add one or more contact persons to a partner record, marking a primary contact, so that we always know who to reach within each organisation. | P1 | M | ✅ Done |
+| US-08-31 | As an admin, I want to feature selected partners on the home page so that high-profile relationships are visible to site visitors without a code change. | P2 | S | ✅ Done |
+| US-08-32 | As a developer, I want the 16 existing PATNA partners seeded into the partner database on migration so that the registry is populated from day one. | P1 | S | ✅ Done |
+
+---
+
+### Feature: F-08-7 — Website People Profiles (Admin-Managed)
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-08-33 | As an admin, I want to manage Board of Directors, Secretariat, and Research Contributor profiles in the admin workspace so that the About page always reflects current and accurate people data. | P1 | M | ✅ Done |
+| US-08-34 | As an admin, I want to upload and crop a square profile photo for each person so that About page headshots look polished and consistent. | P1 | M | ✅ Done |
+| US-08-35 | As an admin, I want to add a LinkedIn URL to each profile so that visitors can connect directly with board members and researchers. | P2 | S | ✅ Done |
+| US-08-36 | As an admin, I want to control display order and visibility of each profile so that I can show or hide people without deleting their data. | P1 | S | ✅ Done |
+| US-08-37 | As an admin, I want profile records to exist independently of member accounts so that external board members and UCL researchers can be managed without being platform members. | P1 | S | ✅ Done |
+| US-08-38 | As a developer, I want existing Board, Secretariat, and Research Leadership data seeded from the website on migration so that no manual re-entry is required. | P1 | S | ✅ Done |
+| US-08-39 | As a visitor, I want the About page to display live DB content with graceful static fallback so that the page never breaks even before the migration runs. | P1 | S | ✅ Done |
+| US-10-20 | As a member, I want the notification bell removed from the sidebar (it is already in the page header) so that the UI is uncluttered and the bell is in a consistent position across all pages. | P2 | S | ✅ Done |
+
+---
+
 ## EP-09: PATNA AI Assistant
 
 **Goal:** Provide members and admins with an intelligent, context-aware assistant that can query PATNA's knowledge base (discussions, publications, events, insights) while fully respecting role-based access controls.
@@ -454,7 +505,7 @@
 ## EP-10: Platform Hardening
 
 **Goal:** Harden the platform with notifications, security improvements, multilingual parity, accessibility, and performance — raising the baseline quality across all surfaces.
-**Status:** 📋 Planned / 🔲 Backlog
+**Status:** ⚙️ In Progress
 
 ---
 
@@ -466,6 +517,7 @@
 | US-10-02 | As a member, I want to receive an in-app notification when someone mentions me in a thread so that I can respond promptly. | P1 | L | ✅ Done |
 | US-10-03 | As a member, I want to manage my notification preferences (frequency, types, channels) so that I receive only what is relevant to me. | P1 | L | ✅ Done |
 | US-10-04 | As an admin, I want to send targeted notifications to selected members so that I can broadcast important announcements to specific cohorts. | P1 | L | ✅ Done |
+| US-10-19 | As a member, I want the notification bell to be visible at the top of every member page on desktop (not just in the sidebar footer) so that it matches the mobile experience and is easy to find. | P2 | S | ✅ Done |
 
 ---
 

@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import {
   LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
   FolderKanban, BookOpen, Wrench, Handshake, Network, Menu, X,
-  ChevronDown, Sparkles, ShieldCheck, Globe, Bell,
+  ChevronDown, Sparkles, ShieldCheck, Globe, Bell, Building2, UsersRound,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
@@ -17,7 +17,7 @@ import { AdminKeyboardShortcuts } from "@/components/admin-keyboard-shortcuts";
 
 const ADMIN_ICON_MAP = {
   LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
-  FolderKanban, BookOpen, Wrench, Handshake, Network, Sparkles, ShieldCheck, Globe, Bell,
+  FolderKanban, BookOpen, Wrench, Handshake, Network, Sparkles, ShieldCheck, Globe, Bell, Building2, UsersRound,
 };
 
 const ADMIN_NAV_KEY = {

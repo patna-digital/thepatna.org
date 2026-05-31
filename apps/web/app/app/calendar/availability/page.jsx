@@ -30,9 +30,14 @@ export default async function AvailabilityPage() {
   const sidebarUser = frameData.sidebarUser || null;
 
   const headerActions = (
-    <Link href="/app/calendar" className="secondary-button">
-      ← Back to Calendar
-    </Link>
+    <>
+      <Link href="/app/calendar" className="secondary-button">
+        ← Back to Calendar
+      </Link>
+      <Link href="/app/calendar/settings" className="secondary-button">
+        Calendar Sync →
+      </Link>
+    </>
   );
 
   return (
@@ -50,6 +55,15 @@ export default async function AvailabilityPage() {
           initialBookingSettings={settingsResult.settings}
           memberId={user.id}
         />
+        <div className="availability-flow-footer">
+          <div className="availability-flow-footer-copy">
+            <strong>Next: Connect your calendars</strong>
+            <p>Sync Google, Outlook, or iCal to reflect real-time availability in your booking page.</p>
+          </div>
+          <Link className="primary-button" href="/app/calendar/settings">
+            Go to Calendar Sync →
+          </Link>
+        </div>
       </div>
     </MemberWorkspaceShell>
   );
