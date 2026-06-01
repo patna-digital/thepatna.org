@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { Fragment } from "react";
 import { getTranslations } from "next-intl/server";
 import { SectionIntro } from "@/components/section-intro";
 import {
-  homePillars,
   leapPhases,
   homePublications,
   partnerNames,
@@ -157,72 +155,84 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── VALUE PROPOSITION (v3 divider grid) ── */}
-      <section className="value-prop-section" aria-labelledby="value-prop-heading">
-        <div className="value-prop-inner">
-          <div className="value-prop-header">
-            <div>
-              <div className="value-prop-label">{t("home.valuePropLabel")}</div>
-              <h2 className="value-prop-title" id="value-prop-heading">
-                {t("home.valuePropTitle")}<br /><em>{t("home.valuePropTitleEm")}</em>
-              </h2>
-            </div>
-            <p className="value-prop-subtitle">
-              {t("home.valuePropSubtitle")}
-            </p>
-          </div>
+      {/* ── ABOUT PATNA ── */}
+      <section className="about-patna-section">
+        <div className="section-inner">
+          <div className="section-label">{t("home.aboutLabel")}</div>
+          <div className="about-patna-grid">
 
-          <div className="value-prop-pillars">
-            {homePillars.map((pillar, i) => (
-              <Fragment key={pillar.number}>
-                {i > 0 && <div className="value-prop-divider" aria-hidden="true" />}
-                <article className="value-prop-pillar">
-                  <div className="value-prop-pillar-num">{pillar.number}</div>
-                  <h3 className="value-prop-pillar-title">{t(`home.pillar${i + 1}Title`)}</h3>
-                  <p className="value-prop-pillar-body">{t(`home.pillar${i + 1}Body`)}</p>
-                  <div className="value-prop-proof">{t(`home.pillar${i + 1}Proof`)}</div>
-                </article>
-              </Fragment>
-            ))}
+            <div className="about-patna-text">
+              <div className="about-patna-vm">
+                <div className="about-patna-vm-row">
+                  <span className="about-patna-tag">{t("home.aboutVisionTag")}</span>
+                  <p>{t("home.aboutVision")}</p>
+                </div>
+                <div className="about-patna-vm-row">
+                  <span className="about-patna-tag">{t("home.aboutMissionTag")}</span>
+                  <p>{t("home.aboutMission")}</p>
+                </div>
+              </div>
+              <h2 className="about-patna-story-heading">{t("home.aboutStoryHeading")}</h2>
+              <p className="about-patna-story-body">{t("home.aboutStoryBody")}</p>
+              <Link className="about-patna-cta" href="/about">
+                {t("home.aboutLearnMore")}
+              </Link>
+            </div>
+
+            <div className="about-patna-image-wrap">
+              <img
+                src="/images/patna-group-2026.jpg"
+                alt="PATNA network members at the 2026 AU STC-T&amp;E session"
+                className="about-patna-img"
+              />
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* ── ABOUT INTRO ── */}
-      <section className="about-intro-section-v3">
+      {/* ── STATS BAND ── */}
+      <section className="stats-band" aria-label="PATNA by the numbers">
+        <div className="stats-grid">
+          <div className="stats-item">
+            <span className="stats-num">100<sup>+</sup></span>
+            <span className="stats-lbl">{t("home.statExperts")}</span>
+          </div>
+          <div className="stats-item">
+            <span className="stats-num">25</span>
+            <span className="stats-lbl">{t("home.statStates")}</span>
+          </div>
+          <div className="stats-item">
+            <span className="stats-num">4</span>
+            <span className="stats-lbl">{t("home.statCohorts")}</span>
+          </div>
+          <div className="stats-item">
+            <span className="stats-num">3</span>
+            <span className="stats-lbl">{t("home.statLeap")}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── COHORTS ── */}
+      <section className="cohorts-section">
         <div className="section-inner">
-          <div className="section-label">{t("home.aboutLabel")}</div>
-          <h2 className="section-title" style={{ marginBottom: 0 }}>
-            {t("home.aboutH2Start")} <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>{t("home.aboutH2Em")}</em>
+          <div className="section-label">{t("home.cohortsLabel")}</div>
+          <h2 className="cohorts-heading">
+            {t("home.cohortsH2")} <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>{t("home.cohortsH2Em")}</em>
           </h2>
-
-          <div className="about-intro-grid-v3">
-            <div className="about-intro-text-v3">
-              <p>{t("home.aboutPara1")}</p>
-              <p>{t("home.aboutPara2")}</p>
-              <Link className="about-intro-link-v3" href="/about">
-                {t("home.aboutReadStory")}
-              </Link>
-            </div>
-
-            <div className="about-intro-stats" aria-label="PATNA by the numbers">
-              <div className="about-intro-stat">
-                <span className="about-intro-stat-num">100<sup>+</sup></span>
-                <span className="about-intro-stat-lbl">{t("home.statExperts")}</span>
+          <div className="cohorts-grid">
+            {[
+              { key: "1", icon: "academics" },
+              { key: "2", icon: "policy" },
+              { key: "3", icon: "legal" },
+              { key: "4", icon: "industry" },
+            ].map(({ key, icon }) => (
+              <div className="cohort-card" key={key}>
+                <div className={`cohort-icon cohort-icon--${icon}`} aria-hidden="true" />
+                <h3 className="cohort-card-title">{t(`home.cohort${key}Title`)}</h3>
+                <p className="cohort-card-desc">{t(`home.cohort${key}Desc`)}</p>
               </div>
-              <div className="about-intro-stat">
-                <span className="about-intro-stat-num">54</span>
-                <span className="about-intro-stat-lbl">{t("home.statStates")}</span>
-              </div>
-              <div className="about-intro-stat">
-                <span className="about-intro-stat-num">4</span>
-                <span className="about-intro-stat-lbl">{t("home.statCohorts")}</span>
-              </div>
-              <div className="about-intro-stat">
-                <span className="about-intro-stat-num">3</span>
-                <span className="about-intro-stat-lbl">{t("home.statLeap")}</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -240,29 +250,6 @@ export default async function HomePage() {
             <Link className="v3-members-link" href="/community">
               {t("home.communityViewAll")}
             </Link>
-          </div>
-
-          <p className="v3-members-subtext">
-            {t("home.communityDesc")}
-          </p>
-
-          <div className="v3-cohort-pillars">
-            <div className="v3-cohort-pill">
-              <strong>{t("home.cohort1Title")}</strong>
-              <span>{t("home.cohort1Desc")}</span>
-            </div>
-            <div className="v3-cohort-pill">
-              <strong>{t("home.cohort2Title")}</strong>
-              <span>{t("home.cohort2Desc")}</span>
-            </div>
-            <div className="v3-cohort-pill">
-              <strong>{t("home.cohort3Title")}</strong>
-              <span>{t("home.cohort3Desc")}</span>
-            </div>
-            <div className="v3-cohort-pill">
-              <strong>{t("home.cohort4Title")}</strong>
-              <span>{t("home.cohort4Desc")}</span>
-            </div>
           </div>
 
           <div className="v3-members-grid">

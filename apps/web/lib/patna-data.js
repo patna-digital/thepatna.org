@@ -520,7 +520,7 @@ export const leapPhases = [
   },
   {
     slug: "leap-phase-iii",
-    phase: "LEAP Phase III / ORCA Africa 2026",
+    phase: "LEAP Phase III",
     title: "Continental Leadership & NZF Coordination",
     status: "active",
     period: "January – December 2026",
@@ -655,7 +655,7 @@ export const boardMembers = [
     title: "Founder / Co-Chair of the Board",
     org: "The PATNA Initiative | UCL Energy Institute, London",
     role: "co-chair",
-    bio: "Founder of PATNA and Co-Chair of the Board. Dr Oluteye leads UCL's engagement with African maritime energy transition research and serves as Principal Investigator of the LEAP Project Series. She designed PATNA's evidence framework and has directed the analytical programme across all three LEAP phases, from the first national shipping emissions inventories to the continental coordination architecture of ORCA Africa 2026. Her work bridges academic rigour and policy relevance at the IMO, the AU, and across African delegations.",
+    bio: "Founder of PATNA and Co-Chair of the Board. Dr Oluteye leads UCL's engagement with African maritime energy transition research and serves as Principal Investigator of the LEAP Project Series. She designed PATNA's evidence framework and has directed the analytical programme across all three LEAP phases. Her work bridges academic rigour and policy relevance at the IMO, the AU, and across African delegations.",
   },
   {
     name: "Ambassador Nancy Karigithu",
