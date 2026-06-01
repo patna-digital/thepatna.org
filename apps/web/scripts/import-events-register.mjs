@@ -7,6 +7,7 @@ import process from "node:process";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
+import { syncEventAssistantDocument } from "../lib/assistant-indexing.js";
 
 const DEFAULT_SOURCE_EMAIL = "thepatnadigital@gmail.com";
 const HEADER_ROW_INDEX = 3;
@@ -345,7 +346,7 @@ async function ensureSourceAdmin({ adminClient, email, siteUrl }) {
 
   if (!authUser) {
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
-      redirectTo: `${siteUrl}/auth/callback?next=/admin/events`,
+      redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`,
     });
 
     if (error) {
@@ -412,13 +413,22 @@ async function upsertEvents({ adminClient, events, sourceUserId }) {
       updated_by_user_id: sourceUserId,
     };
 
-    const { error } = await adminClient.from("events").upsert(payload, {
-      onConflict: "slug",
-    });
+    const { data, error } = await adminClient
+      .from("events")
+      .upsert(payload, {
+        onConflict: "slug",
+      })
+      .select("id")
+      .single();
 
-    if (error) {
+    if (error || !data?.id) {
       throw error;
     }
+
+    await syncEventAssistantDocument({
+      adminSupabase: adminClient,
+      eventId: data.id,
+    });
   }
 }
 

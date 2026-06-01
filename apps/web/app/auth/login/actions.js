@@ -26,11 +26,34 @@ export async function signInAction(_previousState, formData) {
     };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  let supabase;
+
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch (error) {
+    console.error("Failed to create Supabase server client during sign-in.", error);
+    return {
+      status: "error",
+      message: "We could not complete sign-in right now. Please try again.",
+    };
+  }
+
+  let error;
+
+  try {
+    const response = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    error = response.error;
+  } catch (authError) {
+    console.error("Unexpected sign-in failure.", authError);
+    return {
+      status: "error",
+      message: "We could not complete sign-in right now. Please try again.",
+    };
+  }
 
   if (error) {
     return {
@@ -39,16 +62,16 @@ export async function signInAction(_previousState, formData) {
     };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (user) {
-    const profile = await markOnboardingStarted(supabase, user.id);
-
-    if (profile?.onboarding_status !== "active") {
-      redirect("/app/profile");
+    if (user) {
+      await markOnboardingStarted(supabase, user.id);
     }
+  } catch (postSignInError) {
+    console.error("Post sign-in onboarding sync failed.", postSignInError);
   }
 
   redirect(nextPath);

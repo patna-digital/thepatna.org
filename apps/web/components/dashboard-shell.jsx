@@ -8,6 +8,7 @@ import {
   LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
   FolderKanban, BookOpen, Wrench, Handshake, Network, Menu, X,
   ChevronDown, Sparkles, ShieldCheck, Globe, Bell, Building2, UsersRound,
+  Inbox, ChevronRight,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
@@ -17,7 +18,8 @@ import { AdminKeyboardShortcuts } from "@/components/admin-keyboard-shortcuts";
 
 const ADMIN_ICON_MAP = {
   LayoutDashboard, ClipboardList, Users, Layers, CalendarCheck,
-  FolderKanban, BookOpen, Wrench, Handshake, Network, Sparkles, ShieldCheck, Globe, Bell, Building2, UsersRound,
+  FolderKanban, BookOpen, Wrench, Handshake, Network, Sparkles, ShieldCheck,
+  Globe, Bell, Building2, UsersRound, Inbox,
 };
 
 const ADMIN_NAV_KEY = {
@@ -41,6 +43,7 @@ export function DashboardShell({
   brandHref = "/app",
   brandLabel = "PATNA Community",
   eyebrow = "Member workspace",
+  breadcrumb,
   spotlight,
 }) {
   const pathname = usePathname();
@@ -66,9 +69,7 @@ export function DashboardShell({
 
     const previousOverflow = document.body.style.overflow;
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        setSidebarOpen(false);
-      }
+      if (event.key === "Escape") setSidebarOpen(false);
     };
 
     document.body.style.overflow = "hidden";
@@ -83,20 +84,11 @@ export function DashboardShell({
   function toggleGroup(label) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(label)) {
-        next.delete(label);
-      } else {
-        next.add(label);
-      }
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
       return next;
     });
   }
-
-  const footerLinks = [
-    { href: "/app", label: "Community App" },
-    { href: "/admin", label: "Admin App" },
-    { href: "/", label: "Website" },
-  ];
 
   return (
     <div className="dashboard-shell">
@@ -146,19 +138,17 @@ export function DashboardShell({
           <div className="dashboard-sidebar-branding">
             <strong className="dashboard-sidebar-title">{brandLabel}</strong>
             <p className="dashboard-sidebar-copy">
-              Secure coordination spaces for cohort work, knowledge exchange, and review
-              workflows.
+              {t("admin.shell.sidebarCopy")}
             </p>
           </div>
         </div>
 
         {spotlight ? (
           <div className="dashboard-spotlight">
-            <div className="dashboard-spotlight-label">{spotlight.label || "Workspace"}</div>
-            <strong>{spotlight.title || "Community platform in motion"}</strong>
+            <div className="dashboard-spotlight-label">{spotlight.label || t("admin.shell.spotlightFallbackLabel")}</div>
+            <strong>{spotlight.title || t("admin.shell.spotlightFallbackTitle")}</strong>
             <p>
-              {spotlight.body ||
-                "The workspace is organised for coordination, review, and evidence-led action across PATNA."}
+              {spotlight.body || t("admin.shell.spotlightFallbackBody")}
             </p>
           </div>
         ) : null}
@@ -196,14 +186,14 @@ export function DashboardShell({
                     onClick={() => toggleGroup(group.label)}
                     type="button"
                   >
-                    <span>{group.label}</span>
+                    <span>{group.labelKey ? t(group.labelKey) : group.label}</span>
                     <ChevronDown
                       className={`nav-group-chevron${isOpen ? " is-open" : ""}`}
                       size={12}
                     />
                   </button>
                 ) : (
-                  <div className="nav-group-label">{group.label}</div>
+                  <div className="nav-group-label">{group.labelKey ? t(group.labelKey) : group.label}</div>
                 )}
 
                 {isCollapsible ? (
@@ -222,17 +212,6 @@ export function DashboardShell({
 
         <div className="sidebar-footer">
           <LanguageSelector variant="sidebar" />
-          <div className="sidebar-cross-nav">
-            <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
-            <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
-              <span>{t("nav_cross.website")}</span>
-              <span className="sidebar-cross-nav-arrow">↗</span>
-            </Link>
-            <Link className="sidebar-cross-nav-link" href="/app" onClick={() => setSidebarOpen(false)}>
-              <span>{t("nav_cross.communityApp")}</span>
-              <span className="sidebar-cross-nav-arrow">↗</span>
-            </Link>
-          </div>
           <div className="sidebar-utility-nav">
             <SignOutButton />
           </div>
@@ -242,38 +221,24 @@ export function DashboardShell({
       <main className="dashboard-main">
         <div className="dashboard-main-inner">
           <section className="dashboard-overview">
+            {breadcrumb && breadcrumb.length > 0 && (
+              <nav aria-label="Breadcrumb" className="dashboard-breadcrumb">
+                {breadcrumb.map((crumb, i) => (
+                  <span key={crumb.label} className="dashboard-breadcrumb-item">
+                    {i > 0 && <ChevronRight size={11} className="dashboard-breadcrumb-sep" aria-hidden="true" />}
+                    {crumb.href
+                      ? <Link href={crumb.href}>{crumb.label}</Link>
+                      : <span>{crumb.label}</span>
+                    }
+                  </span>
+                ))}
+              </nav>
+            )}
             <div className="section-label">{eyebrow}</div>
             <h1>{title}</h1>
-            <p>{subtitle}</p>
+            {subtitle && <p>{subtitle}</p>}
           </section>
           {children}
-
-          <footer className="dashboard-footer">
-            <div>
-              <strong>Navigate across PATNA</strong>
-              <p>Move between the community workspace, admin workspace, and public website.</p>
-            </div>
-
-            <div className="dashboard-footer-links">
-              {footerLinks.map((item) => {
-                const isActive = mounted && (
-                  item.href === "/"
-                    ? pathname === item.href
-                    : pathname === item.href || pathname.startsWith(`${item.href}/`)
-                );
-
-                return (
-                  <Link
-                    className={isActive ? "workspace-link active-filter" : "workspace-link"}
-                    href={item.href}
-                    key={item.href}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </footer>
         </div>
       </main>
       <AdminKeyboardShortcuts />

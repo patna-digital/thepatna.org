@@ -4,35 +4,20 @@ import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { MemberProfileForm } from "@/components/member-profile-form";
 import { getCohortOnboardingConfig } from "@/lib/cohort-onboarding";
 import {
+  formatProfileAvailabilityStatus,
+  formatProfileVisibilitySetting,
+} from "@/lib/profile-form-options";
+import {
   getNextProfileSectionId,
   getPreviousProfileSectionId,
   normaliseProfileSectionId,
   PROFILE_SECTIONS,
 } from "@/lib/profile-onboarding";
+import { getProfileNoticeMessage, getProfileNoticeTone } from "@/lib/profile-notices";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberProfileView } from "@/lib/member-profiles";
 import { buildSidebarUser } from "@/lib/member-workspace";
-import { saveMemberProfileAction } from "./actions";
-
-function getNoticeMessage(notice) {
-  if (notice === "invalid-selection") {
-    return "Please choose a valid PATNA cohort and valid domain tags.";
-  }
-
-  if (notice === "save-error") {
-    return "Profile progress could not be saved. Please retry.";
-  }
-
-  if (notice === "saved") {
-    return "Progress saved.";
-  }
-
-  if (notice === "completed") {
-    return "Your core PATNA profile is complete.";
-  }
-
-  return "";
-}
+import { replaceOwnHeadshotAction, saveMemberProfileAction } from "./actions";
 
 function formatDate(value) {
   if (!value) {
@@ -86,9 +71,24 @@ function getSectionHref(sectionId, editMode) {
   return query ? `/app/profile?${query}` : "/app/profile";
 }
 
+function getOnboardingHref({ notice = "", step = "" }) {
+  const params = new URLSearchParams();
+
+  if (step) {
+    params.set("step", step);
+  }
+
+  if (notice) {
+    params.set("notice", notice);
+  }
+
+  const query = params.toString();
+  return query ? `/app/onboarding?${query}` : "/app/onboarding";
+}
+
 export default async function MemberProfilePage({ searchParams }) {
   const { supabase, user } = await getCurrentUserContext({
-    includeProfile: false,
+    includeProfile: true,
     includeRoles: false,
   });
 
@@ -96,7 +96,7 @@ export default async function MemberProfilePage({ searchParams }) {
     redirect("/auth/login?next=/app/profile");
   }
 
-  const [{ data: cohorts }, { data: tags }, { data: currentCohorts }, { data: currentTags }, resolvedSearchParams, profileResult] =
+  const [{ data: cohorts }, { data: tags }, { data: currentCohorts }, { data: currentTags }, { data: countries }, resolvedSearchParams, profileResult] =
     await Promise.all([
       supabase.from("cohorts").select("id, name, slug").order("name"),
       supabase.from("domain_tags").select("id, name, slug").order("name"),
@@ -105,6 +105,7 @@ export default async function MemberProfilePage({ searchParams }) {
         .select("cohort_id, is_primary, cohorts!inner(name, slug)")
         .eq("user_id", user.id),
       supabase.from("user_tags").select("tag_id, domain_tags!inner(name, slug)").eq("user_id", user.id),
+      supabase.from("countries").select("code, name").eq("is_active", true).order("name"),
       searchParams,
       fetchMemberProfileView({ supabase, userId: user.id }),
     ]);
@@ -138,26 +139,33 @@ export default async function MemberProfilePage({ searchParams }) {
   const member = profileResult.member;
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
   const requestedStep = normaliseProfileSectionId(resolvedSearchParams?.step);
-  const guidedMode = !member.isOnboardingComplete;
-  const editMode = guidedMode || resolvedSearchParams?.edit === "1";
-  const activeStepId =
-    requestedStep || (guidedMode ? member.firstIncompleteSection : "identity-contact");
+
+  if (!member.isOnboardingComplete) {
+    redirect(getOnboardingHref({ notice, step: requestedStep || member.firstIncompleteSection }));
+  }
+
+  const noticeMessage = notice ? getProfileNoticeMessage(notice) : "";
+  const noticeTone = getProfileNoticeTone(notice);
+  const editMode = resolvedSearchParams?.edit === "1";
+  const activeStepId = requestedStep || "identity-contact";
   const activeSection = PROFILE_SECTIONS.find((section) => section.id === activeStepId) || PROFILE_SECTIONS[0];
   const nextStepId = getNextProfileSectionId(activeSection.id);
   const previousStepId = getPreviousProfileSectionId(activeSection.id);
   const formConfig = getCohortOnboardingConfig(member.primaryCohort?.slug);
+  const sectionLinks = member.sectionStatus.map((section) => ({
+    ...section,
+    href: getSectionHref(section.id, true),
+  }));
+  const reviewLinks = sectionLinks.filter((section) => section.id !== "review-confirm");
 
   if (editMode) {
     return (
       <MemberWorkspaceShell
         eyebrow="Profile"
+        notificationUserId={user?.id ?? null}
         sidebarUser={buildSidebarUser(member)}
-        title={guidedMode ? "Complete your PATNA profile" : formConfig.title}
-        subtitle={
-          guidedMode
-            ? "Move through the guided sections below. Your progress is saved as you go, and you can always come back later."
-            : "Update any section of your profile without losing the guided structure used during onboarding."
-        }
+        title="Edit PATNA profile"
+        subtitle="Update any section of your profile without losing the guided structure used during onboarding."
       >
         <article className="dashboard-card onboarding-progress-card">
           {member.profileStatus === "inactive" ? (
@@ -170,7 +178,7 @@ export default async function MemberProfilePage({ searchParams }) {
           ) : null}
           <div className="profile-header-actions">
             <div>
-              <div className="section-label">Profile progress</div>
+              <div className="section-label">Profile completion</div>
               <h3>{member.completionPercent}% complete</h3>
               <p className="muted-note">
                 {member.remainingRequiredFields.length
@@ -178,17 +186,15 @@ export default async function MemberProfilePage({ searchParams }) {
                   : "All required onboarding fields are complete."}
               </p>
             </div>
-            {!guidedMode ? (
-              <Link className="secondary-button" href="/app/profile">
-                Back to profile view
-              </Link>
-            ) : null}
+            <Link className="secondary-button" href="/app/profile">
+              Back to profile view
+            </Link>
           </div>
           <div className="progress-bar-track" aria-hidden="true">
             <span className="progress-bar-fill" style={{ width: `${member.completionPercent}%` }} />
           </div>
           <div className="onboarding-section-grid">
-            {member.sectionStatus.map((section) => (
+            {sectionLinks.map((section) => (
               <Link
                 className={
                   section.id === activeSection.id
@@ -197,7 +203,7 @@ export default async function MemberProfilePage({ searchParams }) {
                       ? "onboarding-section-card complete"
                       : "onboarding-section-card"
                 }
-                href={getSectionHref(section.id, !guidedMode)}
+                href={section.href}
                 key={section.id}
               >
                 <strong>{section.label}</strong>
@@ -210,56 +216,43 @@ export default async function MemberProfilePage({ searchParams }) {
           </div>
         </article>
 
-        {member.remainingRequiredFields.length ? (
-          <article className="dashboard-card">
-            <h3>Still required for activation and collaboration</h3>
-            <ul className="check-list">
-              {member.remainingRequiredFields.map((field) => (
-                <li key={field}>{field}</li>
-              ))}
-            </ul>
-          </article>
-        ) : null}
-
         <MemberProfileForm
           action={saveMemberProfileAction}
-          cancelHref={guidedMode ? "/app" : "/app/profile"}
+          cancelHref="/app/profile"
+          codeOfConductDownloadHref={
+            member.codeOfConductAsset?.source_kind !== "none" ? "/app/profile/code-of-conduct" : ""
+          }
           cohorts={cohorts}
           cohortProfile={member.cohortProfile}
+          countries={countries || []}
           currentCohorts={currentCohorts}
           currentTags={currentTags}
-          flowMode={guidedMode ? "guided" : "edit"}
+          flowMode="edit"
+          ndaDownloadHref={member.ndaAsset?.source_kind !== "none" ? "/app/profile/nda" : ""}
           nextStepId={nextStepId}
-          notice={notice ? getNoticeMessage(notice) : ""}
-          noticeTone={notice === "saved" || notice === "completed" ? "success" : "error"}
+          notice={noticeMessage}
+          noticeTone={noticeTone}
           profile={member}
           remainingRequiredFields={member.remainingRequiredFields}
           resumeDownloadHref={member.resumeAsset?.source_kind !== "none" ? "/app/profile/resume" : ""}
+          reviewLinks={reviewLinks}
           section={activeSection}
-          submitLabel={
-            guidedMode
-              ? activeSection.id === "review-confirm"
-                ? member.isOnboardingComplete
-                  ? "Finish onboarding"
-                  : "Review missing fields"
-                : "Save and continue"
-              : "Save section"
-          }
+          submitLabel="Save section"
           tags={tags}
-          title={guidedMode ? "Guided onboarding" : "Profile editor"}
+          title="Profile editor"
         />
 
         <div className="profile-step-links">
           {previousStepId ? (
-            <Link className="secondary-button" href={getSectionHref(previousStepId, !guidedMode)}>
+            <Link className="secondary-button" href={getSectionHref(previousStepId, true)}>
               Previous section
             </Link>
           ) : null}
-          {nextStepId && !guidedMode ? (
+          {nextStepId ? (
             <Link className="secondary-button" href={getSectionHref(nextStepId, true)}>
               Next section
             </Link>
-            ) : null}
+          ) : null}
         </div>
       </MemberWorkspaceShell>
     );
@@ -273,6 +266,7 @@ export default async function MemberProfilePage({ searchParams }) {
           Edit profile
         </Link>
       }
+      notificationUserId={user?.id ?? null}
       sidebarUser={buildSidebarUser(member)}
       title={formConfig.title}
       subtitle="This is the PATNA profile currently stored for your account. You can review, improve, and edit it whenever needed."
@@ -301,8 +295,8 @@ export default async function MemberProfilePage({ searchParams }) {
           <span className="progress-bar-fill" style={{ width: `${member.completionPercent}%` }} />
         </div>
         <div className="onboarding-section-grid">
-          {member.sectionStatus.map((section) => (
-            <Link className={section.isComplete ? "onboarding-section-card complete" : "onboarding-section-card"} href={getSectionHref(section.id, true)} key={section.id}>
+          {sectionLinks.map((section) => (
+            <Link className={section.isComplete ? "onboarding-section-card complete" : "onboarding-section-card"} href={section.href} key={section.id}>
               <strong>{section.label}</strong>
               <p>{section.description}</p>
               <span className="status-chip">{section.isComplete ? "Complete" : `${section.completionPercent}%`}</span>
@@ -311,26 +305,7 @@ export default async function MemberProfilePage({ searchParams }) {
         </div>
       </article>
 
-      {notice ? <p className="form-success">{getNoticeMessage(notice)}</p> : null}
-
-      {!member.isOnboardingComplete ? (
-        <article className="dashboard-card">
-          <h3>Profile still needs a few details</h3>
-          <p className="muted-note">
-            You can still use the platform, but completing these required fields improves collaboration, coordination, and the way your profile is displayed.
-          </p>
-          <ul className="check-list">
-            {member.remainingRequiredFields.map((field) => (
-              <li key={field}>{field}</li>
-            ))}
-          </ul>
-          <div className="profile-header-actions">
-            <Link className="primary-button" href={`/app/profile?step=${member.firstIncompleteSection}`}>
-              Continue onboarding
-            </Link>
-          </div>
-        </article>
-      ) : null}
+      {noticeMessage ? <p className={noticeTone === "success" ? "form-success" : "form-error"}>{noticeMessage}</p> : null}
 
       {member.needsResumeRecovery ? (
         <article className="dashboard-card">
@@ -345,6 +320,29 @@ export default async function MemberProfilePage({ searchParams }) {
             <Link className="primary-button" href="/app/profile?edit=1&step=visibility-files">
               Upload replacement resume
             </Link>
+          </div>
+        </article>
+      ) : null}
+
+      {member.publicBookingUrl ? (
+        <article className="dashboard-card member-profile-section-card">
+          <h3>Public booking page</h3>
+          <p className="muted-note">
+            Share this scheduling page directly from your PATNA profile.
+          </p>
+          <div className="field-summary-card" style={{ marginTop: "1rem" }}>
+            <strong>Live booking link</strong>
+            <p style={{ marginTop: "0.5rem", overflowWrap: "anywhere" }}>
+              <code>{member.publicBookingUrl}</code>
+            </p>
+            <div className="profile-header-actions" style={{ marginTop: "1rem" }}>
+              <Link className="secondary-button" href={member.publicBookingUrl} target="_blank">
+                Open page
+              </Link>
+              <Link className="primary-button" href="/app/calendar/settings">
+                Manage booking page
+              </Link>
+            </div>
           </div>
         </article>
       ) : null}
@@ -367,10 +365,33 @@ export default async function MemberProfilePage({ searchParams }) {
               <div className="member-directory-tag-row">
                 <span className="status-chip chip-neutral">{renderValue(member.primaryCohort?.name)}</span>
                 <span className="status-chip chip-neutral">{renderValue(member.country_of_residence)}</span>
-                <span className="status-chip chip-success">{renderValue(member.availabilityStatus)}</span>
+                <span className="status-chip chip-success">{formatProfileAvailabilityStatus(member.availabilityStatus)}</span>
               </div>
             </div>
           </div>
+          <form action={replaceOwnHeadshotAction} className="member-profile-photo-form">
+            <div className="member-profile-photo-copy">
+              <div className="section-label">Profile photo</div>
+              <strong>{member.headshotSrc ? "Replace your current photo" : "Add your profile photo"}</strong>
+              <p>
+                Upload a JPG, PNG, or WebP image up to 5MB. Your photo appears in the community workspace,
+                directory, and booking profile.
+              </p>
+            </div>
+            <label className="member-profile-photo-field">
+              <span>Choose image</span>
+              <input accept="image/png,image/jpeg,image/webp" name="headshot_file" type="file" />
+              <span className="field-help">Recommended: a clear headshot with a simple background.</span>
+            </label>
+            <div className="member-profile-photo-actions">
+              <button className="primary-button" type="submit">
+                {member.headshotSrc ? "Update photo" : "Upload photo"}
+              </button>
+              <Link className="secondary-button" href="/app/profile?edit=1&step=visibility-files">
+                Open full file settings
+              </Link>
+            </div>
+          </form>
         </article>
 
         <article className="dashboard-card member-profile-section-card">
@@ -410,16 +431,18 @@ export default async function MemberProfilePage({ searchParams }) {
         <article className="dashboard-card member-profile-section-card">
           <h3>Files and visibility</h3>
           <dl className="member-definition-grid">
-            <div className="member-detail-card"><dt>Visibility</dt><dd>{renderValue(member.visibility_setting?.replace("_", " "))}</dd></div>
+            <div className="member-detail-card"><dt>Visibility</dt><dd>{formatProfileVisibilitySetting(member.visibility_setting)}</dd></div>
             <div className="member-detail-card"><dt>Profile status</dt><dd>{renderValue(member.profileStatus)}</dd></div>
             <div className="member-detail-card"><dt>Headshot source</dt><dd>{renderValue(member.headshotAsset?.source_kind)}</dd></div>
-            <div className="member-detail-card"><dt>Resume source</dt><dd>{renderValue(member.resumeAsset?.source_kind)}</dd></div>
+            <div className="member-detail-card"><dt>Resume</dt><dd>{member.resumeAsset?.source_kind !== "none" ? <Link href="/app/profile/resume">Open file</Link> : "Not provided"}</dd></div>
+            <div className="member-detail-card"><dt>Signed NDA</dt><dd>{member.ndaAsset?.source_kind !== "none" ? <Link href="/app/profile/nda">Open file</Link> : "Not provided"}</dd></div>
+            <div className="member-detail-card"><dt>Code of Conduct</dt><dd>{member.codeOfConductAsset?.source_kind !== "none" ? <Link href="/app/profile/code-of-conduct">Open file</Link> : "Not provided"}</dd></div>
             <div className="member-detail-card"><dt>Completed at</dt><dd>{formatDate(member.cohortProfile?.completed_at || member.onboarding_completed_at)}</dd></div>
             <div className="member-detail-card"><dt>Submitted at</dt><dd>{formatDate(member.cohortProfile?.source_submitted_at)}</dd></div>
           </dl>
           <div className="profile-header-actions">
-            <Link className="secondary-button" href={member.resumeAsset?.source_kind !== "none" ? "/app/profile/resume" : "/app/profile?edit=1&step=visibility-files"}>
-              {member.resumeAsset?.source_kind !== "none" ? "Open resume" : "Add resume"}
+            <Link className="secondary-button" href="/app/profile?edit=1&step=visibility-files">
+              Manage supporting files
             </Link>
           </div>
         </article>

@@ -3,7 +3,7 @@ import {
   getSupabaseServiceRoleKey,
   getSupabaseUrl,
   isSupabaseAdminConfigured,
-} from "@/lib/env";
+} from "../env.js";
 
 export function createSupabaseAdminClient() {
   const supabaseUrl = getSupabaseUrl();

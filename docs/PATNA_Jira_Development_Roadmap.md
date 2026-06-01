@@ -106,6 +106,19 @@
 
 ---
 
+### Feature: F-01-5 — Homepage Section Redesign & Copy Refresh
+
+Based on the May 2026 site audit (PATNA Website Copy Recommendations v1.0).
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-01-16 | As a visitor, I want to see PATNA's Vision and Mission statements alongside Our Story narrative on the homepage, accompanied by a group photo, so that I immediately understand what the organisation stands for and why it was founded. | P1 | M | ✅ Done |
+| US-01-17 | As a visitor, I want a clean stats band showing 100+ member network, 25 countries, 4 expert cohorts, and 3 flagship programmes so that PATNA's scale is communicated with clarity and credibility. | P1 | S | ✅ Done |
+| US-01-18 | As a visitor, I want to see PATNA's four expert cohorts presented as individual cards with icons and descriptions so that I understand the professional disciplines that make up the network before reaching the member cards. | P1 | M | ✅ Done |
+| US-01-19 | As a visitor, I want the LEAP Phase III project card to display as "LEAP Phase III" (not "LEAP Phase III / ORCA Africa 2026") so that project naming is consistent with Phases I and II. | P2 | S | ✅ Done |
+
+---
+
 ## EP-02: Auth & Onboarding
 
 **Goal:** Deliver a secure, invite-only access flow that takes a successful applicant from email invitation to a fully set-up member profile.
@@ -254,7 +267,7 @@
 ## EP-05: Content & Publications
 
 **Goal:** Provide a structured content library — insights, reports, briefings, and publications — that members and the public can discover and download.
-**Shipped:** April–May 2026
+**Shipped:** April–June 2026
 **Overall Status:** ✅ Done
 
 ---
@@ -289,6 +302,17 @@
 | US-05-10 | As a member, I want to view a visual knowledge graph of how projects, events, and content relate to each other so that I can understand PATNA's interconnected body of work. | P1 | XL | ✅ Done |
 | US-05-11 | As a member, I want to navigate the knowledge graph interactively so that I can explore relationships between projects and publications. | P2 | L | ✅ Done |
 | US-05-12 | As an admin, I want to link a project to related events and insights so that the knowledge graph is accurate and comprehensive. | P1 | M | ✅ Done |
+
+---
+
+### Feature: F-05-4 — Legacy Publications Migration & Admin Controls
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-05-13 | As a developer, I want 14 legacy publications from the decommissioned PATNA website seeded into the database with canonical dates, real summaries, SEO meta descriptions, cover images, and PDF attachment links so that the content library is complete from day one without manual re-entry. | P0 | M | ✅ Done |
+| US-05-14 | As an admin, I want to edit the publication date (published_at) directly from the admin insight form so that backdated or migrated publications display the correct original date on the site. | P1 | S | ✅ Done |
+| US-05-15 | As an admin, I want to flag a publication as "needs review" so that I can track which migrated or draft publications still require content fixes, and be alerted via a badge on the Publications nav item. | P1 | S | ✅ Done |
+| US-05-16 | As a visitor or member, I want breadcrumb navigation (Home › Publications › Title) and prev/next publication links on every publication detail page so that I can navigate the publications library seamlessly without returning to the index. | P1 | M | ✅ Done |
 
 ---
 
@@ -427,6 +451,34 @@
 | US-08-24 | As an assigned admin, I want to receive an in-app notification and email when an application is assigned to me so that I can act immediately without checking the queue manually. | P1 | S | ✅ Done |
 | US-08-25 | As an admin, I want to add assignment notes when delegating a review so that the assignee has full context without needing to ask. | P2 | S | ✅ Done |
 | US-08-26 | As an admin, I want to assign an applicant to multiple cohorts (specifying the primary cohort) so that interdisciplinary members are correctly placed across the community. | P1 | M | ✅ Done |
+
+---
+
+### Feature: F-08-8 — Partnership Leads Consolidation & UX
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-08-40 | As an admin, I want a consolidated Leads page that shows all service requests, partnership leads, and collaboration leads in one unified table so that I don't need to navigate three separate pipelines. | P1 | M | ✅ Done |
+| US-08-41 | As an admin, I want each lead row to prominently show the contact person (name + email from the website form submission) so that I immediately know who submitted the enquiry. | P1 | S | ✅ Done |
+| US-08-42 | As an admin, I want to filter the Leads list by source type (Service / Partnership / Collaboration), status, and free-text search so that I can quickly find specific leads. | P1 | M | ✅ Done |
+| US-08-43 | As an admin, I want to assign a lead to another admin staff member from the lead detail page, with a dropdown showing all admin users and their role titles, so that work is distributed and accountability is clear. | P1 | M | ✅ Done |
+| US-08-44 | As an admin, I want a sidebar contact card on every lead detail page showing the submitter's name, email (as a mailto link), organisation, and lead type so that I can act on the enquiry without scrolling through the edit form. | P2 | S | ✅ Done |
+| US-08-45 | As an admin, I want lead form pages (/new and /edit) to have proper page chrome (DashboardShell, breadcrumb, cancel → /admin/leads) so that they feel integrated rather than orphaned bare forms. | P1 | M | ✅ Done |
+| US-08-46 | As an admin, I want human-readable status labels in the Leads table (e.g. "In Discussion", "Won", "Closed") instead of raw database values so that status is immediately interpretable. | P2 | S | ✅ Done |
+| US-08-47 | As an admin, I want delete actions on leads and service requests to redirect to /admin/leads so that I land on the correct page after removal. | P1 | S | ✅ Done |
+
+---
+
+### Feature: F-08-9 — Admin Shell & Navigation Refresh
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-08-48 | As an admin, I want breadcrumb navigation (Admin › Section › Page) on all admin pages so that I always know where I am and can navigate back without using the browser back button. | P2 | M | ✅ Done |
+| US-08-49 | As an admin, I want the "Navigate across PATNA" cross-navigation footer and sidebar cross-nav removed from admin pages so that the interface is cleaner and less cluttered. | P2 | S | ✅ Done |
+| US-08-50 | As an admin, I want the admin nav Partnerships group to show only Partners and Leads (not three separate pipeline pages), and Website to appear under Tools, so that the nav is simpler and better organised. | P2 | M | ✅ Done |
+| US-08-51 | As an admin, I want the Website settings page to have collapsible sections for Community Snapshot, Featured Partners, and People — collapsed by default showing a summary — so that the page is scannable and I expand only what I need. | P2 | M | ✅ Done |
+| US-08-52 | As an admin, I want to manage People profiles inline on the Website settings page (section tabs, reorder buttons, edit links) without navigating to a separate People admin page. | P2 | M | ✅ Done |
+| US-08-53 | As an admin, I want to toggle which partners are featured on the home page from the Website settings page (with a checkbox list and single Save button) so that I can control homepage visibility without editing each partner record individually. | P2 | S | ✅ Done |
 
 ---
 
@@ -569,11 +621,11 @@
 
 | Status | Story Count |
 |---|---|
-| ✅ Done | 92 |
+| ✅ Done | 114 |
 | ⚙️ In Progress | 3 |
 | 📋 Planned | 14 |
 | 🔲 Backlog | 23 |
-| **Total** | **132** |
+| **Total** | **154** |
 
 ### Priority Backlog (Planned + Backlog, P0–P1 only)
 
@@ -585,17 +637,11 @@
 | US-04-12 | Booking confirmation emails | EP-04 | P1 |
 | US-08-06 | Bulk action confirmation modal | EP-08 | P1 |
 | US-08-07 | Server-side admin member search | EP-08 | P1 |
-| US-08-19 | Loading states on form submissions | EP-08 | P1 |
 | US-09-05 | Assistant access scope visualisation | EP-09 | P2 |
 | US-09-12 | Assistant query audit logs | EP-09 | P1 |
 | US-09-13 | Assistant source citations | EP-09 | P2 |
-| US-10-01 | Email digest notifications | EP-10 | P1 |
-| US-10-02 | In-app @mention notifications | EP-10 | P1 |
-| US-10-03 | Member notification preferences | EP-10 | P1 |
-| US-10-04 | Admin broadcast notifications | EP-10 | P1 |
 | US-10-05 | Two-factor authentication | EP-10 | P1 |
 | US-10-07 | Assistant query audit trail | EP-10 | P1 |
-| US-10-10 | i18n parity for pipeline admin | EP-10 | P2 |
 | US-10-11 | Screen-reader labels for form inputs | EP-10 | P1 |
 | US-10-12 | Keyboard navigation for filter tabs | EP-10 | P1 |
 
@@ -628,3 +674,6 @@ Legend: ████ = Shipped  ⚙⚙ = In Progress  ░░░░ = Planned/Bac
 |---|---|---|---|
 | 1.0 | May 2026 | Product Team | Initial document generated from codebase and planning review |
 | 1.1 | May 2026 | Engineering | Completed F-08-3: delete, column sort, badge counts, i18n in pipeline tables; added detail/edit pages for partnership and collaboration leads; replaced mailto links with structured web forms on all three /work-with-us pages (F-01-2 improvement) |
+| 1.2 | Jun 2026 | Engineering | Added F-08-8 (Partnership Leads Consolidation): unified /admin/leads page replacing 3 separate pipelines; contact person column; source/status filters; real admin assignment dropdown (lib/admin-users.js); improved detail page sidebar with contact card; fixed /new pages missing DashboardShell and hardcoded notice bug; all delete/cancel redirects → /admin/leads. Added F-08-9 (Admin Shell & Nav Refresh): breadcrumb nav on all admin pages; removed "Navigate across PATNA" cross-nav footer; Partnerships nav = Partners + Leads; Website under Tools with collapsible sections (Community Snapshot, Featured Partners, People inline); featured partners toggle; ServiceRequestForm useFormStatus bug fixed. |
+| 1.3 | Jun 2026 | Engineering | Added F-05-4 (Legacy Publications Migration & Admin Controls — US-05-13–16): migration 0057 seeds 14 legacy publications from decommissioned thepatna.org/resources with canonical published_at dates, real summaries, SEO meta descriptions, external cover images, and PDF attachment links; ON CONFLICT strategy preserves manually edited data while filling empty fields; needs_review boolean column added — all seeded records flagged for admin follow-up; admin nav badge counts flagged publications; insight-form exposes editable published_at (datetime-local) and needs_review checkbox with warning styling. Added breadcrumb trail (Home › Publications › Title) and prev/next navigation on both the marketing and community app publication detail pages. Updated homepage hero video to latest version from Supabase storage. Cleaned up priority backlog table — removed stale Done entries (US-10-01–04, US-10-10, US-08-19). Story count: 110 Done (+4), 150 total (+4). |
+| 1.4 | Jun 2026 | Engineering | Added F-01-5 (Homepage Section Redesign & Copy Refresh — US-01-16–19): removed 3-pillar Value Prop section; replaced About section with Vision/Mission tag rows, Our Story paragraph, and group photo slot (two-column layout); added standalone Stats band (100+ member network · 25 countries · 4 expert cohorts · 3 flagship programmes); added dedicated 4-card Cohorts section with inline SVG icons; removed cohort pills from Community snapshot section; updated en.json with copy from May 2026 site audit; removed "ORCA Africa 2026" from LEAP Phase III name and Dr Oluteye bio for naming consistency. Full responsive CSS (1024/900/600px). Story count: 114 Done (+4), 154 total (+4). |

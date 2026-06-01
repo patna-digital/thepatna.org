@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
   storyTimeline,
   boardMembers   as staticBoardMembers,
   secretariatMembers as staticSecretariatMembers,
   researchLeadership as staticResearchLeadership,
+  partnerGroups,
 } from "@/lib/patna-data";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -66,7 +68,10 @@ async function fetchPeopleProfiles() {
 }
 
 export default async function AboutPage() {
-  const { board, secretariat, research } = await fetchPeopleProfiles();
+  const [t, { board, secretariat, research }] = await Promise.all([
+    getTranslations(),
+    fetchPeopleProfiles(),
+  ]);
   return (
     <>
       <section className="sub-page-hero" aria-label="About PATNA">
@@ -79,12 +84,12 @@ export default async function AboutPage() {
         <div className="sub-page-hero-overlay" aria-hidden="true" />
         <div className="sub-page-hero-dot" aria-hidden="true" />
         <div className="sub-page-hero-inner">
-          <div className="sub-page-hero-eyebrow">About PATNA</div>
+          <div className="sub-page-hero-eyebrow">{t("about.heroEyebrow")}</div>
           <h1 className="sub-page-hero-title">
-            Building Africa's <em>institutional capacity</em>
+            {t("about.heroH1")}
           </h1>
           <p className="sub-page-hero-sub">
-            The Professional African Technical Network Advisory (PATNA) Initiative is a non-profit organisation of more than 100 African technical experts, policymakers, researchers, and maritime professionals — enabling Africa to shape the rules of the global energy transition.
+            {t("about.heroDesc")}
           </p>
         </div>
       </section>
@@ -92,26 +97,20 @@ export default async function AboutPage() {
       {/* ── MISSION & VISION (v3 mist panels) ── */}
       <section className="mv-section-v3" aria-labelledby="about-mv-heading">
         <div className="section-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 5rem" }}>
-          <div className="v3-section-label">Purpose</div>
-          <h2 className="v3-section-title" id="about-mv-heading">Mission &amp; <em>Vision</em></h2>
+          <div className="v3-section-label">{t("about.purposeLabel")}</div>
+          <h2 className="v3-section-title" id="about-mv-heading">{t("about.mvH2")}</h2>
 
           <div className="mv-grid-v3">
             <div className="mv-item-v3">
-              <div className="mv-item-v3-label">Mission</div>
-              <h3 className="mv-item-v3-title">Our mission</h3>
-              <p className="mv-item-v3-text">
-                To strengthen Africa's agency in global energy transition and climate governance — by building the coordinated, evidence-based positions, the institutional networks, and the technical capacity that allow African states to participate as architects of international frameworks, not inheritors of them.
-              </p>
-              <p className="mv-item-v3-text">
-                The PATNA Initiative exists because the gap between Africa's exposure to global climate rules and Africa's influence over them is not a natural condition. It is the consequence of under-investment in coordination, evidence, and advisory capacity. The PATNA Initiative closes that gap.
-              </p>
+              <div className="mv-item-v3-label">{t("about.missionItemLabel")}</div>
+              <h3 className="mv-item-v3-title">{t("about.missionItemTitle")}</h3>
+              <p className="mv-item-v3-text">{t("about.missionText1")}</p>
+              <p className="mv-item-v3-text">{t("about.missionText2")}</p>
             </div>
             <div className="mv-item-v3">
-              <div className="mv-item-v3-label">Vision</div>
-              <h3 className="mv-item-v3-title">Our vision</h3>
-              <p className="mv-item-v3-text">
-                A world in which Africa's participation in global energy transition and climate governance decisions demonstrably strengthens successively — where the technical capacity, coordinated positions, and institutional credibility that The PATNA Initiative builds are reflected in the language, mechanisms, and equity provisions of the frameworks that govern Africa's maritime and energy future.
-              </p>
+              <div className="mv-item-v3-label">{t("about.visionItemLabel")}</div>
+              <h3 className="mv-item-v3-title">{t("about.visionItemTitle")}</h3>
+              <p className="mv-item-v3-text">{t("about.visionText2")}</p>
             </div>
           </div>
         </div>
@@ -120,13 +119,13 @@ export default async function AboutPage() {
       {/* ── OUR STORY (v3 timeline + narrative) ── */}
       <section className="story-section-v3" aria-labelledby="about-story-heading">
         <div className="section-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 5rem" }}>
-          <div className="v3-section-label">Our Story</div>
+          <div className="v3-section-label">{t("about.storyLabel")}</div>
           <h2 className="v3-section-title" id="about-story-heading">
-            From a bold intervention to a <em>continental institution</em>
+            {t("about.storyH2")}
           </h2>
 
           <div className="story-grid-v3">
-            {/* Timeline */}
+            {/* Timeline — titles/bodies come from patna-data static content */}
             <div className="story-timeline-v3" aria-label="PATNA timeline">
               {storyTimeline.map((item, i) => (
                 <div className={`tl-item-v3${item.active ? " active" : ""}`} key={i}>
@@ -142,21 +141,11 @@ export default async function AboutPage() {
 
             {/* Narrative */}
             <div className="story-content-v3">
-              <p>
-                The PATNA Initiative was founded on a documented gap and a deliberate decision to close it.
-              </p>
-              <p>
-                Africa faces a structural contradiction. It carries over 90% of its trade by sea and bears the first economic consequences of rising shipping costs. It also holds 60% of the world's prime solar resources and the technical potential to produce the zero-emission fuels that the global shipping fleet will need by 2050.
-              </p>
-              <p>
-                The Net-Zero Framework being finalised at the IMO could impose an estimated 20% increase in African shipping costs by 2035 on nations from a continent that contributes less than 5% of global emissions. It could also unlock a green hydrogen and green ammonia export market worth hundreds of billions of dollars — if Africa's engagement is organised, evidence-backed, and diplomatically coordinated.
-              </p>
-              <p>
-                PATNA was established because organised engagement does not happen by default. Without a convening of expertise, African data-driven evidence, and coordinated positions, Africa's 44 IMO member states remain individually present but collectively absent from the rooms where decisions are made.
-              </p>
-              <p>
-                Across the LEAP series, PATNA has produced the continent's first national shipping emissions inventories; convened the first Africa Strategic Maritime Summit on Shipping Decarbonisation; co-organised the Dakar Workshop that produced the 15 Dakar Declarations; contributed to Africa's first continental maritime decarbonisation strategy; and contributed — through sustained technical advocacy — to the IMO's decisions on the NZF to allow informed guidelines that reflect Africa's realities, including just transition provisions.
-              </p>
+              <p>{t("about.storyNarrative1")}</p>
+              <p>{t("about.storyNarrative2")}</p>
+              <p>{t("about.storyNarrative3")}</p>
+              <p>{t("about.storyNarrative4")}</p>
+              <p>{t("about.storyNarrative5")}</p>
             </div>
           </div>
         </div>
@@ -165,16 +154,14 @@ export default async function AboutPage() {
       {/* ── GOVERNANCE (v3 board + secretariat) ── */}
       <section className="gov-section-v3" aria-labelledby="about-gov-heading">
         <div className="section-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 5rem" }}>
-          <div className="v3-section-label">Governance</div>
-          <h2 className="v3-section-title" id="about-gov-heading">Leadership &amp; <em>Structure</em></h2>
+          <div className="v3-section-label">{t("about.govLabel")}</div>
+          <h2 className="v3-section-title" id="about-gov-heading">{t("about.govH2")}</h2>
 
           <div className="gov-intro-v3">
-            <p>
-              The PATNA Initiative is a non-profit organisation registered in Monrovia, Liberia, with a presence in Seychelles and Mauritius. The organisation operates under a governance framework that provides strategic oversight, financial accountability, and institutional stewardship. It is governed by a Board of Directors and supported by a Secretariat and a research partnership with the UCL Energy Institute.
-            </p>
+            <p>{t("about.govIntro")}</p>
           </div>
 
-          <div className="gov-subsection-title-v3">Board of Directors</div>
+          <div className="gov-subsection-title-v3">{t("about.govBoard")}</div>
 
           <div className="board-grid-v3">
             {board.map((member) => (
@@ -214,7 +201,7 @@ export default async function AboutPage() {
             ))}
           </div>
 
-          <div className="gov-subsection-title-v3" style={{ marginTop: "1rem" }}>Secretariat</div>
+          <div className="gov-subsection-title-v3" style={{ marginTop: "1rem" }}>{t("about.govSecretariat")}</div>
 
           <div className="secretariat-grid-v3">
             {secretariat.map((member, i) => (
@@ -300,19 +287,45 @@ export default async function AboutPage() {
               ))}
             </div>
           </div>
+
+        </div>
+      </section>
+
+      {/* ── PARTNERS ── */}
+      <section className="partners-section-v3" aria-labelledby="about-partners-heading">
+        <div className="section-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 5rem" }}>
+          <div className="v3-section-label">{t("about.partnersLabel")}</div>
+          <h2 className="v3-section-title" id="about-partners-heading">{t("about.partnersH2")}</h2>
+          <p className="gov-intro-v3" style={{ marginBottom: "2.5rem" }}>
+            {t("about.partnersDesc")}
+          </p>
+
+          {partnerGroups.map((group) => (
+            <div className="partner-group-v3" key={group.title}>
+              <div className="partner-group-title-v3">{group.title}</div>
+              <div className="partner-cards-grid-v3">
+                {group.partners.map((partner) => (
+                  <article className="partner-card-v3" key={partner.abbr}>
+                    <div className="partner-card-logo-v3" aria-hidden="true">
+                      <span>{partner.abbr}</span>
+                    </div>
+                    <div className="partner-card-name-v3">{partner.name}</div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ── JOIN CTA BAND ── */}
       <section className="join-band join-band-v4 about-cta-band">
         <div>
-          <h2>Join the institutions shaping Africa's energy future.</h2>
-          <p>
-            The PATNA Initiative welcomes four kinds of engagement: funders and development partners with an interest in African maritime decarbonisation or just transition advocacy; governments and national delegations that need technical support, position preparation, or advisory capacity ahead of IMO or UNFCCC sessions; research and academic partners working on shipping decarbonisation, climate economics, or African development finance; and technical experts and practitioners ready to contribute to Africa's most active technical network on maritime governance.
-          </p>
+          <h2>{t("about.ctaTitle")}</h2>
+          <p>{t("about.ctaDesc")}</p>
           <div className="join-band-ctas">
-            <Link className="cta-primary" href="/work-with-us">Work With Us →</Link>
-            <Link className="cta-secondary" href="/community/join">Join the Community</Link>
+            <Link className="cta-primary" href="/work-with-us">{t("about.ctaPrimary")}</Link>
+            <Link className="cta-secondary" href="/community/join">{t("about.ctaSecondary")}</Link>
           </div>
         </div>
       </section>

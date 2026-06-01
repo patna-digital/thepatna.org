@@ -5,6 +5,7 @@ import { adminNav } from "@/lib/patna-data";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { PersonProfileForm } from "@/components/admin-person-form";
 import { savePersonAction, deletePersonAction } from "../actions";
+import { DeletePersonButton } from "./delete-person-button";
 
 const SECTION_LABELS = {
   board:       "Board of Directors",
@@ -48,6 +49,12 @@ export default async function AdminPersonDetailPage({ params, searchParams }) {
       brandHref="/admin"
       brandLabel="PATNA Admin"
       eyebrow={SECTION_LABELS[person.section] || "People"}
+      breadcrumb={[
+        { label: "Admin", href: "/admin" },
+        { label: "Website", href: "/admin/website" },
+        { label: "People", href: "/admin/people" },
+        { label: person.full_name },
+      ]}
       headerActions={headerActions}
       navItems={adminNav}
       subtitle={`${person.title || ""}${person.organisation ? ` · ${person.organisation}` : ""}`}
@@ -65,21 +72,11 @@ export default async function AdminPersonDetailPage({ params, searchParams }) {
       <article className="dashboard-card danger-zone-card" style={{ marginTop: "1.25rem" }}>
         <h3>Remove profile</h3>
         <p>Permanently deletes this person's profile and photo. This cannot be undone.</p>
-        <form action={deletePersonAction}>
-          <input name="person_id" type="hidden" value={person.id} />
-          <button
-            className="danger-button"
-            formAction={deletePersonAction}
-            onClick={(e) => {
-              if (!window.confirm(`Delete ${person.full_name}? This cannot be undone.`)) {
-                e.preventDefault();
-              }
-            }}
-            type="submit"
-          >
-            Delete profile
-          </button>
-        </form>
+        <DeletePersonButton
+          deleteAction={deletePersonAction}
+          personId={person.id}
+          personName={person.full_name}
+        />
       </article>
     </DashboardShell>
   );

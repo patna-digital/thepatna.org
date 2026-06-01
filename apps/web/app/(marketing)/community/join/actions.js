@@ -1,5 +1,6 @@
 "use server";
 
+import { syncCommunityApplicationAssistantDocument } from "@/lib/assistant-indexing";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function submitCommunityApplicationAction(_previousState, formData) {
@@ -64,31 +65,44 @@ export async function submitCommunityApplicationAction(_previousState, formData)
       ? [...engagementSlugs, "other"]
       : engagementSlugs;
 
-  const { error: applicationError } = await supabase.from("community_applications").insert({
-    submitted_by_email: email,
-    first_name: firstName,
-    surname,
-    phone_number: phoneNumber || null,
-    country: country || null,
-    organisation: organisation || null,
-    role_title: roleTitle || null,
-    motivation_text: motivationText,
-    expertise_slugs: nextExpertiseSlugs,
-    expertise_other_text: expertiseOtherText || null,
-    engagement_slugs: nextEngagementSlugs,
-    engagement_other_text: engagementOtherText || null,
-    consent_data_storage: consentDataStorage,
-    consent_updates: consentUpdates,
-    source: "patna_web_form",
-    submitted_at: new Date().toISOString(),
-    status: "submitted",
-  });
+  const { data: application, error: applicationError } = await supabase
+    .from("community_applications")
+    .insert({
+      submitted_by_email: email,
+      first_name: firstName,
+      surname,
+      phone_number: phoneNumber || null,
+      country: country || null,
+      organisation: organisation || null,
+      role_title: roleTitle || null,
+      motivation_text: motivationText,
+      expertise_slugs: nextExpertiseSlugs,
+      expertise_other_text: expertiseOtherText || null,
+      engagement_slugs: nextEngagementSlugs,
+      engagement_other_text: engagementOtherText || null,
+      consent_data_storage: consentDataStorage,
+      consent_updates: consentUpdates,
+      source: "patna_web_form",
+      submitted_at: new Date().toISOString(),
+      status: "submitted",
+    })
+    .select("id")
+    .single();
 
-  if (applicationError) {
+  if (applicationError || !application?.id) {
     return {
       status: "error",
       message: applicationError.message,
     };
+  }
+
+  try {
+    await syncCommunityApplicationAssistantDocument({
+      adminSupabase: supabase,
+      applicationId: application.id,
+    });
+  } catch (assistantError) {
+    console.error("submitCommunityApplicationAction assistant sync error:", assistantError);
   }
 
   return {

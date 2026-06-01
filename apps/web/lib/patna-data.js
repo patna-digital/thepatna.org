@@ -20,31 +20,34 @@ export const coreValues = [
 export const footerLinkGroups = [
   {
     title: "Platform",
+    titleKey: "footer.colPlatform",
     links: [
-      { href: "/", label: "Home" },
-      { href: "/about", label: "About PATNA" },
-      { href: "/projects", label: "Projects" },
-      { href: "/insights", label: "Insights" },
-      { href: "/events", label: "Events" },
+      { href: "/", label: "Home", labelKey: "footer.linkHome" },
+      { href: "/about", label: "About PATNA", labelKey: "footer.linkAbout" },
+      { href: "/projects", label: "Projects", labelKey: "footer.linkProjects" },
+      { href: "/insights", label: "Insights", labelKey: "footer.linkInsights" },
+      { href: "/events", label: "Events", labelKey: "footer.linkEvents" },
     ],
   },
   {
     title: "Community",
+    titleKey: "footer.colCommunity",
     links: [
-      { href: "/community", label: "Join PATNA" },
-      { href: "/auth/login", label: "Member Login" },
-      { href: "/community#cohort-programme", label: "Cohorts" },
-      { href: "/app/spaces", label: "Community Spaces" },
+      { href: "/community", label: "Join PATNA", labelKey: "footer.linkJoinPatna" },
+      { href: "/auth/login", label: "Member Login", labelKey: "footer.linkMemberLogin" },
+      { href: "/community#cohort-programme", label: "Cohorts", labelKey: "footer.linkCohorts" },
+      { href: "/app/spaces", label: "Community Spaces", labelKey: "footer.linkSpaces" },
     ],
   },
   {
     title: "Engage",
+    titleKey: "footer.colEngage",
     links: [
-      { href: "/work-with-us", label: "Work With Us" },
-      { href: "/contact", label: "Contact" },
-      { href: "https://x.com/PATNAINITIATIVE", label: "X / Twitter" },
-      { href: "https://www.linkedin.com/company/patnainitiative", label: "LinkedIn" },
-      { href: "https://www.instagram.com/patnainitiative", label: "Instagram" },
+      { href: "/work-with-us", label: "Work With Us", labelKey: "footer.linkWorkWithUs" },
+      { href: "/contact", label: "Contact", labelKey: "footer.linkContact" },
+      { href: "https://x.com/PATNAINITIATIVE", label: "X / Twitter", labelKey: "footer.linkXTwitter" },
+      { href: "https://www.linkedin.com/company/patnainitiative", label: "LinkedIn", labelKey: "footer.linkLinkedIn" },
+      { href: "https://www.instagram.com/patnainitiative", label: "Instagram", labelKey: "footer.linkInstagram" },
     ],
   },
 ];
@@ -180,28 +183,37 @@ export const publicEvents = [
 
 export const partnerGroups = [
   {
-    title: "International, continental, and regional organisations",
-    partners: ["AU", "IMO", "MOWCA", "MOESNA", "AAMA", "AMAG", "AGNES", "ASA"],
-  },
-  {
-    title: "National government bodies and agencies",
+    title: "International, Continental & Regional Organisations",
     partners: [
-      "ANAM Senegal",
-      "NIMASA",
-      "Nigeria Marine and Blue Economy Ministry",
-      "Ghana Maritime Authority",
-      "Ghana Ports and Harbours Authority",
+      { name: "African Union Commission", abbr: "AU" },
+      { name: "IMO Secretariat", abbr: "IMO" },
+      { name: "MOWCA", abbr: "MOWCA" },
+      { name: "MOESNA", abbr: "MOESNA" },
+      { name: "AAMA", abbr: "AAMA" },
+      { name: "African Maritime Advisory Group", abbr: "AMAG" },
+      { name: "AGNES", abbr: "AGNES" },
+      { name: "African Shipowners Association", abbr: "ASA" },
     ],
   },
   {
-    title: "Academic and research institutions",
+    title: "National Government Bodies & Agencies",
     partners: [
-      "UCL",
-      "UCL Energy Institute",
-      "University of Malawi",
-      "University of Nairobi",
-      "University of Liberia",
-      "University of Lagos",
+      { name: "ANAM Senegal", abbr: "ANAM" },
+      { name: "NIMASA", abbr: "NIMASA" },
+      { name: "Nigeria Marine & Blue Economy Ministry", abbr: "NMBEM" },
+      { name: "Ghana Maritime Authority", abbr: "GMA" },
+      { name: "Ghana Ports & Harbours Authority", abbr: "GPHA" },
+    ],
+  },
+  {
+    title: "Academic & Research Institutions",
+    partners: [
+      { name: "University College London", abbr: "UCL" },
+      { name: "UCL Energy Institute", abbr: "UCL-EI" },
+      { name: "University of Malawi", abbr: "UoM" },
+      { name: "University of Nairobi", abbr: "UoN" },
+      { name: "University of Liberia", abbr: "UoL" },
+      { name: "University of Lagos", abbr: "UNILAG" },
     ],
   },
 ];
@@ -508,7 +520,7 @@ export const leapPhases = [
   },
   {
     slug: "leap-phase-iii",
-    phase: "LEAP Phase III / ORCA Africa 2026",
+    phase: "LEAP Phase III",
     title: "Continental Leadership & NZF Coordination",
     status: "active",
     period: "January – December 2026",
@@ -643,7 +655,7 @@ export const boardMembers = [
     title: "Founder / Co-Chair of the Board",
     org: "The PATNA Initiative | UCL Energy Institute, London",
     role: "co-chair",
-    bio: "Founder of PATNA and Co-Chair of the Board. Dr Oluteye leads UCL's engagement with African maritime energy transition research and serves as Principal Investigator of the LEAP Project Series. She designed PATNA's evidence framework and has directed the analytical programme across all three LEAP phases, from the first national shipping emissions inventories to the continental coordination architecture of ORCA Africa 2026. Her work bridges academic rigour and policy relevance at the IMO, the AU, and across African delegations.",
+    bio: "Founder of PATNA and Co-Chair of the Board. Dr Oluteye leads UCL's engagement with African maritime energy transition research and serves as Principal Investigator of the LEAP Project Series. She designed PATNA's evidence framework and has directed the analytical programme across all three LEAP phases. Her work bridges academic rigour and policy relevance at the IMO, the AU, and across African delegations.",
   },
   {
     name: "Ambassador Nancy Karigithu",
@@ -760,6 +772,7 @@ export const memberNav = [
 export const adminNav = [
   {
     label: "Core",
+    labelKey: "admin.navGroups.core",
     collapsible: false,
     items: [
       { href: "/admin", label: "Overview", icon: "LayoutDashboard" },
@@ -769,6 +782,7 @@ export const adminNav = [
   },
   {
     label: "Community",
+    labelKey: "admin.navGroups.community",
     collapsible: true,
     items: [
       { href: "/admin/spaces", label: "Spaces", icon: "Layers" },
@@ -779,29 +793,22 @@ export const adminNav = [
   },
   {
     label: "Partnerships",
+    labelKey: "admin.navGroups.partnerships",
     collapsible: true,
     items: [
       { href: "/admin/partners", label: "Partners", icon: "Building2" },
-      { href: "/admin/service-requests", label: "Service Requests", icon: "Wrench" },
-      { href: "/admin/partnership-leads", label: "Partnership Leads", icon: "Handshake" },
-      { href: "/admin/collaboration-leads", label: "Collaboration Leads", icon: "Network" },
-    ],
-  },
-  {
-    label: "Website",
-    collapsible: true,
-    items: [
-      { href: "/admin/people", label: "People", icon: "UsersRound" },
-      { href: "/admin/settings", label: "Website Settings", icon: "Globe" },
+      { href: "/admin/leads",    label: "Leads",    icon: "Inbox" },
     ],
   },
   {
     label: "Tools",
+    labelKey: "admin.navGroups.tools",
     collapsible: true,
     items: [
-      { href: "/admin/assistant", label: "AI Assistant", icon: "Sparkles" },
+      { href: "/admin/assistant",     label: "AI Assistant",  icon: "Sparkles" },
       { href: "/admin/notifications", label: "Notifications", icon: "Bell" },
-      { href: "/admin/admins", label: "Admins", icon: "ShieldCheck" },
+      { href: "/admin/admins",        label: "Admins",        icon: "ShieldCheck" },
+      { href: "/admin/website",       label: "Website",       icon: "Globe" },
     ],
   },
 ];
