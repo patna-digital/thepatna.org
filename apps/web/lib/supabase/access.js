@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { provisionMemberFromApplication } from "@/lib/member-provisioning";
 import { isSupabaseConfigured } from "@/lib/env";
+import { buildProfileProgress } from "@/lib/profile-onboarding";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -48,52 +50,69 @@ function splitAuthName(user) {
   };
 }
 
+async function backfillProfileFromApprovedApplication({ profile, user }) {
+  if (!user?.id || !canUseSupabaseAdmin()) {
+    return profile;
+  }
+
+  try {
+    const adminClient = createSupabaseAdminClient();
+    const result = await provisionMemberFromApplication({
+      adminClient,
+      email: user.email || profile?.email || "",
+      userId: user.id,
+    });
+
+    return result.profile || profile;
+  } catch {
+    return profile;
+  }
+}
+
 export async function ensureProfileRecord({ supabase, user }) {
   if (!user?.id) {
     return null;
   }
 
-  const existingProfile = await getProfileRecord(supabase, user.id);
+  let profile = await getProfileRecord(supabase, user.id);
 
-  if (existingProfile) {
-    return existingProfile;
+  if (!profile) {
+    const { firstName, surname } = splitAuthName(user);
+    const profilePayload = {
+      id: user.id,
+      email: String(user.email || "").trim().toLowerCase(),
+      first_name: firstName,
+      surname,
+      onboarding_status: "profile_pending",
+    };
+
+    const { data: selfCreatedProfile, error: selfCreateError } = await supabase
+      .from("profiles")
+      .upsert(profilePayload, { onConflict: "id" })
+      .select("*")
+      .single();
+
+    if (!selfCreateError && selfCreatedProfile) {
+      profile = selfCreatedProfile;
+    } else if (canUseSupabaseAdmin()) {
+      const adminClient = createSupabaseAdminClient();
+      const { data: createdProfile, error } = await adminClient
+        .from("profiles")
+        .upsert(profilePayload, { onConflict: "id" })
+        .select("*")
+        .single();
+
+      if (error) {
+        return null;
+      }
+
+      profile = createdProfile ?? null;
+    } else {
+      return null;
+    }
   }
 
-  const { firstName, surname } = splitAuthName(user);
-  const profilePayload = {
-    id: user.id,
-    email: String(user.email || "").trim().toLowerCase(),
-    first_name: firstName,
-    surname,
-    onboarding_status: "profile_pending",
-  };
-
-  const { data: selfCreatedProfile, error: selfCreateError } = await supabase
-    .from("profiles")
-    .upsert(profilePayload, { onConflict: "id" })
-    .select("*")
-    .single();
-
-  if (!selfCreateError && selfCreatedProfile) {
-    return selfCreatedProfile;
-  }
-
-  if (!canUseSupabaseAdmin()) {
-    return null;
-  }
-
-  const adminClient = createSupabaseAdminClient();
-  const { data: createdProfile, error } = await adminClient
-    .from("profiles")
-    .upsert(profilePayload, { onConflict: "id" })
-    .select("*")
-    .single();
-
-  if (error) {
-    return null;
-  }
-
-  return createdProfile ?? null;
+  return await backfillProfileFromApprovedApplication({ profile, user });
 }
 
 export async function markOnboardingStarted(supabase, userId) {
@@ -118,6 +137,101 @@ export async function markOnboardingStarted(supabase, userId) {
     .single();
 
   return updatedProfile ?? profile;
+}
+
+async function isMemberProfileComplete(supabase, userId, profile) {
+  const [{ data: cohortProfile }, { data: cohortRows }, { data: tagRows }] = await Promise.all([
+    supabase
+      .from("cohort_member_profiles")
+      .select("domain_knowledge, focus_area")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("user_cohorts")
+      .select("is_primary, cohorts(name, slug)")
+      .eq("user_id", userId),
+    supabase
+      .from("user_tags")
+      .select("domain_tags(name, slug)")
+      .eq("user_id", userId),
+  ]);
+
+  const primaryCohort = (cohortRows || []).find((row) => row.is_primary && row.cohorts)?.cohorts || null;
+  const domainTags = (tagRows || []).map((row) => row.domain_tags).filter(Boolean);
+  const progress = buildProfileProgress({
+    cohortProfile: cohortProfile || null,
+    domainTags,
+    primaryCohort,
+    profile,
+  });
+
+  return progress.isOnboardingComplete;
+}
+
+export async function finalizeMemberAccessAfterPasswordUpdate(supabase, userId) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const profile =
+    (user?.id === userId ? await ensureProfileRecord({ supabase, user }) : null) ||
+    (await getProfileRecord(supabase, userId));
+
+  if (!profile) {
+    return {
+      profile: null,
+      shouldRedirectToProfile: false,
+      wasActivated: false,
+    };
+  }
+
+  const { data: roleRows } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+
+  let isMember = (roleRows || []).some((row) => row.role === "member");
+  let resolvedProfile = profile;
+  let wasActivated = false;
+
+  if (!isMember && canUseSupabaseAdmin() && profile?.email) {
+    try {
+      const adminClient = createSupabaseAdminClient();
+      await provisionMemberFromApplication({
+        adminClient,
+        email: profile.email,
+        userId,
+        defaultOnboardingStatus: "active",
+      });
+      const { data: refreshedRoles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      isMember = (refreshedRoles || []).some((row) => row.role === "member");
+    } catch {
+      // Non-fatal: no approved application found or provisioning failed
+    }
+  }
+
+  if (isMember && ["invited", "profile_pending"].includes(profile.onboarding_status)) {
+    const { data: updatedProfile } = await supabase
+      .from("profiles")
+      .update({
+        onboarding_status: "active",
+      })
+      .eq("id", userId)
+      .select("*")
+      .single();
+
+    resolvedProfile = updatedProfile ?? profile;
+    wasActivated = true;
+  }
+
+  const shouldRedirectToProfile =
+    resolvedProfile.onboarding_status !== "active" ||
+    (isMember && !(await isMemberProfileComplete(supabase, userId, resolvedProfile)));
+
+  return {
+    profile: resolvedProfile,
+    shouldRedirectToProfile,
+    wasActivated,
+  };
 }
 
 export async function getCurrentUserContext({
@@ -183,6 +297,42 @@ export async function requireAdminContext() {
 
   if (!context.isAdmin) {
     redirect("/app");
+  }
+
+  return context;
+}
+
+export async function requirePublicationManagerContext() {
+  const context = await getCurrentUserContext({ includeProfile: true, includeRoles: true });
+
+  if (!context.user) {
+    redirect("/auth/login?next=/admin/insights");
+  }
+
+  const canManagePublications =
+    context.roles.includes("administrator") ||
+    context.roles.includes("publisher") ||
+    Boolean(context.profile?.is_super_admin);
+
+  if (!canManagePublications) {
+    redirect("/app");
+  }
+
+  return context;
+}
+
+export async function requireSuperAdminContext() {
+  const context = await requireAdminContext();
+
+  const adminClient = createSupabaseAdminClient();
+  const { data: profile } = await adminClient
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", context.user.id)
+    .single();
+
+  if (!profile?.is_super_admin) {
+    redirect("/admin");
   }
 
   return context;

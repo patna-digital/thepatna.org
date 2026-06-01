@@ -1,10 +1,15 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData, buildMemberSpaceGroups } from "@/lib/member-workspace";
-import { memberSpaces } from "@/lib/patna-data";
+import { fetchWorkspaceSpaces } from "@/lib/spaces";
+import { fetchLinkedProjectsBySpaceIds } from "@/lib/projects";
+import { fetchRecentThreadsBySpaces } from "@/lib/threads";
 
 export default async function SpacesPage() {
+  const t = await getTranslations();
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -14,72 +19,188 @@ export default async function SpacesPage() {
     redirect("/auth/login?next=/app/spaces");
   }
 
-  const frameData = await fetchMemberWorkspaceFrameData({ supabase, userId: user.id });
+  const [frameData, workspaceSpacesResult] = await Promise.all([
+    fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
+    fetchWorkspaceSpaces({ supabase, userId: user.id }),
+  ]);
 
-  if (frameData.error || !frameData.member) {
-    redirect("/app/profile");
-  }
+  const sidebarUser = frameData.sidebarUser || null;
+  const spaces = workspaceSpacesResult.memberSpaces || [];
+  const availableSpaces = workspaceSpacesResult.availableSpaces || [];
+  const error = workspaceSpacesResult.error;
 
-  const groups = buildMemberSpaceGroups(memberSpaces);
+  const spaceIds = (spaces || []).map((s) => s.id).filter(Boolean);
+
+  const [{ bySpaceId }, recentBySpaceId] = await Promise.all([
+    fetchLinkedProjectsBySpaceIds({ supabase, spaceIds }),
+    fetchRecentThreadsBySpaces(supabase, spaceIds, { perSpace: 3 }),
+  ]);
+
+  const normalised = (spaces || []).map((space) => ({
+    id:            space.id,
+    slug:          space.slug,
+    name:          space.name,
+    type:          formatSpaceType(space.space_type, t),
+    kind:          space.space_type,
+    members:       space.member_count ?? 0,
+    threads:       space.threads ?? 0,
+    unread:        space.unread  ?? 0,
+    role:          capitalise(space.role || "member"),
+    summary:       space.description || "",
+    tags:          space.tags || [],
+    linkedProject: bySpaceId.get(space.id) || null,
+    recentThreads: recentBySpaceId[space.id] || [],
+  }));
+
+  const groups = buildMemberSpaceGroups(normalised);
+  const totalUnread = normalised.reduce((sum, s) => sum + s.unread, 0);
+  const leadCount   = normalised.filter((s) => s.role === "Lead").length;
 
   return (
     <MemberWorkspaceShell
-      eyebrow="Community"
-      sidebarUser={frameData.sidebarUser}
-      subtitle="Cohort, constituency, and working-group spaces organised around how PATNA coordinates expertise."
-      title="My spaces"
+      eyebrow={t("spaces.eyebrow")}
+      notificationUserId={user?.id ?? null}
+      sidebarUser={sidebarUser}
+      subtitle={t("spaces.subtitle")}
+      title={t("spaces.title")}
     >
       <div className="member-dashboard-stack">
+        {error && <p className="form-error">{t("spaces.error")}</p>}
+
         <div className="member-dashboard-summary-grid member-dashboard-summary-grid-compact">
           <article className="member-stat-card tone-blue">
-            <strong>{memberSpaces.length}</strong>
-            <h3>Total visible spaces</h3>
-            <p>Visible across your current PATNA workspace</p>
+            <strong>{normalised.length}</strong>
+            <h3>{t("spaces.statTotal")}</h3>
+            <p>{t("spaces.statTotalNote")}</p>
           </article>
           <article className="member-stat-card tone-blue">
-            <strong>{memberSpaces.reduce((sum, item) => sum + item.unread, 0)}</strong>
-            <h3>New updates</h3>
-            <p>Unread activity across your current spaces</p>
+            <strong>{totalUnread}</strong>
+            <h3>{t("spaces.statUpdates")}</h3>
+            <p>{t("spaces.statUpdatesNote")}</p>
           </article>
           <article className="member-stat-card tone-blue">
-            <strong>{memberSpaces.filter((item) => item.role === "Lead").length}</strong>
-            <h3>Lead roles</h3>
-            <p>Spaces where you currently coordinate</p>
+            <strong>{leadCount}</strong>
+            <h3>{t("spaces.statLeadRoles")}</h3>
+            <p>{t("spaces.statLeadRolesNote")}</p>
           </article>
         </div>
 
-        {groups.map((group) => (
-          <article className="dashboard-card member-module-card" key={group.id}>
-            <div className="member-section-heading">
-              <div>
-                <h3>{group.title}</h3>
-                <p className="member-section-copy">{group.subtitle}</p>
-              </div>
-            </div>
-            <div className="member-space-grid">
-              {group.spaces.map((space) => (
-                <div className="member-space-card" key={space.slug}>
-                  <div className="member-space-card-header">
-                    <div>
-                      <strong>{space.name}</strong>
-                      <p>{space.type}</p>
-                    </div>
-                    <span className="status-chip chip-neutral">{space.role}</span>
-                  </div>
-                  <p className="member-space-card-summary">{space.summary}</p>
-                  <div className="member-space-card-meta">
-                    <span>{space.members} members</span>
-                    <span>{space.threads} threads</span>
-                    <span className={space.unread ? "member-meta-emphasis" : undefined}>
-                      {space.unread} new
-                    </span>
-                  </div>
-                </div>
-              ))}
+        {groups.length === 0 && !error && (
+          <article className="dashboard-card">
+            <div className="app-row-empty">
+              <strong>{t("spaces.emptyTitle")}</strong>
+              <p>
+                {availableSpaces.length > 0
+                  ? "You are not in any spaces yet, but you can request access to the available spaces below."
+                  : t("spaces.emptyText")}
+              </p>
             </div>
           </article>
+        )}
+
+        {groups.map((group) => (
+          <section className="spaces-group" key={group.id}>
+            <div className="spaces-group-header">
+              <h2>{group.title}</h2>
+              <p>{group.subtitle}</p>
+            </div>
+            <div className="spaces-card-grid">
+              {group.spaces.map((space) => (
+                <Link className="space-feed-card" href={`/app/spaces/${space.slug}`} key={space.slug}>
+                  <div className="space-feed-card-top">
+                    <div className="space-feed-card-info">
+                      <span className="space-feed-type-badge">{space.type}</span>
+                      <strong className="space-feed-card-name">{space.name}</strong>
+                    </div>
+                    <span className={`space-role-pill${space.role === "Lead" ? " role-lead" : ""}`}>
+                      {space.role}
+                    </span>
+                  </div>
+
+                  {space.summary && (
+                    <p className="space-feed-card-desc">{space.summary}</p>
+                  )}
+
+                  {space.recentThreads.length > 0 && (
+                    <div className="space-feed-threads">
+                      {space.recentThreads.map((thread) => (
+                        <div className="space-feed-thread-item" key={thread.id}>
+                          <span className="space-feed-thread-dot" aria-hidden="true" />
+                          <span className="space-feed-thread-title">{thread.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-feed-card-foot">
+                    <span>{space.threads} {space.threads === 1 ? "thread" : "threads"}</span>
+                    {space.unread > 0 && (
+                      <span className="space-feed-unread">{space.unread} new</span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
         ))}
+
+        {availableSpaces.length > 0 && (
+          <section className="spaces-group">
+            <div className="spaces-group-header">
+              <h2>Available spaces</h2>
+              <p>Real PATNA spaces you can open immediately or request access to.</p>
+            </div>
+            <div className="spaces-card-grid">
+              {availableSpaces.map((space) => {
+                const href = space.requiresRequest
+                  ? `/app/spaces/${space.slug}/join`
+                  : `/app/spaces/${space.slug}`;
+
+                return (
+                  <Link className="space-feed-card" href={href} key={space.slug}>
+                    <div className="space-feed-card-top">
+                      <div className="space-feed-card-info">
+                        <span className="space-feed-type-badge">{formatSpaceType(space.space_type, t)}</span>
+                        <strong className="space-feed-card-name">{space.name}</strong>
+                      </div>
+                      <span className="space-role-pill">
+                        {space.requiresRequest ? "Request access" : "Open"}
+                      </span>
+                    </div>
+
+                    {space.description && (
+                      <p className="space-feed-card-desc">{space.description}</p>
+                    )}
+
+                    <div className="space-feed-card-foot">
+                      <span>{space.member_count ?? 0} {(space.member_count ?? 0) === 1 ? "member" : "members"}</span>
+                      <span>{space.threads ?? 0} {(space.threads ?? 0) === 1 ? "thread" : "threads"}</span>
+                      <span className="space-feed-unread">
+                        {space.requiresRequest ? "Admin approval required" : "Available now"}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
     </MemberWorkspaceShell>
   );
+}
+
+function formatSpaceType(type, t) {
+  const map = {
+    cohort:        t("spaces.typeCohort"),
+    constituency:  t("spaces.typeConstituency"),
+    working_group: t("spaces.typeWorkingGroup"),
+    geography:     t("spaces.typeGeography"),
+  };
+  return map[type] || type;
+}
+
+function capitalise(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }

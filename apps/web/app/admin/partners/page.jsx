@@ -1,20 +1,8 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
 import { requireAdminContext } from "@/lib/supabase/access";
-
-const PATHWAY_TABS = [
-  { value: "all",           label: "All partners" },
-  { value: "partnership",   label: "Institutional" },
-  { value: "collaboration", label: "Research / Collaboration" },
-  { value: "service",       label: "Service" },
-];
-
-const PATHWAY_LABELS = {
-  partnership:   "Institutional",
-  collaboration: "Research",
-  service:       "Service",
-};
 
 const STATUS_CHIP = {
   active:   "chip-success",
@@ -22,16 +10,13 @@ const STATUS_CHIP = {
   prospect: "chip-warning",
 };
 
-function getNoticeMessage(notice) {
-  const messages = {
-    saved:           "Partner saved successfully.",
-    deleted:         "Partner deleted.",
-    error:           "Something went wrong. Please try again.",
-    "contact-saved": "Contact saved.",
-    "contact-deleted": "Contact removed.",
-  };
-  return messages[notice] || "";
-}
+const NOTICE_KEY = {
+  saved:             "admin.partners.notices.saved",
+  deleted:           "admin.partners.notices.deleted",
+  error:             "admin.partners.notices.error",
+  "contact-saved":   "admin.partners.notices.contactSaved",
+  "contact-deleted": "admin.partners.notices.contactDeleted",
+};
 
 export const metadata = {
   title: "Partners | PATNA Admin",
@@ -40,6 +25,7 @@ export const metadata = {
 export default async function AdminPartnersPage({ searchParams }) {
   const { supabase } = await requireAdminContext();
   const resolved = await searchParams;
+  const t = await getTranslations();
   const pathway = typeof resolved?.pathway === "string" ? resolved.pathway : "all";
   const notice = typeof resolved?.notice === "string" ? resolved.notice : "";
 
@@ -60,31 +46,46 @@ export default async function AdminPartnersPage({ searchParams }) {
     inactive: (partners || []).filter((p) => p.status === "inactive"),
   };
 
+  const PATHWAY_TABS = [
+    { value: "all",           label: t("admin.partners.tabs.all") },
+    { value: "partnership",   label: t("admin.partners.tabs.partnership") },
+    { value: "collaboration", label: t("admin.partners.tabs.collaboration") },
+    { value: "service",       label: t("admin.partners.tabs.service") },
+  ];
+
+  const KNOWN_PATHWAYS = new Set(["partnership", "collaboration", "service"]);
+  const tPathway = (p) => KNOWN_PATHWAYS.has(p) ? t(`admin.partners.pathwayLabels.${p}`) : p;
+
   return (
     <DashboardShell
       brandHref="/admin"
-      brandLabel="PATNA Admin"
-      eyebrow="Partnerships"
+      brandLabel={t("admin.brandLabel")}
+      eyebrow={t("admin.partners.eyebrow")}
+      breadcrumb={[
+        { label: t("admin.title"), href: "/admin" },
+        { label: t("admin.partners.breadcrumb.parent") },
+        { label: t("admin.partners.breadcrumb.self") },
+      ]}
       navItems={adminNav}
       spotlight={{
-        label: "Partner registry",
-        title: "Institutional partners, collaborators & service clients",
-        body: "Manage confirmed partnerships, track contacts, and update partnership profiles.",
+        label: t("admin.partners.spotlight.label"),
+        title: t("admin.partners.spotlight.title"),
+        body:  t("admin.partners.spotlight.body"),
       }}
-      title="Partners"
-      subtitle="All confirmed partnerships. Use tabs to filter by pathway."
+      title={t("admin.partners.title")}
+      subtitle={t("admin.partners.subtitle")}
     >
       <div className="admin-stat-grid admin-stat-grid-4">
         {["active", "prospect", "inactive"].map((s) => (
           <div className={`admin-stat-card${s === "active" ? " tone-success" : s === "prospect" ? " tone-warning" : ""}`} key={s}>
             <strong>{grouped[s].length}</strong>
-            <h4>{s.charAt(0).toUpperCase() + s.slice(1)}</h4>
+            <h4>{t(`admin.partners.stats.${s}`)}</h4>
           </div>
         ))}
         <div className="admin-stat-card">
           <strong>{(partners || []).filter((p) => p.is_featured).length}</strong>
-          <h4>Featured</h4>
-          <p>Shown on home page</p>
+          <h4>{t("admin.partners.stats.featured")}</h4>
+          <p>{t("admin.partners.stats.shownOnHome")}</p>
         </div>
       </div>
 
@@ -103,12 +104,12 @@ export default async function AdminPartnersPage({ searchParams }) {
               ))}
             </div>
             <Link className="primary-button" href="/admin/partners/new">
-              + Add partner
+              {t("admin.partners.addPartner")}
             </Link>
           </div>
-          {notice && (
+          {notice && NOTICE_KEY[notice] && (
             <p className={notice === "error" ? "form-error" : "form-success"}>
-              {getNoticeMessage(notice)}
+              {t(NOTICE_KEY[notice])}
             </p>
           )}
           {error && <p className="form-error">{error.message}</p>}
@@ -118,9 +119,9 @@ export default async function AdminPartnersPage({ searchParams }) {
       {(partners || []).length === 0 ? (
         <article className="dashboard-card">
           <div className="app-row-empty">
-            <strong>No partners found.</strong>
-            <p>Add your first partner or adjust the pathway filter.</p>
-            <Link className="primary-button" href="/admin/partners/new">Add partner</Link>
+            <strong>{t("admin.partners.emptyState.title")}</strong>
+            <p>{t("admin.partners.emptyState.text")}</p>
+            <Link className="primary-button" href="/admin/partners/new">{t("admin.partners.addPartnerAction")}</Link>
           </div>
         </article>
       ) : (
@@ -141,17 +142,17 @@ export default async function AdminPartnersPage({ searchParams }) {
                   <div className="partner-row-title">
                     <strong>{partner.name}</strong>
                     {partner.is_featured && (
-                      <span className="status-chip chip-warning" title="Featured on home page">★ Featured</span>
+                      <span className="status-chip chip-warning" title={t("admin.partners.stats.shownOnHome")}>{t("admin.partners.featured")}</span>
                     )}
                   </div>
                   <div className="partner-row-meta">
                     {partner.country && <span>{partner.country}</span>}
                     {partner.partnership_type && <span>{partner.partnership_type}</span>}
                     <span className={`status-chip ${STATUS_CHIP[partner.status] || "chip-neutral"}`}>
-                      {partner.status}
+                      {STATUS_CHIP[partner.status] ? t(`admin.partners.stats.${partner.status}`) : partner.status}
                     </span>
                     <span className="status-chip chip-neutral">
-                      {PATHWAY_LABELS[partner.pathway] || partner.pathway}
+                      {tPathway(partner.pathway)}
                     </span>
                   </div>
                 </div>

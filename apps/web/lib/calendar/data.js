@@ -1,0 +1,750 @@
+/**
+ * Calendar Data Access Layer
+ * Functions for fetching and managing calendar data from Supabase
+ */
+
+import {
+  ensureBookingSettingsForMember,
+  fetchPublicBookingPageData,
+  normalizeBookingSettingsRecord,
+} from "@/lib/calendar/booking";
+import { buildCalendarFeedEvents } from "@/lib/calendar/aggregate-events";
+import { findConferenceLink } from "@/lib/calendar/conference";
+import { isMissingDatabaseFeatureError, normalizeError } from "@/lib/error-utils";
+import { fetchMemberCalendarItems } from "@/lib/member-calendar-items";
+
+const CALENDAR_CONNECTION_SELECT = `
+  id,
+  provider,
+  provider_account_email,
+  calendar_id,
+  calendar_name,
+  access_role,
+  is_primary_calendar,
+  is_active,
+  sync_enabled,
+  last_synced_at,
+  last_sync_error,
+  created_at
+`;
+
+const AVAILABILITY_RULE_SELECT = `
+  id,
+  rule_type,
+  day_of_week,
+  start_time,
+  end_time,
+  effective_from,
+  effective_until,
+  timezone,
+  is_blocked,
+  label
+`;
+
+const BOOKING_SELECT = `
+  id,
+  host_id,
+  booker_email,
+  booker_name,
+  guest_emails,
+  booker_organisation,
+  title,
+  description,
+  meeting_type,
+  location_type,
+  location_details,
+  status,
+  starts_at,
+  ends_at,
+  timezone,
+  created_at
+`;
+
+const BOOKING_SETTINGS_SELECT = `
+  member_id,
+  public_booking_enabled,
+  public_booking_url_slug,
+  default_meeting_duration,
+  minimum_notice_hours,
+  maximum_booking_days_ahead,
+  buffer_minutes_between_meetings,
+  timezone,
+  available_days,
+  confirmation_message,
+  cancellation_policy
+`;
+
+const PROVIDER_NAMES = {
+  google: 'Google Calendar',
+  microsoft: 'Outlook Calendar',
+  zoho: 'Zoho Calendar',
+  apple: 'Apple Calendar',
+  generic_ical: 'iCal Feed',
+};
+
+const EXTERNAL_EVENTS_WARNING =
+  'Some connected calendar items could not be loaded right now. PATNA events and bookings are still shown.';
+
+const EXTERNAL_EVENTS_BASE_SELECT = `
+  id,
+  connection_id,
+  external_event_id,
+  external_calendar_id,
+  title,
+  description,
+  location,
+  starts_at,
+  ends_at,
+  timezone,
+  is_all_day,
+  recurrence_rule,
+  recurring_event_id,
+  attendees,
+  organizer,
+  status,
+  visibility,
+  external_created_at,
+  external_updated_at
+`;
+
+const EXTERNAL_EVENTS_FULL_SELECT = `
+  ${EXTERNAL_EVENTS_BASE_SELECT},
+  conference_url,
+  conference_provider,
+  conference_data,
+  connection:calendar_connections(provider, calendar_name)
+`;
+
+const EXTERNAL_EVENTS_LEGACY_SELECT = `
+  ${EXTERNAL_EVENTS_BASE_SELECT},
+  connection:calendar_connections(provider, calendar_name)
+`;
+
+function getMeetingMetadata({
+  conferenceUrl = null,
+  conferenceProvider = null,
+  description = null,
+  location = null,
+  locationDetails = null,
+  locationType = null,
+}) {
+  const matchedConference = conferenceUrl
+    ? {
+        url: conferenceUrl,
+        provider: conferenceProvider || findConferenceLink(conferenceUrl)?.provider || null,
+      }
+    : findConferenceLink(locationDetails, location, description);
+  const meetingUrl = matchedConference?.url || null;
+
+  return {
+    meeting_url: meetingUrl,
+    meeting_provider: conferenceProvider || matchedConference?.provider || null,
+    location_type: meetingUrl ? "video" : locationType || null,
+  };
+}
+
+function getExternalSourceLabel(connection) {
+  return connection?.calendar_name || PROVIDER_NAMES[connection?.provider] || 'Connected Calendar';
+}
+
+function getExternalSourceDetail(connection) {
+  const providerLabel = connection?.provider
+    ? PROVIDER_NAMES[connection.provider] || connection.provider
+    : null;
+
+  if (!providerLabel) {
+    return null;
+  }
+
+  return connection?.calendar_name && connection.calendar_name !== providerLabel
+    ? providerLabel
+    : null;
+}
+
+function buildExternalCalendarEventsQuery({ memberId, startDate, endDate, select, supabase }) {
+  return supabase
+    .from("external_calendar_events")
+    .select(select)
+    .eq("member_id", memberId)
+    .gte("starts_at", `${startDate}T00:00:00`)
+    .lte("starts_at", `${endDate}T23:59:59`)
+    .order("starts_at", { ascending: true });
+}
+
+async function queryExternalCalendarEventRows({ memberId, startDate, endDate, supabase }) {
+  const attempts = [
+    { mode: "full", select: EXTERNAL_EVENTS_FULL_SELECT },
+    { mode: "legacy", select: EXTERNAL_EVENTS_LEGACY_SELECT },
+    { mode: "minimal", select: EXTERNAL_EVENTS_BASE_SELECT },
+  ];
+
+  for (const attempt of attempts) {
+    const { data, error } = await buildExternalCalendarEventsQuery({
+      memberId,
+      startDate,
+      endDate,
+      select: attempt.select,
+      supabase,
+    });
+
+    if (!error) {
+      return {
+        rows: data || [],
+        degraded: attempt.mode !== "full",
+        unavailable: false,
+        error: null,
+      };
+    }
+
+    if (!isMissingDatabaseFeatureError(error)) {
+      return {
+        rows: [],
+        degraded: false,
+        unavailable: false,
+        error,
+      };
+    }
+  }
+
+  return {
+    rows: [],
+    degraded: true,
+    unavailable: true,
+    error: null,
+  };
+}
+
+function transformExternalCalendarEvents(events = []) {
+  return events.map((event) => {
+    const meetingMetadata = getMeetingMetadata({
+      conferenceUrl: event.conference_url,
+      conferenceProvider: event.conference_provider,
+      description: event.description,
+      location: event.location,
+    });
+
+    return {
+      ...event,
+      ...meetingMetadata,
+      event_source: "external",
+      event_type_label: event.connection?.provider
+        ? `${PROVIDER_NAMES[event.connection.provider] || event.connection.provider} Event`
+        : "External Event",
+      source_label: getExternalSourceLabel(event.connection),
+      source_detail: getExternalSourceDetail(event.connection),
+      is_rsvped: true,
+    };
+  });
+}
+
+function buildConnectionEventCountMap(events = []) {
+  const countMap = new Map();
+
+  for (const event of events) {
+    if (!event?.connection_id) {
+      continue;
+    }
+
+    countMap.set(event.connection_id, (countMap.get(event.connection_id) || 0) + 1);
+  }
+
+  return countMap;
+}
+
+async function fetchConnectionEventCountMap({ memberId, supabase }) {
+  const { data, error } = await supabase
+    .from('external_calendar_events')
+    .select('connection_id')
+    .eq('member_id', memberId);
+
+  return {
+    eventCountMap: buildConnectionEventCountMap(data || []),
+    error,
+  };
+}
+
+/**
+ * Fetch calendar connections for a member
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{connections: Array, error: Error}>}
+ */
+export async function fetchCalendarConnections({ memberId, supabase }) {
+  const { data, error } = await supabase
+    .from('calendar_connections')
+    .select(CALENDAR_CONNECTION_SELECT)
+    .eq('member_id', memberId)
+    .eq('is_active', true)
+    .order('is_primary_calendar', { ascending: false })
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    return {
+      connections: [],
+      error,
+    };
+  }
+
+  const { eventCountMap, error: countError } = await fetchConnectionEventCountMap({
+    memberId,
+    supabase,
+  });
+
+  return {
+    connections: (data || []).map((connection) => ({
+      ...connection,
+      event_count: eventCountMap.get(connection.id) || 0,
+    })),
+    error: countError || null,
+  };
+}
+
+/**
+ * Fetch a single calendar connection by ID
+ * @param {Object} params
+ * @param {string} params.connectionId - Connection UUID
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{connection: Object|null, error: Error}>}
+ */
+export async function fetchCalendarConnectionById({ connectionId, supabase }) {
+  const { data, error } = await supabase
+    .from('calendar_connections')
+    .select('*')
+    .eq('id', connectionId)
+    .maybeSingle();
+
+  return {
+    connection: data,
+    error,
+  };
+}
+
+/**
+ * Fetch availability rules for a member
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{rules: Array, error: Error}>}
+ */
+export async function fetchAvailabilityRules({ memberId, supabase }) {
+  const { data, error } = await supabase
+    .from('availability_rules')
+    .select(AVAILABILITY_RULE_SELECT)
+    .eq('member_id', memberId)
+    .order('day_of_week', { ascending: true });
+
+  return {
+    rules: data || [],
+    error,
+  };
+}
+
+/**
+ * Fetch booking slots for a member within a date range
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {string} params.startDate - Start date (YYYY-MM-DD)
+ * @param {string} params.endDate - End date (YYYY-MM-DD)
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{slots: Array, error: Error}>}
+ */
+export async function fetchBookingSlots({ memberId, startDate, endDate, supabase }) {
+  const { data, error } = await supabase
+    .from('booking_slots')
+    .select('*')
+    .eq('member_id', memberId)
+    .gte('slot_date', startDate)
+    .lte('slot_date', endDate)
+    .order('slot_date', { ascending: true })
+    .order('start_time', { ascending: true });
+
+  return {
+    slots: data || [],
+    error,
+  };
+}
+
+/**
+ * Fetch available booking slots for public booking
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {string} params.date - Date to fetch slots for (YYYY-MM-DD)
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{slots: Array, error: Error}>}
+ */
+export async function fetchAvailableSlotsForDate({ memberId, date, supabase }) {
+  const { data, error } = await supabase
+    .from('booking_slots')
+    .select('*')
+    .eq('member_id', memberId)
+    .eq('slot_date', date)
+    .eq('is_available', true)
+    .eq('is_blocked', false)
+    .is('booking_id', null)
+    .order('start_time', { ascending: true });
+
+  return {
+    slots: data || [],
+    error,
+  };
+}
+
+/**
+ * Fetch bookings for a host
+ * @param {Object} params
+ * @param {string} params.hostId - Host member UUID
+ * @param {string} params.status - Optional status filter
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{bookings: Array, error: Error}>}
+ */
+export async function fetchHostBookings({ hostId, status, supabase }) {
+  let query = supabase
+    .from('bookings')
+    .select(BOOKING_SELECT)
+    .eq('host_id', hostId);
+
+  if (status) {
+    query = query.eq('status', status);
+  }
+
+  const { data, error } = await query
+    .order('starts_at', { ascending: false });
+
+  return {
+    bookings: data || [],
+    error,
+  };
+}
+
+/**
+ * Fetch upcoming bookings for a host
+ * @param {Object} params
+ * @param {string} params.hostId - Host member UUID
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{bookings: Array, error: Error}>}
+ */
+export async function fetchUpcomingBookings({ hostId, supabase }) {
+  const now = new Date().toISOString();
+  
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(BOOKING_SELECT)
+    .eq('host_id', hostId)
+    .in('status', ['confirmed', 'pending'])
+    .gte('starts_at', now)
+    .order('starts_at', { ascending: true });
+
+  return {
+    bookings: data || [],
+    error,
+  };
+}
+
+/**
+ * Fetch booking settings for a member
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{settings: Object|null, error: Error}>}
+ */
+export async function fetchBookingSettings({ memberId, supabase }) {
+  const { data, error } = await supabase
+    .from('booking_settings')
+    .select(BOOKING_SETTINGS_SELECT)
+    .eq('member_id', memberId)
+    .maybeSingle();
+
+  return {
+    settings: data
+      ? normalizeBookingSettingsRecord(data)
+      : null,
+    error,
+  };
+}
+
+/**
+ * Fetch booking settings by public URL slug
+ * @param {Object} params
+ * @param {string} params.slug - Public booking URL slug
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{settings: Object|null, error: Error}>}
+ */
+export async function fetchBookingSettingsBySlug({ slug, supabase }) {
+  return fetchPublicBookingPageData({ slug, supabase });
+}
+
+/**
+ * Fetch a single booking by ID
+ * @param {Object} params
+ * @param {string} params.bookingId - Booking UUID
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{booking: Object|null, error: Error}>}
+ */
+export async function fetchBookingById({ bookingId, supabase }) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  return {
+    booking: data,
+    error,
+  };
+}
+
+/**
+ * Create default booking settings for a member
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{settings: Object|null, error: Error}>}
+ */
+export async function createDefaultBookingSettings({ memberId, supabase }) {
+  try {
+    const { settings } = await ensureBookingSettingsForMember({
+      memberId,
+      supabase,
+      enablePublicOnCreate: false,
+    });
+
+    return {
+      settings,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      settings: null,
+      error,
+    };
+  }
+}
+
+export async function ensureAdminEventRsvps({ communityEvents, isAdmin, memberId, supabase }) {
+  if (!isAdmin || !memberId || communityEvents.length === 0) {
+    return;
+  }
+
+  await supabase
+    .from('event_rsvps')
+    .upsert(
+      communityEvents.map((event) => ({
+        event_id: event.id,
+        user_id: memberId,
+        status: 'going',
+      })),
+      { onConflict: 'event_id,user_id', ignoreDuplicates: true },
+    );
+}
+
+/**
+ * Fetch external calendar events for a member
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {string} params.startDate - Start date (YYYY-MM-DD)
+ * @param {string} params.endDate - End date (YYYY-MM-DD)
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{events: Array, error: Error}>}
+ */
+export async function fetchExternalCalendarEvents({ memberId, startDate, endDate, supabase }) {
+  const { rows, error, unavailable } = await queryExternalCalendarEventRows({
+    memberId,
+    startDate,
+    endDate,
+    supabase,
+  });
+
+  if (error) {
+    return { events: [], error };
+  }
+
+  return {
+    events: transformExternalCalendarEvents(rows),
+    error: null,
+    warning: unavailable ? EXTERNAL_EVENTS_WARNING : null,
+  };
+}
+
+/**
+ * Get calendar events for a date range (combines community events, personal bookings, and external events)
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {string} params.startDate - Start date (YYYY-MM-DD)
+ * @param {string} params.endDate - End date (YYYY-MM-DD)
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{events: Array, error: Error}>}
+ */
+export async function fetchCalendarEvents({ memberId, startDate, endDate, supabase, isAdmin = false }) {
+  // Fetch community events
+  const { data: communityEvents, error: eventsError } = await supabase
+    .from('events')
+    .select('id, title, summary, starts_at, ends_at, location, event_type, visibility, display_date, schedule_status, official_link')
+    .eq('status', 'published')
+    .gte('starts_at', `${startDate}T00:00:00`)
+    .lte('starts_at', `${endDate}T23:59:59`);
+
+  if (eventsError) {
+    return { events: [], error: eventsError };
+  }
+
+  // Fetch personal bookings (where member is host)
+  const { data: hostBookings, error: bookingsError } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('host_id', memberId)
+    .in('status', ['confirmed', 'pending'])
+    .gte('starts_at', `${startDate}T00:00:00`)
+    .lte('starts_at', `${endDate}T23:59:59`);
+
+  if (bookingsError) {
+    return { events: [], error: bookingsError };
+  }
+
+  let memberCalendarItems = [];
+  try {
+    const { items, error: itemsError } = await fetchMemberCalendarItems({
+      memberId,
+      startDate,
+      endDate,
+      supabase,
+    });
+
+    if (itemsError) {
+      console.error("Member calendar items fetch error:", normalizeError(itemsError));
+    } else {
+      memberCalendarItems = items;
+    }
+  } catch (error) {
+    console.error("Member calendar items fetch failed:", normalizeError(error));
+    memberCalendarItems = [];
+  }
+
+  // Fetch external calendar events (wrapped in try-catch in case table doesn't exist yet)
+  let externalEvents = [];
+  let warning = null;
+  try {
+    const {
+      rows: extEvents,
+      error: extError,
+      unavailable: externalEventsUnavailable,
+    } = await queryExternalCalendarEventRows({
+      memberId,
+      startDate,
+      endDate,
+      supabase,
+    });
+
+    if (extError) {
+      warning = EXTERNAL_EVENTS_WARNING;
+      console.error("External calendar events fetch error:", normalizeError(extError));
+    } else if (extEvents) {
+      externalEvents = extEvents;
+      if (externalEventsUnavailable) {
+        warning = EXTERNAL_EVENTS_WARNING;
+      }
+    }
+  } catch (error) {
+    warning = EXTERNAL_EVENTS_WARNING;
+    console.error("External calendar events fetch failed:", normalizeError(error));
+    externalEvents = [];
+  }
+
+  await ensureAdminEventRsvps({
+    communityEvents: communityEvents || [],
+    isAdmin,
+    memberId,
+    supabase,
+  });
+
+  const communityEventIds = (communityEvents || []).map((event) => event.id);
+  let rsvpedEventIds = new Set();
+
+  if (communityEventIds.length > 0) {
+    const { data: memberRsvps, error: memberRsvpError } = await supabase
+      .from('event_rsvps')
+      .select('event_id')
+      .eq('user_id', memberId)
+      .in('event_id', communityEventIds);
+
+    if (!memberRsvpError) {
+      rsvpedEventIds = new Set((memberRsvps || []).map((row) => row.event_id));
+    }
+  }
+
+  // Transform and combine events
+  const events = buildCalendarFeedEvents({
+    communityEvents: communityEvents || [],
+    hostBookings: hostBookings || [],
+    memberCalendarItems,
+    externalEvents,
+    rsvpedEventIds,
+  });
+
+  return { events, error: null, warning };
+}
+
+/**
+ * Get calendar statistics for a member
+ * @param {Object} params
+ * @param {string} params.memberId - Member UUID
+ * @param {Object} params.supabase - Supabase client
+ * @returns {Promise<{stats: Object, error: Error}>}
+ */
+export async function fetchCalendarStats({ memberId, supabase }) {
+  const now = new Date().toISOString();
+
+  // Count upcoming bookings
+  const { count: upcomingCount, error: upcomingError } = await supabase
+    .from('bookings')
+    .select('*', { count: 'exact', head: true })
+    .eq('host_id', memberId)
+    .in('status', ['confirmed', 'pending'])
+    .gte('starts_at', now);
+
+  // Count connected calendars
+  const { count: connectedCount, error: connectedError } = await supabase
+    .from('calendar_connections')
+    .select('*', { count: 'exact', head: true })
+    .eq('member_id', memberId)
+    .eq('is_active', true);
+
+  // Count total bookings this month
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { count: monthCount, error: monthError } = await supabase
+    .from('bookings')
+    .select('*', { count: 'exact', head: true })
+    .eq('host_id', memberId)
+    .eq('status', 'confirmed')
+    .gte('starts_at', startOfMonth.toISOString());
+
+  // Count external events (wrapped in try-catch in case table doesn't exist yet)
+  let externalEventsCount = 0;
+  try {
+    const { count, error: extError } = await supabase
+      .from('external_calendar_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('member_id', memberId)
+      .gte('starts_at', now);
+    
+    if (!extError && count !== null) {
+      externalEventsCount = count;
+    }
+  } catch (e) {
+    // External events table might not exist yet, use 0
+    externalEventsCount = 0;
+  }
+
+  return {
+    stats: {
+      upcomingBookings: upcomingCount || 0,
+      connectedCalendars: connectedCount || 0,
+      bookingsThisMonth: monthCount || 0,
+      externalEvents: externalEventsCount,
+    },
+    error: upcomingError || connectedError || monthError,
+  };
+}

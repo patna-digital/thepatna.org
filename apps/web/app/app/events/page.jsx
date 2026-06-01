@@ -1,54 +1,73 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { MemberEventsClient } from "@/components/member-events-client";
+import { MemberEventSubmissionsPanel } from "@/components/member-event-submissions-panel";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
+import { fetchMemberEventSubmissions } from "@/lib/event-submissions";
 import { fetchMemberEvents } from "@/lib/events";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 
-export default async function MemberEventsPage() {
-  const { user, supabase } = await getCurrentUserContext({
+export default async function MemberEventsPage({ searchParams }) {
+  const t = await getTranslations();
+  const { user, supabase, isAdmin } = await getCurrentUserContext({
     includeProfile: false,
-    includeRoles: false,
+    includeRoles: true,
   });
 
   if (!user || !supabase) {
     redirect("/auth/login?next=/app/events");
   }
 
-  const [frameData, memberEventsResult] = await Promise.all([
+  const resolvedSearchParams = await searchParams;
+  const notice =
+    typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
+  const [frameData, memberEventsResult, submissionsResult] = await Promise.all([
     fetchMemberWorkspaceFrameData({ supabase, userId: user.id }),
-    fetchMemberEvents({ supabase }),
+    fetchMemberEvents({ supabase, memberId: user.id, isAdmin }),
+    isAdmin
+      ? Promise.resolve({ submissions: [], error: null })
+      : fetchMemberEventSubmissions({ supabase, memberId: user.id }),
   ]);
 
-  if (frameData.error || !frameData.member) {
-    redirect("/app/profile");
-  }
+  // Allow navigation even with incomplete profile
+  const sidebarUser = frameData.sidebarUser || null;
 
   return (
     <MemberWorkspaceShell
-      eyebrow="Calendar"
+      eyebrow={t("appEvents.eyebrow")}
       headerActions={(
-        <>
-          <Link className="secondary-button" href="/events">
-            Public archive
-          </Link>
-          <Link className="primary-button" href="/contact">
-            Submit an event
-          </Link>
-        </>
+        <Link className="primary-button" href={isAdmin ? "/admin/events/new" : "/app/events/submit"}>
+          {t("appEvents.btnSubmit")}
+        </Link>
       )}
-      sidebarUser={frameData.sidebarUser}
-      subtitle="Workshops, summits, and coordination meetings across the live PATNA events register, organised into upcoming, past, and still-to-be-confirmed records."
-      title="Events"
+      notificationUserId={user?.id ?? null}
+      sidebarUser={sidebarUser}
+      subtitle={t("appEvents.subtitle")}
+      title={t("appEvents.title")}
     >
+      {notice === "submitted" ? <p className="form-success">{t("appEvents.submitSuccess")}</p> : null}
       {memberEventsResult.error ? (
         <article className="dashboard-card member-module-card">
-          <h3>Live sync warning</h3>
+          <h3>{t("appEvents.warningTitle")}</h3>
           <p className="member-section-copy">
-            The live events register could not be refreshed, so you are seeing the current fallback archive instead.
+            {t("appEvents.warningText")}
           </p>
         </article>
+      ) : null}
+      {!isAdmin ? (
+        <>
+          {submissionsResult.error ? (
+            <article className="dashboard-card member-module-card">
+              <h3>{t("appEvents.submissionStatusUnavailableTitle")}</h3>
+              <p className="member-section-copy">
+                {t("appEvents.submissionStatusUnavailableText")}
+              </p>
+            </article>
+          ) : null}
+          <MemberEventSubmissionsPanel submissions={submissionsResult.submissions} />
+        </>
       ) : null}
       <MemberEventsClient events={memberEventsResult.events} />
     </MemberWorkspaceShell>
