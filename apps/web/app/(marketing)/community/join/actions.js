@@ -1,5 +1,8 @@
 "use server";
 
+import crypto from "node:crypto";
+import { sendAccessSetupEmail } from "@/lib/access-emails";
+import { provisionMemberFromApplication } from "@/lib/member-provisioning";
 import { syncCommunityApplicationAssistantDocument } from "@/lib/assistant-indexing";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -92,7 +95,90 @@ export async function submitCommunityApplicationAction(_previousState, formData)
   if (applicationError || !application?.id) {
     return {
       status: "error",
-      message: applicationError.message,
+      message: applicationError?.message || "Failed to submit application.",
+    };
+  }
+
+  // Check if this applicant is pre-approved as an admin
+  const { data: preApproval } = await supabase
+    .from("pre_approved_admins")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (preApproval) {
+    try {
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      const { userId, deliveryMethod } = await sendAccessSetupEmail({
+        adminClient: supabase,
+        email,
+        profileId: existingProfile?.id || "",
+      });
+
+      if (!userId) throw new Error("sendAccessSetupEmail returned no userId");
+
+      await provisionMemberFromApplication({
+        adminClient: supabase,
+        application: {
+          id: application.id,
+          submitted_by_email: email,
+          first_name: firstName,
+          surname,
+          phone_number: phoneNumber || null,
+          country: country || null,
+          organisation: organisation || null,
+          role_title: roleTitle || null,
+          motivation_text: motivationText,
+          expertise_slugs: nextExpertiseSlugs,
+          expertise_other_text: expertiseOtherText || null,
+          engagement_slugs: nextEngagementSlugs,
+          engagement_other_text: engagementOtherText || null,
+          status: "approved",
+          source: "patna_web_form",
+        },
+        defaultOnboardingStatus: existingProfile ? "" : "invited",
+        email,
+        userId,
+      });
+
+      await supabase
+        .from("profiles")
+        .upsert({ id: userId, email, invited_at: new Date().toISOString() }, { onConflict: "id" });
+
+      await supabase.from("invites").insert({
+        user_id: userId,
+        created_by_user_id: null,
+        email,
+        invite_token: crypto.randomUUID(),
+        expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date().toISOString(),
+        invite_type: "application_approval",
+        delivery_method: deliveryMethod,
+      });
+
+      await supabase
+        .from("community_applications")
+        .update({ status: "approved" })
+        .eq("id", application.id);
+
+      await supabase
+        .from("user_roles")
+        .upsert({ user_id: userId, role: "administrator" }, { onConflict: "user_id,role" });
+
+      await supabase.from("pre_approved_admins").delete().eq("email", email);
+    } catch (autoApproveError) {
+      console.error("Pre-approved admin auto-approve error:", autoApproveError);
+      // Non-fatal: application is submitted, can be reviewed manually
+    }
+
+    return {
+      status: "success",
+      message: "Your application has been received. You'll get an email with your access link shortly.",
     };
   }
 
