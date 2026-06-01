@@ -106,6 +106,19 @@
 
 ---
 
+### Feature: F-01-5 — Homepage Section Redesign & Copy Refresh
+
+Based on the May 2026 site audit (PATNA Website Copy Recommendations v1.0).
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-01-16 | As a visitor, I want to see PATNA's Vision and Mission statements alongside Our Story narrative on the homepage, accompanied by a group photo, so that I immediately understand what the organisation stands for and why it was founded. | P1 | M | ✅ Done |
+| US-01-17 | As a visitor, I want a clean stats band showing 100+ member network, 25 countries, 4 expert cohorts, and 3 flagship programmes so that PATNA's scale is communicated with clarity and credibility. | P1 | S | ✅ Done |
+| US-01-18 | As a visitor, I want to see PATNA's four expert cohorts presented as individual cards with icons and descriptions so that I understand the professional disciplines that make up the network before reaching the member cards. | P1 | M | ✅ Done |
+| US-01-19 | As a visitor, I want the LEAP Phase III project card to display as "LEAP Phase III" (not "LEAP Phase III / ORCA Africa 2026") so that project naming is consistent with Phases I and II. | P2 | S | ✅ Done |
+
+---
+
 ## EP-02: Auth & Onboarding
 
 **Goal:** Deliver a secure, invite-only access flow that takes a successful applicant from email invitation to a fully set-up member profile.
@@ -608,11 +621,11 @@
 
 | Status | Story Count |
 |---|---|
-| ✅ Done | 110 |
+| ✅ Done | 114 |
 | ⚙️ In Progress | 3 |
 | 📋 Planned | 14 |
 | 🔲 Backlog | 23 |
-| **Total** | **150** |
+| **Total** | **154** |
 
 ### Priority Backlog (Planned + Backlog, P0–P1 only)
 
@@ -663,3 +676,4 @@ Legend: ████ = Shipped  ⚙⚙ = In Progress  ░░░░ = Planned/Bac
 | 1.1 | May 2026 | Engineering | Completed F-08-3: delete, column sort, badge counts, i18n in pipeline tables; added detail/edit pages for partnership and collaboration leads; replaced mailto links with structured web forms on all three /work-with-us pages (F-01-2 improvement) |
 | 1.2 | Jun 2026 | Engineering | Added F-08-8 (Partnership Leads Consolidation): unified /admin/leads page replacing 3 separate pipelines; contact person column; source/status filters; real admin assignment dropdown (lib/admin-users.js); improved detail page sidebar with contact card; fixed /new pages missing DashboardShell and hardcoded notice bug; all delete/cancel redirects → /admin/leads. Added F-08-9 (Admin Shell & Nav Refresh): breadcrumb nav on all admin pages; removed "Navigate across PATNA" cross-nav footer; Partnerships nav = Partners + Leads; Website under Tools with collapsible sections (Community Snapshot, Featured Partners, People inline); featured partners toggle; ServiceRequestForm useFormStatus bug fixed. |
 | 1.3 | Jun 2026 | Engineering | Added F-05-4 (Legacy Publications Migration & Admin Controls — US-05-13–16): migration 0057 seeds 14 legacy publications from decommissioned thepatna.org/resources with canonical published_at dates, real summaries, SEO meta descriptions, external cover images, and PDF attachment links; ON CONFLICT strategy preserves manually edited data while filling empty fields; needs_review boolean column added — all seeded records flagged for admin follow-up; admin nav badge counts flagged publications; insight-form exposes editable published_at (datetime-local) and needs_review checkbox with warning styling. Added breadcrumb trail (Home › Publications › Title) and prev/next navigation on both the marketing and community app publication detail pages. Updated homepage hero video to latest version from Supabase storage. Cleaned up priority backlog table — removed stale Done entries (US-10-01–04, US-10-10, US-08-19). Story count: 110 Done (+4), 150 total (+4). |
+| 1.4 | Jun 2026 | Engineering | Added F-01-5 (Homepage Section Redesign & Copy Refresh — US-01-16–19): removed 3-pillar Value Prop section; replaced About section with Vision/Mission tag rows, Our Story paragraph, and group photo slot (two-column layout); added standalone Stats band (100+ member network · 25 countries · 4 expert cohorts · 3 flagship programmes); added dedicated 4-card Cohorts section with inline SVG icons; removed cohort pills from Community snapshot section; updated en.json with copy from May 2026 site audit; removed "ORCA Africa 2026" from LEAP Phase III name and Dr Oluteye bio for naming consistency. Full responsive CSS (1024/900/600px). Story count: 114 Done (+4), 154 total (+4). |
