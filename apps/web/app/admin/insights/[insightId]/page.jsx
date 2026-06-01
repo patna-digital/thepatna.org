@@ -1,15 +1,24 @@
 import Link from "next/link";
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
-import { requireAdminContext } from "@/lib/supabase/access";
+import { requirePublicationManagerContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchInsightBySlug, fetchInsightTags } from "@/lib/insights";
 import { InsightForm } from "../components/insight-form";
 import { updateInsightAction } from "./actions";
+import { addInsightGalleryImageAction, removeInsightGalleryImageAction } from "./gallery-actions";
+import { GalleryManager } from "@/components/admin/gallery-manager";
+import {
+  addInsightAttachmentAction,
+  removeInsightAttachmentAction,
+  setPrimaryInsightAttachmentAction,
+} from "./attachment-actions";
+import { PublicationFilesManager } from "@/components/admin/publication-files-manager";
+import { orderPublicationAttachments } from "@/lib/publication-attachments";
 
 export default async function EditInsightPage({ params }) {
-  const { user, supabase } = await requireAdminContext();
+  await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
   const { insightId } = await params;
 
@@ -20,7 +29,7 @@ export default async function EditInsightPage({ params }) {
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(insightId);
   
   if (isUUID) {
-    const { data, error } = await adminClient
+    const { data } = await adminClient
       .from("content_items")
       .select(`
         *,
@@ -34,7 +43,7 @@ export default async function EditInsightPage({ params }) {
       insight = {
         ...data,
         tags: data.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || [],
-        attachments: data.content_attachments || [],
+        attachments: orderPublicationAttachments(data.content_attachments || []),
       };
     }
   } else {
@@ -51,7 +60,16 @@ export default async function EditInsightPage({ params }) {
     notFound();
   }
 
-  const { tags, error: tagsError } = await fetchInsightTags({ supabase: adminClient });
+  const [{ tags, error: tagsError }, galleryResult] = await Promise.all([
+    fetchInsightTags({ supabase: adminClient }),
+    adminClient
+      .from("content_gallery")
+      .select("id, image_url, alt_text, caption, sort_order")
+      .eq("content_id", insight.id)
+      .order("sort_order"),
+  ]);
+
+  const galleryImages = galleryResult.data || [];
 
   if (tagsError) {
     console.error("Failed to fetch tags:", tagsError);
@@ -115,28 +133,16 @@ export default async function EditInsightPage({ params }) {
             </div>
           </div>
 
-          {insight.attachments?.length > 0 && (
-            <div className="dashboard-card">
-              <h3>Attachments</h3>
-              <div className="insight-attachments-list">
-                {insight.attachments.map((attachment) => (
-                  <div key={attachment.id} className="insight-attachment-item">
-                    <a
-                      href={attachment.file_url}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      📎 {attachment.title}
-                    </a>
-                  </div>
-                ))}
-              </div>
-              <p className="field-hint">
-                Attachments are managed separately.
-              </p>
-            </div>
-          )}
-
+          <div className="dashboard-card">
+            <PublicationFilesManager
+              addAction={addInsightAttachmentAction}
+              attachments={insight.attachments || []}
+              contentId={insight.id}
+              removeAction={removeInsightAttachmentAction}
+              setPrimaryAction={setPrimaryInsightAttachmentAction}
+              slug={insight.slug}
+            />
+          </div>
           <div className="dashboard-card">
             <h3>Quick links</h3>
             <div className="content-meta stack" style={{ gap: "0.5rem" }}>
@@ -147,6 +153,16 @@ export default async function EditInsightPage({ params }) {
                 View in app ↗
               </Link>
             </div>
+          </div>
+
+          <div className="dashboard-card">
+            <GalleryManager
+              addAction={addInsightGalleryImageAction}
+              contentId={insight.id}
+              contentIdFieldName="content_id"
+              galleryImages={galleryImages}
+              removeAction={removeInsightGalleryImageAction}
+            />
           </div>
         </aside>
       </div>

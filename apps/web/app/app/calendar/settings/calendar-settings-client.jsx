@@ -1,8 +1,24 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateBookingSettings } from "../actions";
+import {
+  getGoogleCalendarAccessLabel,
+  isKnownReadOnlyGoogleCalendar,
+  isGoogleCalendarWriteCapable,
+  isUnknownGoogleCalendarAccess,
+} from "@/lib/calendar/google-access";
+import { setPrimaryCalendarConnection, updateBookingSettings } from "../actions";
+
+function getEligibleGoogleConnections(connections = []) {
+  return connections.filter(
+    (connection) =>
+      connection.provider === "google" &&
+      connection.is_active &&
+      connection.sync_enabled &&
+      isGoogleCalendarWriteCapable(connection),
+  );
+}
 
 function GoogleCalendarIcon() {
   return (
@@ -86,19 +102,35 @@ const PROVIDER_COLORS = {
   generic_ical: "#6B7280",
 };
 
+const PROVIDER_CAPABILITIES = {
+  google: { status: "available", label: "Live today" },
+  microsoft: { status: "available", label: "Live today" },
+  zoho: { status: "coming_soon", label: "Coming soon" },
+  generic_ical: { status: "available", label: "Live today" },
+};
+
 // Connect button component for OAuth providers
-function ConnectButton({ provider, onClick, disabled, loading }) {
+function ConnectButton({ provider, onClick, disabled, loading, status }) {
+  const capability = PROVIDER_CAPABILITIES[provider] || { status: "available", label: "Live today" };
+
   return (
     <button
       type="button"
-      className="connect-button"
+      className={`connect-button ${capability.status === "coming_soon" ? "is-coming-soon" : ""}`}
       onClick={onClick}
       disabled={disabled || loading}
       style={{ "--provider-color": PROVIDER_COLORS[provider] }}
     >
       <span className="connect-icon">{PROVIDER_ICONS[provider]}</span>
-      <span className="connect-text">
-        {loading ? "Connecting..." : `Connect ${PROVIDER_NAMES[provider]}`}
+      <span className="connect-copy">
+        <span className="connect-text">
+          {loading
+            ? "Connecting..."
+            : capability.status === "coming_soon"
+              ? `${PROVIDER_NAMES[provider]}`
+              : `Connect ${PROVIDER_NAMES[provider]}`}
+        </span>
+        <span className={`connect-status-chip ${capability.status}`}>{status || capability.label}</span>
       </span>
     </button>
   );
@@ -157,7 +189,12 @@ function ICalConnectForm({ onConnect, disabled }) {
 // Connected calendar item with sync controls
 function ConnectedCalendarItem({ connection, onSync, onDisconnect, onToggleSync }) {
   const [isSyncing, setIsSyncing] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const isReadOnlyGoogleCalendar =
+    connection.provider === "google" && isKnownReadOnlyGoogleCalendar(connection);
+  const isUnknownGoogleCalendar =
+    connection.provider === "google" && isUnknownGoogleCalendarAccess(connection);
+  const googleAccessLabel =
+    connection.provider === "google" ? getGoogleCalendarAccessLabel(connection) : "";
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -178,8 +215,14 @@ function ConnectedCalendarItem({ connection, onSync, onDisconnect, onToggleSync 
           {PROVIDER_ICONS[connection.provider] || "📅"}
         </div>
         <div className="calendar-provider-info">
-          <strong>{connection.calendar_name || PROVIDER_NAMES[connection.provider]}</strong>
+          <strong>
+            {connection.calendar_name || PROVIDER_NAMES[connection.provider]}
+            {connection.is_primary_calendar ? <span className="primary-calendar-badge">Booking destination</span> : null}
+            {isReadOnlyGoogleCalendar ? <span className="calendar-access-badge">Read-only</span> : null}
+            {isUnknownGoogleCalendar ? <span className="calendar-access-badge">Access unknown</span> : null}
+          </strong>
           <span>{connection.provider_account_email || "iCal Feed"}</span>
+          {googleAccessLabel ? <span>Access: {googleAccessLabel}</span> : null}
           <span className="sync-meta">
             Last synced: {lastSynced}
             {connection.event_count > 0 && ` • ${connection.event_count} events`}
@@ -225,10 +268,21 @@ function ConnectedCalendarItem({ connection, onSync, onDisconnect, onToggleSync 
   );
 }
 
-function BookingSettingsForm({ initialSettings, memberId }) {
+function BookingSettingsForm({
+  initialSettings,
+  memberId,
+  connections,
+  onMessage,
+  onPrimaryCalendarChange,
+}) {
   const router = useRouter();
+  const [siteOrigin, setSiteOrigin] = useState(
+    initialSettings?.public_booking_url?.split("/book/")[0] || "",
+  );
   const [settings, setSettings] = useState({
     public_booking_enabled: initialSettings?.public_booking_enabled || false,
+    public_booking_url_slug: initialSettings?.public_booking_url_slug || "",
+    public_booking_url: initialSettings?.public_booking_url || "",
     default_meeting_duration: initialSettings?.default_meeting_duration || 30,
     minimum_notice_hours: initialSettings?.minimum_notice_hours || 24,
     maximum_booking_days_ahead: initialSettings?.maximum_booking_days_ahead || 30,
@@ -238,11 +292,48 @@ function BookingSettingsForm({ initialSettings, memberId }) {
     cancellation_policy: initialSettings?.cancellation_policy || "",
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingDestination, setIsSavingDestination] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const eligibleGoogleConnections = getEligibleGoogleConnections(connections);
+  const readOnlyGoogleConnections = connections.filter(
+    (connection) =>
+      connection.provider === "google" &&
+      connection.is_active &&
+      connection.sync_enabled &&
+      isKnownReadOnlyGoogleCalendar(connection),
+  );
+  const unknownAccessGoogleConnections = connections.filter(
+    (connection) =>
+      connection.provider === "google" &&
+      connection.is_active &&
+      connection.sync_enabled &&
+      isUnknownGoogleCalendarAccess(connection),
+  );
+  const activePrimaryConnection =
+    eligibleGoogleConnections.find((connection) => connection.is_primary_calendar) || null;
+  const currentPrimaryConnection =
+    connections.find((connection) => connection.provider === "google" && connection.is_primary_calendar) || null;
+  const currentPrimaryIsReadOnly =
+    currentPrimaryConnection && isKnownReadOnlyGoogleCalendar(currentPrimaryConnection);
+  const currentPrimaryAccessUnknown =
+    currentPrimaryConnection && isUnknownGoogleCalendarAccess(currentPrimaryConnection);
+  const [selectedConnectionId, setSelectedConnectionId] = useState(
+    activePrimaryConnection?.id || eligibleGoogleConnections[0]?.id || "",
+  );
+  const showBlockingDestinationWarning =
+    settings.public_booking_enabled && !activePrimaryConnection;
 
   const handleChange = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
+
+  useEffect(() => {
+    setSiteOrigin(window.location.origin);
+  }, []);
+
+  useEffect(() => {
+    setSelectedConnectionId(activePrimaryConnection?.id || eligibleGoogleConnections[0]?.id || "");
+  }, [activePrimaryConnection?.id, eligibleGoogleConnections]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -253,6 +344,12 @@ function BookingSettingsForm({ initialSettings, memberId }) {
 
     setIsSaving(false);
     if (result.success) {
+      setSettings((prev) => ({
+        ...prev,
+        ...result.settings,
+        public_booking_url: result.settings?.public_booking_url || prev.public_booking_url,
+        public_booking_url_slug: result.settings?.public_booking_url_slug || prev.public_booking_url_slug,
+      }));
       setSaveMessage("Settings saved successfully!");
       router.refresh();
     } else {
@@ -260,8 +357,33 @@ function BookingSettingsForm({ initialSettings, memberId }) {
     }
   };
 
-  const publicBookingUrl = initialSettings?.public_booking_url_slug
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/book/${initialSettings.public_booking_url_slug}`
+  const handlePrimaryDestinationSave = async () => {
+    if (!selectedConnectionId) {
+      return;
+    }
+
+    setIsSavingDestination(true);
+    setSaveMessage("");
+
+    const result = await setPrimaryCalendarConnection(memberId, selectedConnectionId);
+
+    setIsSavingDestination(false);
+
+    if (result.success) {
+      onPrimaryCalendarChange?.(result.connection.id);
+      onMessage?.("Booking destination calendar saved.", "success");
+      setSaveMessage("Booking destination saved successfully!");
+      router.refresh();
+      return;
+    }
+
+    const errorMessage = `Error: ${result.error}`;
+    onMessage?.(errorMessage, "error");
+    setSaveMessage(errorMessage);
+  };
+
+  const publicBookingUrl = settings.public_booking_url_slug
+    ? `${siteOrigin || ""}/book/${settings.public_booking_url_slug}`
     : null;
 
   const handleCopyUrl = () => {
@@ -290,6 +412,74 @@ function BookingSettingsForm({ initialSettings, memberId }) {
         </span>
       </div>
 
+      <div className="form-group full-width">
+        <label htmlFor="booking_destination_calendar">Booking destination calendar</label>
+        {eligibleGoogleConnections.length > 0 ? (
+          <div className="booking-destination-row">
+            <select
+              id="booking_destination_calendar"
+              className="booking-destination-select"
+              onChange={(event) => setSelectedConnectionId(event.target.value)}
+              value={selectedConnectionId}
+            >
+              {eligibleGoogleConnections.map((connection) => (
+                <option key={connection.id} value={connection.id}>
+                  {connection.calendar_name || "Google Calendar"}
+                  {connection.provider_account_email ? ` · ${connection.provider_account_email}` : ""}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="secondary-button form-inline-action"
+              disabled={
+                isSavingDestination ||
+                !selectedConnectionId ||
+                selectedConnectionId === activePrimaryConnection?.id
+              }
+              onClick={handlePrimaryDestinationSave}
+            >
+              {isSavingDestination ? "Saving…" : "Save destination"}
+            </button>
+          </div>
+        ) : (
+          <div className="booking-destination-empty">
+            {readOnlyGoogleConnections.length > 0 || unknownAccessGoogleConnections.length > 0
+              ? "No writable Google calendars are available right now. Choose a different Google calendar or sync or reconnect Google to refresh permissions."
+              : "Connect Google Calendar and choose a writable calendar with sync enabled to receive PATNA bookings."}
+          </div>
+        )}
+        <span className="form-hint">
+          Public bookings are written to this Google calendar. PATNA creates the Google event, invites attendees, and mirrors the meeting link back into the booking.
+        </span>
+        {readOnlyGoogleConnections.length > 0 ? (
+          <span className="form-hint">
+            Read-only Google calendars cannot receive PATNA bookings:{" "}
+            {readOnlyGoogleConnections.map((connection) => connection.calendar_name || "Google Calendar").join(", ")}.
+          </span>
+        ) : null}
+        {unknownAccessGoogleConnections.length > 0 ? (
+          <span className="form-hint">
+            PATNA still needs to confirm access for these Google calendars:{" "}
+            {unknownAccessGoogleConnections.map((connection) => connection.calendar_name || "Google Calendar").join(", ")}.
+            Sync or reconnect Google before using one for bookings.
+          </span>
+        ) : null}
+      </div>
+
+      {showBlockingDestinationWarning ? (
+        <div className="booking-destination-warning">
+          Public booking is enabled, but no writable Google destination calendar is selected.
+          {currentPrimaryConnection && !currentPrimaryConnection.sync_enabled
+            ? " Resume sync on the current destination or choose another writable Google calendar."
+            : currentPrimaryIsReadOnly
+              ? " The current destination is read-only, so PATNA cannot write bookings into it."
+              : currentPrimaryAccessUnknown
+                ? " PATNA could not confirm write access for the current destination yet. Sync or reconnect Google to refresh permissions."
+              : " Choose a synced writable Google calendar before sharing your booking page."}
+        </div>
+      ) : null}
+
       {settings.public_booking_enabled && publicBookingUrl && (
         <div className="form-group full-width">
           <label>Your public booking URL</label>
@@ -302,9 +492,34 @@ function BookingSettingsForm({ initialSettings, memberId }) {
             >
               Copy
             </button>
+            <a className="secondary-button" href={publicBookingUrl} rel="noreferrer" target="_blank">
+              Open page
+            </a>
           </div>
         </div>
       )}
+
+      <div className="form-group full-width">
+        <label htmlFor="public_booking_url_slug">Public booking link</label>
+        <div className="slug-field-row">
+          <span className="slug-prefix">
+            {siteOrigin ? `${siteOrigin}/book/` : "/book/"}
+          </span>
+          <input
+            id="public_booking_url_slug"
+            type="text"
+            value={settings.public_booking_url_slug}
+            onChange={(e) => handleChange("public_booking_url_slug", e.target.value)}
+            placeholder="your-name"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
+          />
+        </div>
+        <span className="form-hint">
+          We’ll normalize this to a clean, shareable URL and keep it unique across PATNA.
+        </span>
+      </div>
 
       <div className="form-row">
         <div className="form-group">
@@ -433,17 +648,42 @@ function BookingSettingsForm({ initialSettings, memberId }) {
   );
 }
 
-export function CalendarSettingsClient({ connections: initialConnections, settings, memberId }) {
+export function CalendarSettingsClient({
+  connections: initialConnections,
+  settings,
+  memberId,
+  initialMessage = "",
+  initialMessageTone = "success",
+}) {
   const [connections, setConnections] = useState(initialConnections || []);
   const [isConnecting, setIsConnecting] = useState(false);
   const [activeProvider, setActiveProvider] = useState(null);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage);
+  const [messageTone, setMessageTone] = useState(initialMessageTone);
+
+  const handlePrimaryCalendarChange = (connectionId) => {
+    setConnections((prev) =>
+      prev.map((connection) => ({
+        ...connection,
+        is_primary_calendar: connection.provider === "google" && connection.id === connectionId,
+      })),
+    );
+  };
 
   // Initiate OAuth connection
   const handleConnect = async (provider, options = {}) => {
+    const capability = PROVIDER_CAPABILITIES[provider] || { status: "available" };
+
+    if (capability.status === "coming_soon") {
+      setMessage(`${PROVIDER_NAMES[provider]} is coming soon. Google, Outlook, and iCal are available now.`);
+      setMessageTone("warning");
+      return;
+    }
+
     setIsConnecting(true);
     setActiveProvider(provider);
     setMessage("");
+    setMessageTone("success");
 
     try {
       const response = await fetch("/api/calendar/auth", {
@@ -472,9 +712,11 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
       if (data.success && data.connection) {
         setConnections((prev) => [...prev, data.connection]);
         setMessage(`Successfully imported ${data.eventsImported} events`);
+        setMessageTone("success");
       }
     } catch (error) {
       setMessage(`Error: ${error.message}`);
+      setMessageTone("error");
     } finally {
       setIsConnecting(false);
       setActiveProvider(null);
@@ -506,11 +748,14 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
 
       if (data.success) {
         setMessage(`Sync completed: ${data.stats.eventsCreated} new, ${data.stats.eventsUpdated} updated`);
+        setMessageTone("success");
       } else {
         setMessage(`Sync completed with errors: ${data.error?.message || "Unknown error"}`);
+        setMessageTone("warning");
       }
     } catch (error) {
       setMessage(`Sync error: ${error.message}`);
+      setMessageTone("error");
     }
   };
 
@@ -525,8 +770,16 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
       // Call the server action
       const { toggleCalendarSync } = await import("../actions");
       await toggleCalendarSync(connectionId, enabled);
+
+      const toggledConnection = connections.find((connection) => connection.id === connectionId);
+
+      if (!enabled && toggledConnection?.is_primary_calendar) {
+        setMessage("Booking destination paused. Resume sync or choose another Google calendar before sharing your booking page.");
+        setMessageTone("warning");
+      }
     } catch (error) {
       setMessage(`Error: ${error.message}`);
+      setMessageTone("error");
       // Revert on error
       setConnections((prev) =>
         prev.map((c) => (c.id === connectionId ? { ...c, sync_enabled: !enabled } : c))
@@ -552,8 +805,10 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
 
       setConnections((prev) => prev.filter((c) => c.id !== connectionId));
       setMessage("Calendar disconnected successfully");
+      setMessageTone("success");
     } catch (error) {
       setMessage(`Error: ${error.message}`);
+      setMessageTone("error");
     }
   };
 
@@ -576,18 +831,21 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
               onClick={() => handleConnect("google")}
               disabled={isConnecting}
               loading={activeProvider === "google"}
+              status={PROVIDER_CAPABILITIES.google.label}
             />
             <ConnectButton
               provider="microsoft"
               onClick={() => handleConnect("microsoft")}
               disabled={isConnecting}
               loading={activeProvider === "microsoft"}
+              status={PROVIDER_CAPABILITIES.microsoft.label}
             />
             <ConnectButton
               provider="zoho"
               onClick={() => handleConnect("zoho")}
               disabled={isConnecting}
               loading={activeProvider === "zoho"}
+              status={PROVIDER_CAPABILITIES.zoho.label}
             />
           </div>
 
@@ -601,7 +859,7 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           </div>
 
           {message && (
-            <div className={`sync-message ${message.includes("Error") ? "error" : "success"}`}>
+            <div className={`sync-message ${messageTone}`}>
               {message}
             </div>
           )}
@@ -641,7 +899,16 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           <p className="settings-section-description">
             Configure how others can book time with you
           </p>
-          <BookingSettingsForm initialSettings={settings} memberId={memberId} />
+          <BookingSettingsForm
+            connections={connections}
+            initialSettings={settings}
+            memberId={memberId}
+            onMessage={(nextMessage, tone = "success") => {
+              setMessage(nextMessage);
+              setMessageTone(tone);
+            }}
+            onPrimaryCalendarChange={handlePrimaryCalendarChange}
+          />
         </div>
       </section>
 
@@ -706,6 +973,10 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           transition: all 160ms ease;
         }
 
+        .connect-button.is-coming-soon {
+          border-style: dashed;
+        }
+
         .connect-button:hover:not(:disabled) {
           border-color: var(--provider-color, var(--border-strong));
           background: linear-gradient(135deg, var(--provider-color, var(--surface)) 0%, transparent 100%);
@@ -723,6 +994,32 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           display: flex;
           align-items: center;
           flex-shrink: 0;
+        }
+
+        .connect-copy {
+          display: grid;
+          gap: 0.2rem;
+          text-align: left;
+        }
+
+        .connect-status-chip {
+          width: fit-content;
+          padding: 0.18rem 0.45rem;
+          border-radius: 999px;
+          font-size: 0.68rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .connect-status-chip.available {
+          background: rgba(5, 150, 105, 0.12);
+          color: #065f46;
+        }
+
+        .connect-status-chip.coming_soon {
+          background: rgba(217, 119, 6, 0.16);
+          color: #92400e;
         }
 
         .ical-section {
@@ -805,6 +1102,11 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           color: #991b1b;
         }
 
+        .sync-message.warning {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
         .connected-calendars-section {
           margin-top: 1.5rem;
           padding-top: 1.5rem;
@@ -868,6 +1170,34 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           font-size: var(--text-sm);
           color: var(--ink);
           margin-bottom: 0.25rem;
+        }
+
+        .primary-calendar-badge {
+          display: inline-flex;
+          align-items: center;
+          margin-left: 0.5rem;
+          padding: 0.1rem 0.45rem;
+          border-radius: 999px;
+          background: rgba(15, 58, 138, 0.12);
+          color: var(--blue-dark);
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          vertical-align: middle;
+        }
+
+        .calendar-access-badge {
+          display: inline-flex;
+          align-items: center;
+          margin-left: 0.5rem;
+          padding: 0.1rem 0.45rem;
+          border-radius: 999px;
+          background: rgba(239, 68, 68, 0.12);
+          color: #b91c1c;
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          vertical-align: middle;
         }
 
         .calendar-provider-info span {
@@ -1012,6 +1342,39 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           color: var(--ink-soft);
         }
 
+        .booking-destination-row {
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .booking-destination-select {
+          flex: 1;
+          min-width: 260px;
+        }
+
+        .form-inline-action {
+          white-space: nowrap;
+        }
+
+        .booking-destination-empty,
+        .booking-destination-warning {
+          padding: 0.9rem 1rem;
+          border-radius: var(--radius-md);
+          font-size: var(--text-sm);
+        }
+
+        .booking-destination-empty {
+          background: var(--surface);
+          border: 1px dashed var(--border-strong);
+          color: var(--ink-muted);
+        }
+
+        .booking-destination-warning {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
         .toggle-switch {
           display: flex;
           align-items: center;
@@ -1057,6 +1420,7 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
         .public-url-display {
           display: flex;
           align-items: center;
+          flex-wrap: wrap;
           gap: 0.75rem;
           padding: 0.75rem 1rem;
           background: var(--surface);
@@ -1069,6 +1433,7 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           font-family: monospace;
           font-size: var(--text-sm);
           color: var(--blue-dark);
+          overflow-wrap: anywhere;
         }
 
         .copy-btn {
@@ -1087,33 +1452,44 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
           color: var(--ink);
         }
 
+        .slug-field-row {
+          display: flex;
+          align-items: center;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          background: var(--white);
+        }
+
+        .slug-prefix {
+          padding: 0.75rem 0.875rem;
+          background: var(--surface);
+          color: var(--ink-muted);
+          font-size: var(--text-sm);
+          border-right: 1px solid var(--border);
+          white-space: nowrap;
+        }
+
+        .slug-field-row input {
+          flex: 1;
+          min-width: 0;
+          padding: 0.75rem 0.875rem;
+          border: none;
+          background: transparent;
+          color: var(--ink);
+          font-size: var(--text-sm);
+        }
+
+        .slug-field-row input:focus {
+          outline: none;
+        }
+
         .form-actions {
           display: flex;
           justify-content: flex-end;
           gap: 0.75rem;
           padding-top: 1rem;
           border-top: 1px solid var(--border);
-        }
-
-        .primary-button {
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: var(--radius-md);
-          background: var(--ink);
-          color: var(--white);
-          font-size: var(--text-sm);
-          font-weight: 600;
-          cursor: pointer;
-          transition: opacity 160ms ease;
-        }
-
-        .primary-button:hover:not(:disabled) {
-          opacity: 0.9;
-        }
-
-        .primary-button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
         }
 
         .save-message {
@@ -1162,6 +1538,15 @@ export function CalendarSettingsClient({ connections: initialConnections, settin
 
           .ical-form-row input,
           .ical-form-row button {
+            width: 100%;
+          }
+
+          .booking-destination-row {
+            flex-direction: column;
+          }
+
+          .booking-destination-select,
+          .form-inline-action {
             width: 100%;
           }
 

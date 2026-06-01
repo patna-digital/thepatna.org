@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { AdminEventSubmissionsList } from "@/components/admin-event-submissions-list";
 import { AdminEventsList } from "@/components/admin-events-list";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { fetchAdminEventSubmissions } from "@/lib/event-submissions";
 import { adminNav } from "@/lib/patna-data";
 import { buildAdminEventSummary, fetchAdminEvents, filterAdminEvents } from "@/lib/events";
 import { requireAdminContext } from "@/lib/supabase/access";
@@ -28,12 +30,11 @@ function getNoticeMessage(notice) {
   return messages[notice] || "";
 }
 
-function buildEventsPath({ status, schedule, visibility, search }) {
+function buildEventsPath({ status, schedule, visibility }) {
   const params = new URLSearchParams();
   if (status && status !== "all") params.set("status", status);
   if (schedule && schedule !== "all") params.set("schedule", schedule);
   if (visibility && visibility !== "all") params.set("visibility", visibility);
-  if (search) params.set("search", search);
   const query = params.toString();
   return query ? `/admin/events?${query}` : "/admin/events";
 }
@@ -45,12 +46,14 @@ export default async function AdminEventsPage({ searchParams }) {
   const publishStatus = typeof resolvedSearchParams?.status === "string" ? resolvedSearchParams.status : "all";
   const scheduleStatus = typeof resolvedSearchParams?.schedule === "string" ? resolvedSearchParams.schedule : "all";
   const visibility = typeof resolvedSearchParams?.visibility === "string" ? resolvedSearchParams.visibility : "all";
-  const search = typeof resolvedSearchParams?.search === "string" ? resolvedSearchParams.search : "";
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
 
-  const { events, error } = await fetchAdminEvents({ supabase });
+  const [{ events, error }, submissionsResult] = await Promise.all([
+    fetchAdminEvents({ supabase }),
+    fetchAdminEventSubmissions({ supabase }),
+  ]);
   const summary = buildAdminEventSummary(events);
-  const filteredEvents = filterAdminEvents(events, { publishStatus, scheduleStatus, search, visibility });
+  const filteredEvents = filterAdminEvents(events, { publishStatus, scheduleStatus, visibility });
 
   return (
     <DashboardShell
@@ -94,7 +97,7 @@ export default async function AdminEventsPage({ searchParams }) {
             {PUBLISH_FILTERS.map((f) => (
               <Link
                 className={publishStatus === f.key ? "filter-tab active-filter" : "filter-tab"}
-                href={buildEventsPath({ status: f.key, schedule: scheduleStatus, visibility, search })}
+                href={buildEventsPath({ status: f.key, schedule: scheduleStatus, visibility })}
                 key={f.key}
               >
                 {f.label}
@@ -104,7 +107,7 @@ export default async function AdminEventsPage({ searchParams }) {
             {SCHEDULE_FILTERS.map((f) => (
               <Link
                 className={scheduleStatus === f.key ? "filter-tab filter-tab-secondary active-filter" : "filter-tab filter-tab-secondary"}
-                href={buildEventsPath({ status: publishStatus, schedule: f.key, visibility, search })}
+                href={buildEventsPath({ status: publishStatus, schedule: f.key, visibility })}
                 key={f.key}
               >
                 {f.label}
@@ -117,14 +120,6 @@ export default async function AdminEventsPage({ searchParams }) {
             <form action="/admin/events" className="inline-filter-form" style={{ flex: 1 }}>
               {publishStatus !== "all" ? <input name="status" type="hidden" value={publishStatus} /> : null}
               {scheduleStatus !== "all" ? <input name="schedule" type="hidden" value={scheduleStatus} /> : null}
-              <span className="admin-search-icon" aria-hidden="true">⌕</span>
-              <input
-                defaultValue={search}
-                name="search"
-                placeholder="Search title, institution, theme, location…"
-                style={{ flex: 1, minWidth: "220px" }}
-                type="search"
-              />
               <select defaultValue={visibility} name="visibility" style={{ maxWidth: "160px" }}>
                 <option value="all">All visibility</option>
                 <option value="public">Public</option>
@@ -147,7 +142,7 @@ export default async function AdminEventsPage({ searchParams }) {
           ) : null}
           {error ? <p className="form-error">{error.message}</p> : null}
 
-          {search || publishStatus !== "all" || scheduleStatus !== "all" || visibility !== "all" ? (
+          {publishStatus !== "all" || scheduleStatus !== "all" || visibility !== "all" ? (
             <p className="muted-note">
               Showing {filteredEvents.length} of {events.length} events.{" "}
               <Link className="text-link" href="/admin/events">Clear filters</Link>
@@ -157,6 +152,7 @@ export default async function AdminEventsPage({ searchParams }) {
       </article>
 
       <AdminEventsList events={filteredEvents} />
+      <AdminEventSubmissionsList submissions={submissionsResult.submissions} />
     </DashboardShell>
   );
 }

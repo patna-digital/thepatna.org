@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 /**
  * PublicationCard — reusable card for publications across the marketing and community apps.
@@ -10,12 +11,13 @@ import Link from "next/link";
  *  - featured: render in featured variant (larger, highlighted)
  *  - showDownload: whether to show a download button when an attachment exists
  */
-export function PublicationCard({
+export async function PublicationCard({
   publication,
   href,
   featured = false,
   showDownload = true,
 }) {
+  const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
   const {
     title,
     slug,
@@ -28,10 +30,7 @@ export function PublicationCard({
   } = publication;
 
   const cardHref = href || `/publications/${slug}`;
-  const pdfAttachment = attachments.find(
-    (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-  );
-  const typeLabel = CONTENT_TYPE_LABELS[content_type] || content_type;
+  const typeLabel = publication.contentTypeLabel || CONTENT_TYPE_LABELS[content_type] || content_type;
 
   return (
     <article className={`publication-card${featured ? " publication-card-featured" : ""}`}>
@@ -58,7 +57,7 @@ export function PublicationCard({
           </span>
           {published_at && (
             <time className="publication-card-date" dateTime={published_at}>
-              {formatDate(published_at)}
+              {formatDate(published_at, locale)}
             </time>
           )}
         </div>
@@ -73,18 +72,8 @@ export function PublicationCard({
 
         <div className="publication-card-footer">
           <Link className="publication-card-read-link" href={cardHref}>
-            Read more →
+            {t("publicationUi.readMore")}
           </Link>
-          {showDownload && pdfAttachment && (
-            <a
-              className="publication-download-btn"
-              href={pdfAttachment.file_url}
-              rel="noreferrer"
-              target="_blank"
-            >
-              ↓ Download
-            </a>
-          )}
         </div>
       </div>
     </article>
@@ -94,7 +83,8 @@ export function PublicationCard({
 /**
  * FeaturedPublicationCard — full-width hero card for the most recent/featured publication.
  */
-export function FeaturedPublicationCard({ publication, href }) {
+export async function FeaturedPublicationCard({ publication, href }) {
+  const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
   const {
     title,
     slug,
@@ -103,15 +93,11 @@ export function FeaturedPublicationCard({ publication, href }) {
     published_at,
     cover_image_url,
     cover_image_alt,
-    attachments = [],
     tags = [],
   } = publication;
 
   const cardHref = href || `/publications/${slug}`;
-  const pdfAttachment = attachments.find(
-    (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-  );
-  const typeLabel = CONTENT_TYPE_LABELS[content_type] || content_type;
+  const typeLabel = publication.contentTypeLabel || CONTENT_TYPE_LABELS[content_type] || content_type;
 
   return (
     <article className="featured-publication-card">
@@ -133,10 +119,10 @@ export function FeaturedPublicationCard({ publication, href }) {
           </span>
           {published_at && (
             <time className="publication-card-date" dateTime={published_at}>
-              {formatDate(published_at)}
+              {formatDate(published_at, locale)}
             </time>
           )}
-          <span className="featured-label">Latest</span>
+          <span className="featured-label">{t("publicationUi.latest")}</span>
         </div>
 
         <Link href={cardHref}>
@@ -155,19 +141,8 @@ export function FeaturedPublicationCard({ publication, href }) {
 
         <div className="featured-publication-actions">
           <Link className="primary-button" href={cardHref}>
-            Read publication
+            {t("publicationUi.readPublication")}
           </Link>
-          {pdfAttachment && (
-            <a
-              className="secondary-button"
-              download
-              href={pdfAttachment.file_url}
-              rel="noreferrer"
-              target="_blank"
-            >
-              ↓ Download PDF
-            </a>
-          )}
         </div>
       </div>
     </article>
@@ -200,7 +175,7 @@ const TYPE_CHIP_CLASS = {
   workshop_proceedings: "chip-neutral",
 };
 
-function formatDate(value) {
+function formatDate(value, locale = "en") {
   if (!value) return "";
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
 }

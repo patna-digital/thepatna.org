@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { formatContentType } from "@/lib/insights";
+import { useLocale, useTranslations } from "next-intl";
+import { formatContentType } from "@/lib/content-types";
 
 const TYPE_CHIP_CLASSES = {
   report: "chip-neutral",
@@ -15,15 +16,14 @@ const TYPE_CHIP_CLASSES = {
 };
 
 export function MemberPublicationsList({ publications }) {
+  const t = useTranslations();
+  const locale = useLocale();
+
   if (!publications || publications.length === 0) return null;
 
   return (
     <div className="publications-list-grid">
       {publications.map((pub) => {
-        const pdfAttachment = pub.attachments?.find(
-          (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-        );
-
         return (
           <article key={pub.id} className="publication-list-card">
             <Link
@@ -41,7 +41,7 @@ export function MemberPublicationsList({ publications }) {
                   />
                 ) : (
                   <div className="publication-card-image-placeholder">
-                    <span>{formatContentType(pub.content_type)}</span>
+                    <span>{pub.contentTypeLabel || formatContentType(pub.content_type)}</span>
                   </div>
                 )}
               </div>
@@ -52,11 +52,11 @@ export function MemberPublicationsList({ publications }) {
                 <span
                   className={`status-chip ${TYPE_CHIP_CLASSES[pub.content_type] || "chip-neutral"}`}
                 >
-                  {formatContentType(pub.content_type)}
+                  {pub.contentTypeLabel || formatContentType(pub.content_type)}
                 </span>
                 {pub.published_at && (
                   <time className="publication-card-date" dateTime={pub.published_at}>
-                    {formatDate(pub.published_at)}
+                    {formatDate(pub.published_at, locale)}
                   </time>
                 )}
               </div>
@@ -70,23 +70,18 @@ export function MemberPublicationsList({ publications }) {
               )}
 
               <div className="publication-list-card-footer">
-                {pub.tags?.slice(0, 3).map((tag) => (
+                {pub.tags?.slice(0, 2).map((tag) => (
                   <span className="status-chip chip-neutral" key={tag.slug}>
                     {tag.name}
                   </span>
                 ))}
-                {pdfAttachment && (
-                  <a
-                    className="publication-download-btn"
-                    download
-                    href={pdfAttachment.file_url}
-                    rel="noreferrer"
-                    target="_blank"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    ↓ Download
-                  </a>
-                )}
+                <Link
+                  className="publication-download-btn"
+                  href={`/app/publications/${pub.slug}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {t("publicationUi.readPublication")}
+                </Link>
               </div>
             </div>
           </article>
@@ -96,7 +91,7 @@ export function MemberPublicationsList({ publications }) {
   );
 }
 
-function formatDate(value) {
+function formatDate(value, locale = "en") {
   if (!value) return "";
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
 }

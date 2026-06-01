@@ -1,4 +1,9 @@
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import localFont from "next/font/local";
+import { Cormorant_Garamond, DM_Mono } from "next/font/google";
+import { PatnaAssistant } from "@/components/patna-assistant";
+import { isRtlLocale } from "@/lib/locales";
 import "./globals.css";
 
 const plusJakartaSans = localFont({
@@ -13,9 +18,18 @@ const plusJakartaSans = localFont({
   display: "swap",
 });
 
-const dmSerifDisplay = localFont({
-  src: [{ path: "./fonts/dm-serif-display-400.ttf", weight: "400", style: "normal" }],
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
   variable: "--font-serif",
+  display: "swap",
+});
+
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -27,16 +41,25 @@ export const metadata = {
   description:
     "African-centred climate action, maritime decarbonisation, and energy transition coordination through evidence, convenings, and institutional collaboration.",
   icons: {
-    icon: "/brand/patna-mark.png",
-    shortcut: "/brand/patna-mark.png",
-    apple: "/brand/patna-mark.png",
+    icon: "/brand/patna-icon.png",
+    shortcut: "/brand/patna-icon.png",
+    apple: "/brand/patna-icon.png",
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const dir = isRtlLocale(locale) ? "rtl" : "ltr";
+
   return (
-    <html lang="en">
-      <body className={`${plusJakartaSans.variable} ${dmSerifDisplay.variable}`}>{children}</body>
+    <html lang={locale} dir={dir}>
+      <body suppressHydrationWarning className={`${plusJakartaSans.variable} ${cormorantGaramond.variable} ${dmMono.variable}`}>
+        <NextIntlClientProvider messages={messages}>
+          {children}
+          <PatnaAssistant />
+        </NextIntlClientProvider>
+      </body>
     </html>
   );
 }

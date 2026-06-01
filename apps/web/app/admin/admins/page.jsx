@@ -10,19 +10,12 @@ function getNoticeMessage(notice) {
     revoked: "Admin access removed.",
     "not-found": "No PATNA account found for that email address.",
     "already-admin": "That user is already an admin.",
-    "already-pre-approved": "That email is already pre-approved.",
-    "pre-approved": "Email pre-approved. They will automatically become an admin when they join PATNA.",
-    "pre-approved-removed": "Pre-approval removed.",
     "cannot-remove-self": "You cannot remove your own admin access.",
     "cannot-remove-super-admin": "The super admin cannot be removed.",
     "missing-fields": "Email address is required.",
     error: "Something went wrong. Please try again.",
   };
   return messages[notice] || "";
-}
-
-function isSuccessNotice(notice) {
-  return ["granted", "revoked", "pre-approved", "pre-approved-removed"].includes(notice);
 }
 
 export default async function AdminAdminsPage({ searchParams }) {
@@ -39,13 +32,6 @@ export default async function AdminAdminsPage({ searchParams }) {
 
   const resolvedSearchParams = await searchParams;
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
-
-  const { data: preApprovedRows } = await adminClient
-    .from("pre_approved_admins")
-    .select("id, email, created_at")
-    .order("created_at", { ascending: true });
-
-  const preApprovedAdmins = preApprovedRows || [];
 
   // Fetch all users with the administrator role, joined with their profiles
   const { data: adminRoles } = await adminClient
@@ -65,7 +51,6 @@ export default async function AdminAdminsPage({ searchParams }) {
   }));
 
   const noticeMessage = getNoticeMessage(notice);
-  const noticeIsSuccess = isSuccessNotice(notice);
 
   return (
     <DashboardShell
@@ -84,7 +69,7 @@ export default async function AdminAdminsPage({ searchParams }) {
       subtitle="Manage who has administrator access to the PATNA portal."
     >
       {noticeMessage && (
-        <div className={`notice-banner ${noticeIsSuccess ? "notice-success" : "notice-error"}`}>
+        <div className={`notice-banner ${notice === "granted" || notice === "revoked" ? "notice-success" : "notice-error"}`}>
           {noticeMessage}
         </div>
       )}
@@ -102,7 +87,7 @@ export default async function AdminAdminsPage({ searchParams }) {
         </div>
       </div>
 
-      <AdminAdminsList admins={admins} currentUserId={user.id} isSuperAdmin={isSuperAdmin} preApprovedAdmins={preApprovedAdmins} />
+      <AdminAdminsList admins={admins} currentUserId={user.id} isSuperAdmin={isSuperAdmin} />
     </DashboardShell>
   );
 }

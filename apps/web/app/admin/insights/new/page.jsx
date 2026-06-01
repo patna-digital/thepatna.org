@@ -2,14 +2,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
-import { requireAdminContext } from "@/lib/supabase/access";
+import { requirePublicationManagerContext } from "@/lib/supabase/access";
 import { fetchInsightTags } from "@/lib/insights";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { InsightForm } from "../components/insight-form";
 import { createInsightAction } from "../[insightId]/actions";
 
 export default async function NewInsightPage() {
-  const { supabase } = await requireAdminContext();
+  const { supabase } = await requirePublicationManagerContext();
   const adminClient = createSupabaseAdminClient();
 
   const { tags, error: tagsError } = await fetchInsightTags({ supabase: adminClient });

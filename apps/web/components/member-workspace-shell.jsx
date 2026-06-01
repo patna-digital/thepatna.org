@@ -1,11 +1,33 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BrandLogo } from "@/components/brand-logo";
+import { useTranslations } from "next-intl";
+import {
+  LayoutDashboard, Layers, Users, CalendarCheck, BookOpen, CalendarDays, Settings, Menu, X,
+} from "lucide-react";
+import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
+import { NotificationBell } from "@/components/notification-bell";
 import { memberNav } from "@/lib/patna-data";
+
+const MEMBER_ICON_MAP = {
+  LayoutDashboard, Layers, Users, CalendarCheck, BookOpen, CalendarDays, Settings,
+};
+
+const MEMBER_NAV_KEY = {
+  "/app": "dashboard",
+  "/app/spaces": "spaces",
+  "/app/members": "members",
+  "/app/events": "events",
+  "/app/publications": "publications",
+  "/app/calendar": "calendar",
+  "/app/settings": "settings",
+  "/app/applications": "applications",
+  "/app/insights": "insights",
+};
 
 function getProfileTone(member) {
   if (!member?.profileStatus || member.profileStatus === "active") {
@@ -22,10 +44,12 @@ export function MemberWorkspaceShell({
   headerActions = null,
   sidebarUser = null,
   rightRail = null,
+  notificationUserId = null,
   children,
   navItems = memberNav,
 }) {
   const pathname = usePathname();
+  const t = useTranslations();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const settingsItem = navItems.find((item) => item.href === "/app/settings") || null;
   const primaryNavItems = settingsItem
@@ -35,8 +59,25 @@ export function MemberWorkspaceShell({
     settingsItem && pathname.startsWith(settingsItem.href),
   );
 
-  // Close drawer on route change
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [sidebarOpen]);
 
   const shellClass = [
     "member-workspace-shell",
@@ -45,23 +86,26 @@ export function MemberWorkspaceShell({
 
   return (
     <div className={shellClass}>
-
-      {/* ── Mobile top bar ──────────────────────────────────────────────── */}
-      <div className="mob-topbar">
-        <button
-          aria-label="Open navigation menu"
-          className="mob-hamburger"
-          onClick={() => setSidebarOpen(true)}
-          type="button"
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-        <span className="mob-topbar-brand">PATNA</span>
+      <div className="mob-topbar mob-topbar--member">
+        <span className="mob-topbar-brand">PATNA Community</span>
+        <div className="mob-topbar-controls">
+          <LanguageSelector variant="compact" />
+          {notificationUserId && (
+            <NotificationBell userId={notificationUserId} />
+          )}
+          <button
+            aria-controls="member-sidebar"
+            aria-expanded={sidebarOpen}
+            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+            className="mob-hamburger"
+            onClick={() => setSidebarOpen((open) => !open)}
+            type="button"
+          >
+            <Menu size={18} />
+          </button>
+        </div>
       </div>
 
-      {/* ── Overlay (closes drawer on tap) ──────────────────────────────── */}
       {sidebarOpen && (
         <div
           aria-hidden="true"
@@ -70,52 +114,28 @@ export function MemberWorkspaceShell({
         />
       )}
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside className={`member-workspace-sidebar${sidebarOpen ? " mob-open" : ""}`}>
-
-        {/* Close button — mobile only */}
+      <aside className={`member-workspace-sidebar${sidebarOpen ? " mob-open" : ""}`} id="member-sidebar">
         <button
           aria-label="Close navigation menu"
           className="mob-sidebar-close"
           onClick={() => setSidebarOpen(false)}
           type="button"
         >
-          ✕
+          <X size={18} />
         </button>
 
         <div className="member-workspace-brand">
-          <BrandLogo
-            href="/app"
-            label="PATNA Initiative"
-            showCopy={false}
-            theme="sidebar"
-            variant="mark"
-          />
-          <div>
-            <strong>PATNA</strong>
-            <span>Initiative</span>
-          </div>
+          <Link aria-label="PATNA Initiative" className="member-workspace-brand-logo" href="/app">
+            <Image
+              alt="PATNA Initiative"
+              className="member-workspace-brand-logo-image"
+              height={675}
+              priority
+              src="/brand/patna-mark.png"
+              width={1200}
+            />
+          </Link>
         </div>
-
-        <nav aria-label="Member navigation" className="member-workspace-nav">
-          {primaryNavItems.map((item) => {
-            const isActive = item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
-            return (
-              <Link
-                className={isActive ? "active" : ""}
-                href={item.href}
-                key={item.href}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <span className="nav-item-label">
-                  <span className="nav-item-icon">{item.icon}</span>
-                  <span>{item.label}</span>
-                </span>
-                {item.badge ? <span className="badge">{item.badge}</span> : null}
-              </Link>
-            );
-          })}
-        </nav>
 
         {sidebarUser ? (
           <div className={`member-sidebar-user tone-${getProfileTone(sidebarUser)}`}>
@@ -135,16 +155,40 @@ export function MemberWorkspaceShell({
           </div>
         ) : null}
 
-        <div className="sidebar-cross-nav">
-          <div className="sidebar-cross-nav-label">Navigate to</div>
-          <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
-            <span>Website</span>
-            <span className="sidebar-cross-nav-arrow">↗</span>
-          </Link>
-          <Link className="sidebar-cross-nav-link" href="/admin" onClick={() => setSidebarOpen(false)}>
-            <span>Admin app</span>
-            <span className="sidebar-cross-nav-arrow">↗</span>
-          </Link>
+        <nav aria-label="Member navigation" className="member-workspace-nav">
+          {primaryNavItems.map((item) => {
+            const Icon = MEMBER_ICON_MAP[item.icon];
+            const isActive = item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
+            return (
+              <Link
+                className={isActive ? "active" : ""}
+                href={item.href}
+                key={item.href}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className="nav-item-label">
+                  <span className="nav-item-icon">{Icon && <Icon size={15} />}</span>
+                  <span>{MEMBER_NAV_KEY[item.href] ? t(`member.${MEMBER_NAV_KEY[item.href]}`) : item.label}</span>
+                </span>
+                {item.badge ? <span className="badge">{item.badge}</span> : null}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-footer">
+          <LanguageSelector variant="sidebar" />
+          <div className="sidebar-cross-nav">
+            <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
+            <Link className="sidebar-cross-nav-link" href="/" onClick={() => setSidebarOpen(false)}>
+              <span>{t("nav_cross.website")}</span>
+              <span className="sidebar-cross-nav-arrow">↗</span>
+            </Link>
+            <Link className="sidebar-cross-nav-link" href="/admin" onClick={() => setSidebarOpen(false)}>
+              <span>{t("nav_cross.adminApp")}</span>
+              <span className="sidebar-cross-nav-arrow">↗</span>
+            </Link>
+          </div>
           <div className="sidebar-utility-nav">
             {settingsItem ? (
               <Link
@@ -152,15 +196,15 @@ export function MemberWorkspaceShell({
                 href={settingsItem.href}
                 onClick={() => setSidebarOpen(false)}
               >
-                {settingsItem.label}
+                {t("member.settings")}
               </Link>
             ) : null}
             <SignOutButton />
           </div>
           <div className="sidebar-legal-links">
-            <Link href="/legal/privacy" onClick={() => setSidebarOpen(false)}>Privacy</Link>
+            <Link href="/legal/privacy" onClick={() => setSidebarOpen(false)}>{t("footer.privacy")}</Link>
             <span aria-hidden="true">·</span>
-            <Link href="/legal/terms" onClick={() => setSidebarOpen(false)}>Terms</Link>
+            <Link href="/legal/terms" onClick={() => setSidebarOpen(false)}>{t("footer.terms")}</Link>
           </div>
         </div>
       </aside>
@@ -168,6 +212,11 @@ export function MemberWorkspaceShell({
       {/* ── Main content ────────────────────────────────────────────────── */}
       <main className="member-workspace-main">
         <div className="member-workspace-main-inner">
+          {notificationUserId && (
+            <div className="member-page-top-bell" aria-label="Notification controls">
+              <NotificationBell userId={notificationUserId} />
+            </div>
+          )}
           <header className="member-workspace-header">
             <div className="member-workspace-header-copy">
               {dateLabel ? <div className="member-workspace-date">{dateLabel}</div> : null}

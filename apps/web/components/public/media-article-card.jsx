@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function MediaArticleCard({
   featured = false,
   label,
@@ -8,6 +10,9 @@ export function MediaArticleCard({
   summary,
   title,
 }) {
+  const href = sourceUrl || media.sourceUrl;
+  const isInternal = typeof href === "string" && href.startsWith("/");
+
   return (
     <article className={`media-article-card ${featured ? "featured" : ""}`}>
       <div className="media-article-visual">
@@ -32,9 +37,15 @@ export function MediaArticleCard({
             <span>{media.credit}</span>
             <span>{media.caption}</span>
           </div>
-          <a className="text-link" href={sourceUrl || media.sourceUrl} rel="noreferrer" target="_blank">
-            {sourceLabel}
-          </a>
+          {isInternal ? (
+            <Link className="text-link" href={href}>
+              {sourceLabel}
+            </Link>
+          ) : (
+            <a className="text-link" href={href} rel="noreferrer" target="_blank">
+              {sourceLabel}
+            </a>
+          )}
         </div>
       </div>
     </article>

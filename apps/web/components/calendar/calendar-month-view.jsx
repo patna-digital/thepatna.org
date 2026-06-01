@@ -2,11 +2,13 @@
 
 import { useMemo } from "react";
 import {
+  groupEventsByDate,
   getCalendarDays,
-  formatDate,
+  formatEventTimeLabel,
   getMonthName,
   getPreviousMonth,
   getNextMonth,
+  toLocalDateKey,
 } from "@/lib/calendar/core";
 
 /**
@@ -26,17 +28,7 @@ export function CalendarMonthView({
   const days = useMemo(() => getCalendarDays(month, year), [month, year]);
 
   // Group events by date
-  const eventsByDate = useMemo(() => {
-    const grouped = {};
-    events.forEach((event) => {
-      const dateKey = new Date(event.starts_at).toISOString().split("T")[0];
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(event);
-    });
-    return grouped;
-  }, [events]);
+  const eventsByDate = useMemo(() => groupEventsByDate(events), [events]);
 
   const { month: prevMonth, year: prevYear } = getPreviousMonth(month, year);
   const { month: nextMonth, year: nextYear } = getNextMonth(month, year);
@@ -77,7 +69,7 @@ export function CalendarMonthView({
 
       <div className="calendar-days-grid">
         {days.map(({ date, isCurrentMonth, isToday }, index) => {
-          const dateKey = date.toISOString().split("T")[0];
+          const dateKey = toLocalDateKey(date);
           const dayEvents = eventsByDate[dateKey] || [];
           const dayNumber = date.getDate();
 
@@ -93,22 +85,26 @@ export function CalendarMonthView({
             >
               <div className="calendar-day-number">{dayNumber}</div>
               <div className="calendar-day-events">
-                {dayEvents.slice(0, 3).map((event, eventIndex) => (
-                  <div
-                    key={eventIndex}
-                    className={`calendar-event-chip ${event.event_source || "community"}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEventClick?.(event);
-                    }}
-                    title={event.title}
-                  >
-                    <span className="event-time">
-                      {formatDate(event.starts_at, "time")}
-                    </span>
-                    <span className="event-title">{event.title}</span>
-                  </div>
-                ))}
+                {dayEvents.slice(0, 3).map((event, eventIndex) => {
+                  const timeLabel = formatEventTimeLabel(event);
+
+                  return (
+                    <div
+                      key={eventIndex}
+                      className={`calendar-event-chip ${event.event_source || "community"}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEventClick?.(event);
+                      }}
+                      title={event.title}
+                    >
+                      {timeLabel && (
+                        <span className="event-time">{timeLabel}</span>
+                      )}
+                      <span className="event-title">{event.title}</span>
+                    </div>
+                  );
+                })}
                 {dayEvents.length > 3 && (
                   <div className="calendar-more-events">
                     +{dayEvents.length - 3} more

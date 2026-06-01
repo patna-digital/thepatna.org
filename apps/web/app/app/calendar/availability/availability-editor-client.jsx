@@ -17,6 +17,49 @@ const DAYS_OF_WEEK = [
 const DEFAULT_START_TIME = "09:00";
 const DEFAULT_END_TIME = "17:00";
 
+function BookingLinkCard({ publicBookingUrl, bookingEnabled }) {
+  const [copyLabel, setCopyLabel] = useState("Copy link");
+
+  if (!publicBookingUrl) {
+    return null;
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(publicBookingUrl);
+      setCopyLabel("Copied");
+      window.setTimeout(() => setCopyLabel("Copy link"), 1800);
+    } catch {
+      setCopyLabel("Copy failed");
+      window.setTimeout(() => setCopyLabel("Copy link"), 1800);
+    }
+  };
+
+  return (
+    <div className={`availability-booking-card ${bookingEnabled ? "is-live" : "is-paused"}`}>
+      <div className="availability-booking-copy">
+        <span className="availability-booking-label">
+          {bookingEnabled ? "Your public booking page is live" : "Your booking page exists but is currently hidden"}
+        </span>
+        <code>{publicBookingUrl}</code>
+        <p>
+          {bookingEnabled
+            ? "Share this link directly or add it to your PATNA profile."
+            : "You can re-enable it anytime from Calendar Settings without losing the same personalized link."}
+        </p>
+      </div>
+      <div className="availability-booking-actions">
+        <button className="secondary-button" onClick={handleCopy} type="button">
+          {copyLabel}
+        </button>
+        <a className="primary-button" href={publicBookingUrl} rel="noreferrer" target="_blank">
+          Open page
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function DayRow({ day, slots, isActive, onToggle, onSlotChange, onAddSlot, onRemoveSlot }) {
   return (
     <div className={`day-row ${isActive ? "" : "inactive"}`}>
@@ -78,7 +121,7 @@ function DayRow({ day, slots, isActive, onToggle, onSlotChange, onAddSlot, onRem
   );
 }
 
-export function AvailabilityEditorClient({ initialRules, memberId }) {
+export function AvailabilityEditorClient({ initialRules, initialBookingSettings, memberId }) {
   const router = useRouter();
   
   // Parse initial rules into a map by day
@@ -104,6 +147,8 @@ export function AvailabilityEditorClient({ initialRules, memberId }) {
   const [schedule, setSchedule] = useState(parseInitialSchedule());
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
+  const [publicBookingUrl, setPublicBookingUrl] = useState(initialBookingSettings?.public_booking_url || "");
+  const [bookingEnabled, setBookingEnabled] = useState(Boolean(initialBookingSettings?.public_booking_enabled));
 
   const handleToggleDay = useCallback((dayId) => {
     setSchedule((prev) => ({
@@ -171,7 +216,14 @@ export function AvailabilityEditorClient({ initialRules, memberId }) {
 
     setIsSaving(false);
     if (result.success) {
-      setSaveStatus({ type: "success", message: "Availability saved successfully!" });
+      setPublicBookingUrl(result.publicBookingUrl || publicBookingUrl);
+      setBookingEnabled(Boolean(result.publicBookingEnabled));
+      setSaveStatus({
+        type: "success",
+        message: result.bookingSettingsCreated
+          ? "Availability saved. Your public booking page is now ready to share."
+          : "Availability saved successfully!",
+      });
       router.refresh();
     } else {
       setSaveStatus({ type: "error", message: `Error: ${result.error}` });
@@ -227,6 +279,8 @@ export function AvailabilityEditorClient({ initialRules, memberId }) {
             </p>
           </div>
         </div>
+
+        <BookingLinkCard bookingEnabled={bookingEnabled} publicBookingUrl={publicBookingUrl} />
 
         <div className="quick-actions">
           <button
@@ -325,11 +379,102 @@ export function AvailabilityEditorClient({ initialRules, memberId }) {
           background: #fee2e2;
           color: #dc2626;
         }
+
+        .availability-booking-card {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          padding: 1rem 1.125rem;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: linear-gradient(135deg, rgba(15, 58, 138, 0.06), rgba(255, 255, 255, 0.98));
+        }
+
+        .availability-booking-card.is-paused {
+          background: linear-gradient(135deg, rgba(71, 85, 105, 0.08), rgba(255, 255, 255, 0.98));
+        }
+
+        .availability-booking-copy {
+          display: grid;
+          gap: 0.375rem;
+        }
+
+        .availability-booking-label {
+          font-size: var(--text-sm);
+          font-weight: 700;
+          color: var(--ink);
+        }
+
+        .availability-booking-copy code {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          padding: 0.375rem 0.5rem;
+          border-radius: var(--radius-sm);
+          background: rgba(255, 255, 255, 0.9);
+          color: var(--ink);
+          font-size: 0.85rem;
+          overflow-wrap: anywhere;
+        }
+
+        .availability-booking-copy p {
+          margin: 0;
+          color: var(--ink-muted);
+          font-size: var(--text-sm);
+        }
+
+        .availability-booking-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.625rem;
+          flex-wrap: wrap;
+        }
       `}</style>
 
       <style jsx global>{`
         .availability-page-content {
           max-width: 800px;
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        .availability-flow-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          padding: 1.25rem 1.5rem;
+          background: linear-gradient(135deg, rgba(3, 82, 157, 0.05), rgba(255, 255, 255, 0.98));
+          border: 1px solid rgba(3, 82, 157, 0.12);
+          border-radius: var(--radius-lg);
+        }
+
+        .availability-flow-footer-copy {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .availability-flow-footer-copy strong {
+          font-size: var(--text-sm);
+          font-weight: 700;
+          color: var(--ink);
+        }
+
+        .availability-flow-footer-copy p {
+          margin: 0;
+          font-size: var(--text-sm);
+          color: var(--ink-muted);
+        }
+
+        @media (max-width: 640px) {
+          .availability-flow-footer {
+            flex-direction: column;
+            align-items: flex-start;
+          }
         }
 
         .availability-editor {
@@ -523,6 +668,10 @@ export function AvailabilityEditorClient({ initialRules, memberId }) {
         }
 
         @media (max-width: 640px) {
+          .availability-booking-card {
+            flex-direction: column;
+          }
+
           .day-row {
             grid-template-columns: 1fr;
             gap: 0.75rem;

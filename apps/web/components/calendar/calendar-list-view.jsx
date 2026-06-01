@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import { formatDate, isPastDate } from "@/lib/calendar/core";
+import {
+  formatDate,
+  formatEventTimeLabel,
+  getDisplayStartForEvent,
+  isPastDate,
+} from "@/lib/calendar/core";
 
 /**
  * Calendar List View Component
@@ -19,7 +24,7 @@ export function CalendarListView({
 
     const groups = {};
     events.forEach((event) => {
-      const date = new Date(event.starts_at);
+      const date = getDisplayStartForEvent(event) || new Date(event.starts_at);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -86,45 +91,45 @@ export function CalendarListView({
             <span className="event-count">({groupEvents.length})</span>
           </h3>
           <div className="calendar-list-events">
-            {groupEvents.map((event, index) => (
-              <div
-                key={index}
-                className={`calendar-list-item ${event.event_source || "community"} ${
-                  isPastDate(event.starts_at) ? "past" : ""
-                }`}
-                onClick={() => onEventClick?.(event)}
-              >
-                <div className="calendar-list-item-time">
-                  <span className="time-start">
-                    {formatDate(event.starts_at, "time")}
-                  </span>
-                  <span className="time-separator">-</span>
-                  <span className="time-end">
-                    {formatDate(event.ends_at, "time")}
-                  </span>
-                </div>
-                <div className="calendar-list-item-content">
-                  <div className="event-source-badge">
-                    {event.event_source === "personal" ? "Personal" : "Community"}
-                  </div>
-                  <h4 className="event-title">{event.title}</h4>
-                  {event.summary && (
-                    <p className="event-summary">{event.summary}</p>
+            {groupEvents.map((event, index) => {
+              const timeLabel = formatEventTimeLabel(event);
+
+              return (
+                <div
+                  key={index}
+                  className={`calendar-list-item ${event.event_source || "community"} ${
+                    isPastDate(getDisplayStartForEvent(event) || event.starts_at) ? "past" : ""
+                  }`}
+                  onClick={() => onEventClick?.(event)}
+                >
+                  {timeLabel && (
+                    <div className="calendar-list-item-time">
+                      <span className="time-start">{timeLabel}</span>
+                    </div>
                   )}
-                  <div className="event-meta">
-                    {event.location && (
-                      <span className="event-location">
-                        <span className="meta-icon">📍</span>
-                        {event.location}
-                      </span>
+                  <div className="calendar-list-item-content">
+                    <div className={`event-source-badge ${event.event_source || "community"}`}>
+                      {event.source_label || (event.event_source === "personal" ? "PATNA Booking" : event.event_source === "external" ? "Connected Calendar" : "PATNA Event")}
+                    </div>
+                    <h4 className="event-title">{event.title}</h4>
+                    {event.summary && (
+                      <p className="event-summary">{event.summary}</p>
                     )}
-                    {event.event_type && (
-                      <span className="event-type">{event.event_type}</span>
-                    )}
+                    <div className="event-meta">
+                      {event.location && (
+                        <span className="event-location">
+                          <span className="meta-icon">📍</span>
+                          {event.location}
+                        </span>
+                      )}
+                      {event.event_type && (
+                        <span className="event-type">{event.event_type}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}

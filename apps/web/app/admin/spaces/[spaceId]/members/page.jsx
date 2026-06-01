@@ -3,18 +3,30 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { fetchSpaceById, fetchSpaceMembers, SPACE_MEMBER_ROLES, formatSpaceType } from "@/lib/spaces";
+import {
+  fetchPendingSpaceJoinRequests,
+  fetchSpaceById,
+  fetchSpaceMembers,
+  SPACE_MEMBER_ROLES,
+  formatSpaceType,
+} from "@/lib/spaces";
 import { SpaceMembersClient } from "./members-client";
-import { addSpaceMemberAction, updateMemberRoleAction, removeSpaceMemberAction } from "./actions";
+import {
+  addSpaceMemberAction,
+  approveSpaceJoinRequestAction,
+  updateMemberRoleAction,
+  removeSpaceMemberAction,
+} from "./actions";
 
 export default async function SpaceMembersPage({ params }) {
   await requireAdminContext();
   const adminClient = createSupabaseAdminClient();
   const { spaceId } = await params;
 
-  const [{ space, error: spaceError }, { members, error: membersError }] = await Promise.all([
+  const [{ space, error: spaceError }, { members }, { requests: joinRequests }] = await Promise.all([
     fetchSpaceById({ supabase: adminClient, id: spaceId }),
     fetchSpaceMembers({ supabase: adminClient, spaceId }),
+    fetchPendingSpaceJoinRequests({ adminSupabase: adminClient, spaceId }),
   ]);
 
   if (spaceError || !space) {
@@ -46,6 +58,11 @@ export default async function SpaceMembersPage({ params }) {
     return removeSpaceMemberAction(spaceId, userId);
   }
 
+  async function handleApproveJoinRequest(formData) {
+    "use server";
+    return approveSpaceJoinRequestAction(spaceId, formData);
+  }
+
   return (
     <DashboardShell
       brandHref="/admin"
@@ -63,8 +80,10 @@ export default async function SpaceMembersPage({ params }) {
       <SpaceMembersClient
         eligibleProfiles={eligibleProfiles}
         handleAdd={handleAdd}
+        handleApproveJoinRequest={handleApproveJoinRequest}
         handleRemove={handleRemove}
         handleUpdateRole={handleUpdateRole}
+        joinRequests={joinRequests}
         members={members}
         roles={SPACE_MEMBER_ROLES}
         spaceId={spaceId}

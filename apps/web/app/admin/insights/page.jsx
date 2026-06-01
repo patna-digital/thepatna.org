@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { INSIGHT_CONTENT_TYPES, INSIGHT_STATUSES } from "@/lib/content-types";
 import { adminNav } from "@/lib/patna-data";
-import { requireAdminContext } from "@/lib/supabase/access";
+import { requirePublicationManagerContext } from "@/lib/supabase/access";
 import {
   fetchAdminInsights,
   buildInsightsSummary,
   filterInsights,
-  INSIGHT_CONTENT_TYPES,
-  INSIGHT_STATUSES,
 } from "@/lib/insights";
 import { AdminInsightsList } from "./components/admin-insights-list";
 
@@ -39,7 +38,7 @@ function buildInsightsPath({ status, type, search }) {
 }
 
 export default async function AdminInsightsPage({ searchParams }) {
-  const { supabase } = await requireAdminContext();
+  const { supabase } = await requirePublicationManagerContext();
   const resolvedSearchParams = await searchParams;
 
   const statusFilter = typeof resolvedSearchParams?.status === "string" 
@@ -81,23 +80,26 @@ export default async function AdminInsightsPage({ searchParams }) {
       subtitle="Manage published, draft, and archived PATNA insights with editorial controls and attachment management."
       title="Insights"
     >
-      {/* Summary stats */}
-      <div className="summary-grid">
-        <div className="summary-tile">
+      <div className="admin-stat-grid">
+        <div className="admin-stat-card">
           <strong>{summary.total}</strong>
-          <span>Total insights</span>
+          <h4>Total insights</h4>
+          <p>All statuses</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-success">
           <strong>{summary.published}</strong>
-          <span>Published</span>
+          <h4>Published</h4>
+          <p>Visible to members</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-warning">
           <strong>{summary.draft}</strong>
-          <span>Drafts</span>
+          <h4>Drafts</h4>
+          <p>Not yet published</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-muted">
           <strong>{summary.archived}</strong>
-          <span>Archived</span>
+          <h4>Archived</h4>
+          <p>Hidden from library</p>
         </div>
       </div>
 

@@ -6,12 +6,25 @@ export function getSafeRedirectPath(pathname) {
   return pathname.startsWith("/") ? pathname : "/app";
 }
 
-export function getAuthCallbackPath(nextPath = "/app") {
+function buildAuthPath(basePath, nextPath = "/app") {
   const safePath = getSafeRedirectPath(nextPath);
-  return `/auth/callback?next=${encodeURIComponent(safePath)}`;
+  return `${basePath}?next=${encodeURIComponent(safePath)}`;
+}
+
+export function getAuthCallbackPath(nextPath = "/app") {
+  return buildAuthPath("/auth/callback", nextPath);
+}
+
+export function getAuthVerifyPath(nextPath = "/app") {
+  return buildAuthPath("/auth/verify", nextPath);
 }
 
 export function getAuthCallbackUrl(siteUrl, nextPath = "/app") {
   const baseUrl = String(siteUrl || "").replace(/\/+$/, "");
   return `${baseUrl}${getAuthCallbackPath(nextPath)}`;
+}
+
+export function getAuthVerifyUrl(siteUrl, nextPath = "/app") {
+  const baseUrl = String(siteUrl || "").replace(/\/+$/, "");
+  return `${baseUrl}${getAuthVerifyPath(nextPath)}`;
 }

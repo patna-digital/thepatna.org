@@ -28,10 +28,22 @@ export function getSupabaseProjectId() {
   return readEnv("SUPABASE_PROJECT_ID");
 }
 
+export function getGoogleTranslateApiKey() {
+  return readEnv("GOOGLE_TRANSLATE_API_KEY");
+}
+
 export function isSupabaseConfigured() {
   return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
 }
 
 export function isSupabaseAdminConfigured() {
   return Boolean(isSupabaseConfigured() && getSupabaseServiceRoleKey());
+}
+
+export function getAnthropicApiKey() {
+  return readEnv("ANTHROPIC_API_KEY");
+}
+
+export function getGoogleDriveApiKey() {
+  return readEnv("GOOGLE_DRIVE_API_KEY");
 }

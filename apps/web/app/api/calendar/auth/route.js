@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { generateAuthUrl, validateICalUrl, fetchAndParseICal } from '@/lib/calendar/providers';
+import { CALENDAR_PROVIDERS, generateAuthUrl, validateICalUrl, fetchAndParseICal } from '@/lib/calendar/providers';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 // POST /api/calendar/auth - Initiate OAuth flow or add iCal feed
@@ -136,6 +136,13 @@ export async function POST(request) {
     if (!['google', 'microsoft', 'zoho'].includes(provider)) {
       return NextResponse.json(
         { error: `Unsupported provider: ${provider}` },
+        { status: 400 }
+      );
+    }
+
+    if (CALENDAR_PROVIDERS[provider]?.status === 'coming_soon') {
+      return NextResponse.json(
+        { error: `${CALENDAR_PROVIDERS[provider].name} is coming soon.` },
         { status: 400 }
       );
     }

@@ -10,6 +10,7 @@ import {
   replaceMemberHeadshotAction,
   replaceMemberResumeAction,
   updateMemberProfileStatusAction,
+  updateMemberRoleAction,
 } from "./actions";
 
 function formatDate(value) {
@@ -98,6 +99,27 @@ function getNoticeMessage(notice) {
     };
   }
 
+  if (notice === "role-granted") {
+    return {
+      tone: "success",
+      text: "Role granted successfully.",
+    };
+  }
+
+  if (notice === "role-revoked") {
+    return {
+      tone: "success",
+      text: "Role revoked successfully.",
+    };
+  }
+
+  if (notice === "role-error") {
+    return {
+      tone: "error",
+      text: "Role could not be updated. Please retry.",
+    };
+  }
+
   return null;
 }
 
@@ -172,10 +194,16 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
         </form>
       </div>
 
-      {notice ? <p className={notice.tone === "success" ? "form-success" : "form-error"}>{notice.text}</p> : null}
+      {notice ? (
+        <div className={`admin-notice ${notice.tone === "success" ? "notice-success" : "notice-error"}`}>
+          {notice.text}
+        </div>
+      ) : null}
 
       <article className="dashboard-card">
-        <h3>Access and contact state</h3>
+        <div className="admin-card-heading">
+          <h3>Access and contact state</h3>
+        </div>
         <div className="member-meta-grid">
           <div>
             <strong>Email</strong>
@@ -224,7 +252,41 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
       </article>
 
       <article className="dashboard-card">
-        <h3>Profile summary</h3>
+        <div className="admin-card-heading">
+          <h3>Roles and permissions</h3>
+        </div>
+        <p className="muted-note">Grant or revoke platform roles for this member. Changes take effect immediately.</p>
+        <div className="member-meta-grid" style={{ marginTop: "1rem" }}>
+          {[
+            { role: "member", label: "Member access", description: "Grants access to the member directory and platform features." },
+            { role: "administrator", label: "Administrator access", description: "Grants full admin access including the admin workspace." },
+          ].map(({ role, label, description }) => {
+            const hasRole = (member.roles || []).includes(role);
+            return (
+              <div key={role}>
+                <strong>{label}</strong>
+                <p style={{ marginBottom: "0.65rem" }}>
+                  <span className={`status-chip ${hasRole ? "chip-success" : "chip-muted"}`} style={{ marginRight: "0.5rem" }}>
+                    {hasRole ? "Granted" : "Not granted"}
+                  </span>
+                  {description}
+                </p>
+                <form action={updateMemberRoleAction}>
+                  <input name="member_id" type="hidden" value={member.id} />
+                  <input name="role" type="hidden" value={role} />
+                  <input name="action" type="hidden" value={hasRole ? "revoke" : "grant"} />
+                  <button className="secondary-button" type="submit">
+                    {hasRole ? `Revoke ${label}` : `Grant ${label}`}
+                  </button>
+                </form>
+              </div>
+            );
+          })}
+        </div>
+      </article>
+
+      <article className="dashboard-card">
+        <div className="admin-card-heading"><h3>Profile summary</h3></div>
         <div className="member-meta-grid">
           <div>
             <strong>Name</strong>
@@ -266,7 +328,7 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
       </article>
 
       <article className="dashboard-card">
-        <h3>Cohorts and expertise</h3>
+        <div className="admin-card-heading"><h3>Cohorts and expertise</h3></div>
         <div className="member-meta-grid">
           <div>
             <strong>Primary cohort</strong>
@@ -284,7 +346,7 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
       </article>
 
       <article className="dashboard-card">
-        <h3>Cohort profile answers</h3>
+        <div className="admin-card-heading"><h3>Cohort profile answers</h3></div>
         <div className="member-meta-grid">
           <div>
             <strong>Middle name(s)</strong>
@@ -334,7 +396,7 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
       </article>
 
       <article className="dashboard-card">
-        <h3>Files and timestamps</h3>
+        <div className="admin-card-heading"><h3>Files and timestamps</h3></div>
         <div className="member-meta-grid">
           <div>
             <strong>Headshot preview</strong>
@@ -390,11 +452,43 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
           </div>
           <div>
             <strong>NDA</strong>
-            <p>{member.cohortProfile?.nda_url ? <a href={member.cohortProfile.nda_url} rel="noreferrer" target="_blank">Open file</a> : "Not provided"}</p>
+            <p>{member.ndaAsset?.source_kind !== "none" ? <a href={`/admin/members/${member.id}/nda`}>Open file</a> : "Not provided"}</p>
+          </div>
+          <div>
+            <strong>NDA source</strong>
+            <p>{renderValue(member.ndaAsset?.source_kind)}</p>
+          </div>
+          <div>
+            <strong>Original NDA source</strong>
+            <p>
+              {member.ndaAsset?.original_url ? (
+                <a href={member.ndaAsset.original_url} rel="noreferrer" target="_blank">
+                  Open original source
+                </a>
+              ) : (
+                "Not recorded"
+              )}
+            </p>
           </div>
           <div>
             <strong>Code of Conduct</strong>
-            <p>{member.cohortProfile?.code_of_conduct_url ? <a href={member.cohortProfile.code_of_conduct_url} rel="noreferrer" target="_blank">Open file</a> : "Not provided"}</p>
+            <p>{member.codeOfConductAsset?.source_kind !== "none" ? <a href={`/admin/members/${member.id}/code-of-conduct`}>Open file</a> : "Not provided"}</p>
+          </div>
+          <div>
+            <strong>Code of Conduct source</strong>
+            <p>{renderValue(member.codeOfConductAsset?.source_kind)}</p>
+          </div>
+          <div>
+            <strong>Original Code of Conduct source</strong>
+            <p>
+              {member.codeOfConductAsset?.original_url ? (
+                <a href={member.codeOfConductAsset.original_url} rel="noreferrer" target="_blank">
+                  Open original source
+                </a>
+              ) : (
+                "Not recorded"
+              )}
+            </p>
           </div>
           <div>
             <strong>Submitted at</strong>
@@ -408,7 +502,7 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
       </article>
 
       <article className="dashboard-card">
-        <h3>Headshot recovery</h3>
+        <div className="admin-card-heading"><h3>Headshot recovery</h3></div>
         <p className="muted-note">
           {member.needsHeadshotRecovery
             ? "This member is still using an external headshot source. Upload a replacement here to move it into PATNA storage and stabilize the directory."
@@ -430,7 +524,7 @@ export default async function AdminMemberDetailPage({ params, searchParams }) {
       </article>
 
       <article className="dashboard-card">
-        <h3>Resume recovery</h3>
+        <div className="admin-card-heading"><h3>Resume recovery</h3></div>
         <p className="muted-note">
           {member.needsResumeRecovery
             ? "This member is still using an external resume link. Upload a replacement here to move it into PATNA storage and keep access private."

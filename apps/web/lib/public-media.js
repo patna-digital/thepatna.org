@@ -28,6 +28,7 @@ const SOURCE_PAGES = {
   abuja:
     "https://thepatna.org/patnaevents/african-strategic-summit-on-shipping-decarbonisation/",
   dakar: "https://thepatna.org/patnaevents/dakar-maritime-decarbonisation-workshop/",
+  mombasaPort: "https://commons.wikimedia.org/wiki/File:Ships_port.jpg",
   wisdom: "https://thepatna.org/cohorts/wisdom-akpalu/",
   resources: "https://thepatna.org/resources/",
 };
@@ -123,6 +124,16 @@ export const mediaAssets = {
     alt: "Dakar Maritime Decarbonisation Workshop poster or event visual.",
     caption: "Dakar Maritime Decarbonisation Workshop.",
   },
+  mombasaPort: {
+    id: "mombasa-port",
+    kind: "image",
+    src: "https://commons.wikimedia.org/wiki/Special:FilePath/Ships%20port.jpg",
+    sourceUrl: SOURCE_PAGES.mombasaPort,
+    credit: "Mikenjau / Wikimedia Commons",
+    licenseNote: "Used from Wikimedia Commons as an external maritime context image.",
+    alt: "A cargo ship offloading at Kilindini Harbour in Mombasa, Kenya.",
+    caption: "A wider maritime context image from Mombasa's Kilindini Harbour.",
+  },
   wisdomPortrait: {
     id: "wisdom-akpalu",
     kind: "image",
@@ -136,6 +147,7 @@ export const mediaAssets = {
 };
 
 export const projectMediaBySlug = {
+  "patna-phase-iii-2026": mediaAssets.acs2Panel,
   "leap-phase-ii": mediaAssets.acs2Hero,
   "leap-phase-i": mediaAssets.acs2Delegates,
   "abuja-summit": mediaAssets.abujaSummit,

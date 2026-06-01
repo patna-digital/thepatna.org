@@ -7,11 +7,57 @@ import { getCurrentUserContext } from "@/lib/supabase/access";
 import { CalendarSettingsClient } from "./calendar-settings-client";
 
 export const metadata = {
-  title: "Calendar Settings | PATNA",
-  description: "Manage your calendar connections and booking preferences",
+  title: "Calendar Sync | PATNA",
+  description: "Connect your calendars and manage booking preferences",
 };
 
-export default async function CalendarSettingsPage() {
+function getCalendarSettingsNotice(searchParams) {
+  const success = typeof searchParams?.success === "string" ? searchParams.success : "";
+  const error = typeof searchParams?.error === "string" ? searchParams.error : "";
+  const provider = typeof searchParams?.provider === "string" ? searchParams.provider : "calendar";
+  const sync = typeof searchParams?.sync === "string" ? searchParams.sync : "";
+  const providerLabel = {
+    google: "Google Calendar",
+    microsoft: "Outlook Calendar",
+    zoho: "Zoho Calendar",
+  }[provider] || "calendar";
+
+  if (error === "oauth_denied") {
+    return {
+      message: `${providerLabel} connection was cancelled.`,
+      tone: "error",
+    };
+  }
+
+  if (error) {
+    return {
+      message: `There was a problem connecting ${providerLabel}. Please try again.`,
+      tone: "error",
+    };
+  }
+
+  if (success === "connected" && sync === "partial") {
+    return {
+      message: `${providerLabel} connected, but some calendars still need a retry. Use Sync now if items are missing.`,
+      tone: "warning",
+    };
+  }
+
+  if (success === "connected") {
+    return {
+      message: `${providerLabel} connected and initial import completed.`,
+      tone: "success",
+    };
+  }
+
+  return {
+    message: "",
+    tone: "success",
+  };
+}
+
+export default async function CalendarSettingsPage({ searchParams }) {
+  const resolvedSearchParams = await searchParams;
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -28,24 +74,33 @@ export default async function CalendarSettingsPage() {
   ]);
 
   const sidebarUser = frameData.sidebarUser || null;
+  const notice = getCalendarSettingsNotice(resolvedSearchParams);
 
   const headerActions = (
-    <Link href="/app/calendar" className="secondary-button">
-      ← Back to Calendar
-    </Link>
+    <>
+      <Link href="/app/calendar" className="secondary-button">
+        View Calendar
+      </Link>
+      <Link href="/app/calendar/availability" className="secondary-button">
+        ← Availability
+      </Link>
+    </>
   );
 
   return (
     <MemberWorkspaceShell
       eyebrow="Calendar"
       headerActions={headerActions}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
-      subtitle="Manage your calendar connections and booking preferences"
-      title="Calendar Settings"
+      subtitle="Connect your calendars and configure booking preferences"
+      title="Calendar Sync"
     >
       <div className="calendar-settings-content">
         <CalendarSettingsClient
           connections={connectionsResult.connections}
+          initialMessage={notice.message}
+          initialMessageTone={notice.tone}
           settings={settingsResult.settings}
           memberId={user.id}
         />

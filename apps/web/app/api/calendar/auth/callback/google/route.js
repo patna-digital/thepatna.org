@@ -38,12 +38,10 @@ export async function GET(request) {
   try {
     // Decode state parameter to get member ID
     let memberId;
-    let calendarId = 'primary';
     
     try {
       const stateData = JSON.parse(Buffer.from(state, 'base64url').toString());
       memberId = stateData.memberId;
-      calendarId = stateData.calendarId || 'primary';
     } catch {
       return NextResponse.redirect(
         `${baseUrl}/app/calendar/settings?error=invalid_state`
@@ -72,27 +70,36 @@ export async function GET(request) {
     );
 
     const allCalendars = calendarList.calendars || [];
-    const primaryCalendar = allCalendars.find((c) => c.primary) || allCalendars[0];
 
     const supabase = createSupabaseAdminClient();
 
     // Upsert a connection for every calendar (primary + subscribed like Holidays)
     // so all events including holidays/shared calendars get synced
     const connectionRecords = allCalendars.length > 0 ? allCalendars : [
-      { id: 'primary', name: 'Google Calendar', primary: true },
+      { id: 'primary', name: 'Google Calendar', primary: true, accessRole: 'owner' },
     ];
+    const defaultPrimaryCalendarId =
+      connectionRecords.find((calendar) => calendar.primary)?.id ||
+      connectionRecords[0]?.id ||
+      'primary';
 
     const savedConnections = [];
+    const saveErrors = [];
+    const { data: existingGoogleConnections = [] } = await supabase
+      .from('calendar_connections')
+      .select('id, calendar_id, is_primary_calendar')
+      .eq('member_id', memberId)
+      .eq('provider', 'google');
+    const hasExistingPrimary = existingGoogleConnections.some((connection) => connection.is_primary_calendar);
 
     for (const cal of connectionRecords) {
-      const { data: existing } = await supabase
-        .from('calendar_connections')
-        .select('id')
-        .eq('member_id', memberId)
-        .eq('provider', 'google')
-        .eq('provider_account_email', userInfo.email)
-        .eq('calendar_id', cal.id)
-        .maybeSingle();
+      const existing = existingGoogleConnections.find((connection) => connection.calendar_id === cal.id) || null;
+      const existingError = null;
+
+      if (existingError) {
+        saveErrors.push(existingError);
+        continue;
+      }
 
       const connectionData = {
         access_token: tokens.accessToken,
@@ -100,21 +107,34 @@ export async function GET(request) {
         token_expires_at: tokens.expiresAt?.toISOString(),
         calendar_id: cal.id,
         calendar_name: cal.name || 'Google Calendar',
+        access_role: cal.accessRole || (cal.primary ? 'owner' : null),
+        is_primary_calendar: Boolean(
+          existing?.is_primary_calendar ||
+            (!hasExistingPrimary && cal.id === defaultPrimaryCalendarId),
+        ),
         is_active: true,
         sync_enabled: true,
         last_sync_error: null,
         updated_at: new Date().toISOString(),
       };
 
-      let savedId;
+      let savedConnection;
       if (existing) {
-        await supabase
+        const { data: updatedConnection, error: updateError } = await supabase
           .from('calendar_connections')
           .update(connectionData)
-          .eq('id', existing.id);
-        savedId = existing.id;
+          .eq('id', existing.id)
+          .select('*')
+          .single();
+
+        if (updateError) {
+          saveErrors.push(updateError);
+          continue;
+        }
+
+        savedConnection = updatedConnection;
       } else {
-        const { data: inserted } = await supabase
+        const { data: insertedConnection, error: insertError } = await supabase
           .from('calendar_connections')
           .insert({
             member_id: memberId,
@@ -124,28 +144,54 @@ export async function GET(request) {
             auth_method: 'oauth',
             ...connectionData,
           })
-          .select('id')
+          .select('*')
           .single();
-        savedId = inserted?.id;
+
+        if (insertError) {
+          saveErrors.push(insertError);
+          continue;
+        }
+
+        savedConnection = insertedConnection;
       }
 
-      if (savedId) {
-        savedConnections.push({ id: savedId, ...connectionData });
+      if (savedConnection) {
+        savedConnections.push(savedConnection);
       }
     }
 
-    // Trigger initial sync for all saved connections (non-blocking)
-    Promise.all(
-      savedConnections.map((conn) =>
-        syncCalendarConnection(conn, { forceFullSync: true }).catch((e) =>
-          console.error(`Initial sync failed for ${conn.calendar_id}:`, e)
-        )
-      )
-    ).catch(() => {});
+    if (savedConnections.length === 0) {
+      throw saveErrors[0] || new Error('Failed to save Google Calendar connection');
+    }
+
+    const syncResults = await Promise.all(
+      savedConnections.map(async (connection) => {
+        try {
+          return await syncCalendarConnection(connection, { forceFullSync: true });
+        } catch (syncError) {
+          console.error(`Initial sync failed for ${connection.calendar_id}:`, syncError);
+          return {
+            success: false,
+            stats: null,
+            error: syncError,
+          };
+        }
+      })
+    );
+
+    const hasPartialSyncFailure = saveErrors.length > 0 || syncResults.some((result) => !result.success);
+    const redirectParams = new URLSearchParams({
+      success: 'connected',
+      provider: 'google',
+    });
+
+    if (hasPartialSyncFailure) {
+      redirectParams.set('sync', 'partial');
+    }
 
     // Redirect back to settings with success
     return NextResponse.redirect(
-      `${baseUrl}/app/calendar/settings?success=connected&provider=google`
+      `${baseUrl}/app/calendar/settings?${redirectParams.toString()}`
     );
   } catch (error) {
     console.error('Google OAuth callback error:', error);

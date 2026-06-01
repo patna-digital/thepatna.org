@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { CalendarShell } from "@/components/calendar/calendar-shell";
+import { getCalendarDisplayRange } from "@/lib/calendar/core";
 import { fetchCalendarEvents } from "@/lib/calendar/data";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
 import { getCurrentUserContext } from "@/lib/supabase/access";
@@ -14,6 +16,7 @@ export const metadata = {
 };
 
 export default async function CalendarPage() {
+  const t = await getTranslations();
   const { user, supabase, isAdmin } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: true,
@@ -23,13 +26,7 @@ export default async function CalendarPage() {
     redirect("/auth/login?next=/app/calendar");
   }
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const startOfYear = new Date(currentYear - 1, 0, 1);
-  const endOfYear = new Date(currentYear + 1, 11, 31);
-
-  const startDate = startOfYear.toISOString().split("T")[0];
-  const endDate = endOfYear.toISOString().split("T")[0];
+  const { year: currentYear, startDate, endDate } = getCalendarDisplayRange();
 
   // Trigger background sync if any connection is stale (>1 hour since last sync)
   const adminClient = createSupabaseAdminClient();
@@ -64,33 +61,35 @@ export default async function CalendarPage() {
   const headerActions = (
     <>
       <Link href="/app/calendar/settings" className="secondary-button">
-        Settings
+        {t("calendar.btnSettings")}
       </Link>
       <Link href="/app/calendar/availability" className="primary-button">
-        Set Availability
+        {t("calendar.btnSetAvailability")}
       </Link>
     </>
   );
 
   return (
     <MemberWorkspaceShell
-      eyebrow="Calendar"
+      eyebrow={t("calendar.eyebrow")}
       headerActions={headerActions}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
-      subtitle="Community events, RSVPs, meetings, and connected calendar items in one place"
-      title="Calendar"
+      subtitle={t("calendar.subtitle")}
+      title={t("calendar.title")}
     >
       <div className="calendar-page-content">
         {eventsResult.error ? (
           <article className="dashboard-card member-module-card">
-            <h3>Calendar warning</h3>
+            <h3>{t("calendar.warningTitle")}</h3>
             <p className="member-section-copy">
-              There was an issue loading your calendar events. Please try again later.
+              {t("calendar.warningText")}
             </p>
           </article>
         ) : (
           <CalendarShell
             initialEvents={eventsResult.events || []}
+            initialWarning={eventsResult.warning || ""}
             initialYear={currentYear}
             isAdmin={isAdmin}
           />

@@ -3,6 +3,30 @@
  * Date manipulation, time slot generation, and availability calculation
  */
 
+import {
+  eventOccursInMonth,
+  formatEventTimeLabel,
+  getDateKeysForEvent,
+  getDisplayRangeForEvent,
+  getDisplayStartForEvent,
+  normalizeAllDayDateRange,
+  toLocalDateKey,
+  createLocalDateFromKey,
+  eventOccursInYear,
+} from "./date-helpers.mjs";
+
+export {
+  createLocalDateFromKey,
+  eventOccursInMonth,
+  eventOccursInYear,
+  formatEventTimeLabel,
+  getDateKeysForEvent,
+  getDisplayRangeForEvent,
+  getDisplayStartForEvent,
+  normalizeAllDayDateRange,
+  toLocalDateKey,
+};
+
 /**
  * Get array of days for a month view
  * Includes padding days from previous/next months to fill the grid
@@ -52,6 +76,26 @@ export function getCalendarDays(month, year) {
   }
 
   return days;
+}
+
+/**
+ * Get the calendar horizon PATNA renders in the member workspace.
+ * Uses UTC boundaries so date-only queries do not drift by server timezone.
+ * @param {Date} referenceDate
+ * @returns {{year: number, start: Date, end: Date, startDate: string, endDate: string}}
+ */
+export function getCalendarDisplayRange(referenceDate = new Date()) {
+  const year = referenceDate.getUTCFullYear();
+  const start = new Date(Date.UTC(year - 1, 0, 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year + 1, 11, 31, 23, 59, 59, 999));
+
+  return {
+    year,
+    start,
+    end,
+    startDate: `${year - 1}-01-01`,
+    endDate: `${year + 1}-12-31`,
+  };
 }
 
 /**
@@ -367,11 +411,14 @@ export function getDefaultAvailabilityRules() {
  */
 export function groupEventsByDate(events) {
   return events.reduce((acc, event) => {
-    const date = new Date(event.starts_at).toISOString().split('T')[0];
-    if (!acc[date]) {
-      acc[date] = [];
+    for (const dateKey of getDateKeysForEvent(event)) {
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+
+      acc[dateKey].push(event);
     }
-    acc[date].push(event);
+
     return acc;
   }, {});
 }

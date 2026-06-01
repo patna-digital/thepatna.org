@@ -3,6 +3,7 @@
 import crypto from "node:crypto";
 import { sendAccessSetupEmail } from "@/lib/access-emails";
 import { provisionMemberFromApplication } from "@/lib/member-provisioning";
+import { syncCommunityApplicationAssistantDocument } from "@/lib/assistant-indexing";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function submitCommunityApplicationAction(_previousState, formData) {
@@ -179,6 +180,15 @@ export async function submitCommunityApplicationAction(_previousState, formData)
       status: "success",
       message: "Your application has been received. You'll get an email with your access link shortly.",
     };
+  }
+
+  try {
+    await syncCommunityApplicationAssistantDocument({
+      adminSupabase: supabase,
+      applicationId: application.id,
+    });
+  } catch (assistantError) {
+    console.error("submitCommunityApplicationAction assistant sync error:", assistantError);
   }
 
   return {

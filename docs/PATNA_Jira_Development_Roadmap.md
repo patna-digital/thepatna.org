@@ -224,8 +224,6 @@ Based on the May 2026 site audit (PATNA Website Copy Recommendations v1.0).
 | US-03-19 | As a member, I want to view an activity log of my recent actions so that I can audit my own engagement on the platform. | P3 | M | 🔲 Backlog |
 | US-03-20 | As a member, I want to see a breakdown of what information is visible under each directory visibility setting so that I can make an informed privacy choice. | P2 | S | ✅ Done |
 | US-03-21 | As a member, I want to navigate directly from the availability status setting to the availability schedule editor so that setup flows naturally without hunting through menus. | P2 | S | ✅ Done |
-| US-03-22 | As a member, I want the description and details of a visibility option to update immediately when I select it in edit mode — before I save — so that I understand the privacy implications of each choice without guessing. | P1 | S | ✅ Done |
-| US-03-23 | As a member, I want the settings Edit, Save, Cancel, and "What's visible:" labels to appear in my chosen language (EN / FR / AR / PT) so that the settings UI is fully localised. | P2 | S | ✅ Done |
 
 ---
 
@@ -315,15 +313,6 @@ Based on the May 2026 site audit (PATNA Website Copy Recommendations v1.0).
 | US-05-14 | As an admin, I want to edit the publication date (published_at) directly from the admin insight form so that backdated or migrated publications display the correct original date on the site. | P1 | S | ✅ Done |
 | US-05-15 | As an admin, I want to flag a publication as "needs review" so that I can track which migrated or draft publications still require content fixes, and be alerted via a badge on the Publications nav item. | P1 | S | ✅ Done |
 | US-05-16 | As a visitor or member, I want breadcrumb navigation (Home › Publications › Title) and prev/next publication links on every publication detail page so that I can navigate the publications library seamlessly without returning to the index. | P1 | M | ✅ Done |
-
----
-
-### Feature: F-05-5 — Public Archive Pages (Publications & Events)
-
-| Story ID | User Story | Priority | Estimate | Status |
-|---|---|---|---|---|
-| US-05-17 | As a public visitor, I want to browse PATNA's publications archive with live client-side search and type filtering so that I can find specific reports and briefings without paginating through all records. | P1 | M | ✅ Done |
-| US-05-18 | As a public visitor, I want to browse the events archive with client-side search so that I can find past and upcoming PATNA convenings quickly without needing a full page reload. | P1 | M | ✅ Done |
 
 ---
 
@@ -493,17 +482,6 @@ Based on the May 2026 site audit (PATNA Website Copy Recommendations v1.0).
 
 ---
 
-### Feature: F-08-10 — Pre-Approved Admin Invitations & Admin Sidebar Navigation
-
-| Story ID | User Story | Priority | Estimate | Status |
-|---|---|---|---|---|
-| US-08-54 | As a super admin, I want to pre-approve an email address as an admin before that person has a PATNA account so that designated staff are ready to receive admin access the moment they join. | P1 | M | ✅ Done |
-| US-08-55 | As a pre-approved admin, I want to submit the public join community form and be automatically approved and sent an invite link — without going through interview and review — so that my access is frictionless given I was already designated. | P1 | M | ✅ Done |
-| US-08-56 | As a super admin, I want to see a "Pre-approved admins" list in the admin Admins page and cancel any pre-approval so that the pre-approval list stays accurate and I can reverse a decision before someone joins. | P2 | S | ✅ Done |
-| US-08-57 | As an admin, I want "Website" and "Community app" navigation links in the admin sidebar — matching the pattern already present in the community workspace sidebar — so that I can switch between PATNA's surfaces without going back to a home screen. (Note: supersedes US-08-49's sidebar removal; the cross-nav footer in the main content area remains removed.) | P2 | S | ✅ Done |
-
----
-
 ### Feature: F-08-6 — Partner Registry
 
 | Story ID | User Story | Priority | Estimate | Status |
@@ -643,11 +621,11 @@ Based on the May 2026 site audit (PATNA Website Copy Recommendations v1.0).
 
 | Status | Story Count |
 |---|---|
-| ✅ Done | 122 |
+| ✅ Done | 114 |
 | ⚙️ In Progress | 3 |
 | 📋 Planned | 14 |
 | 🔲 Backlog | 23 |
-| **Total** | **162** |
+| **Total** | **154** |
 
 ### Priority Backlog (Planned + Backlog, P0–P1 only)
 
@@ -699,4 +677,3 @@ Legend: ████ = Shipped  ⚙⚙ = In Progress  ░░░░ = Planned/Bac
 | 1.2 | Jun 2026 | Engineering | Added F-08-8 (Partnership Leads Consolidation): unified /admin/leads page replacing 3 separate pipelines; contact person column; source/status filters; real admin assignment dropdown (lib/admin-users.js); improved detail page sidebar with contact card; fixed /new pages missing DashboardShell and hardcoded notice bug; all delete/cancel redirects → /admin/leads. Added F-08-9 (Admin Shell & Nav Refresh): breadcrumb nav on all admin pages; removed "Navigate across PATNA" cross-nav footer; Partnerships nav = Partners + Leads; Website under Tools with collapsible sections (Community Snapshot, Featured Partners, People inline); featured partners toggle; ServiceRequestForm useFormStatus bug fixed. |
 | 1.3 | Jun 2026 | Engineering | Added F-05-4 (Legacy Publications Migration & Admin Controls — US-05-13–16): migration 0057 seeds 14 legacy publications from decommissioned thepatna.org/resources with canonical published_at dates, real summaries, SEO meta descriptions, external cover images, and PDF attachment links; ON CONFLICT strategy preserves manually edited data while filling empty fields; needs_review boolean column added — all seeded records flagged for admin follow-up; admin nav badge counts flagged publications; insight-form exposes editable published_at (datetime-local) and needs_review checkbox with warning styling. Added breadcrumb trail (Home › Publications › Title) and prev/next navigation on both the marketing and community app publication detail pages. Updated homepage hero video to latest version from Supabase storage. Cleaned up priority backlog table — removed stale Done entries (US-10-01–04, US-10-10, US-08-19). Story count: 110 Done (+4), 150 total (+4). |
 | 1.4 | Jun 2026 | Engineering | Added F-01-5 (Homepage Section Redesign & Copy Refresh — US-01-16–19): removed 3-pillar Value Prop section; replaced About section with Vision/Mission tag rows, Our Story paragraph, and group photo slot (two-column layout); added standalone Stats band (100+ member network · 25 countries · 4 expert cohorts · 3 flagship programmes); added dedicated 4-card Cohorts section with inline SVG icons; removed cohort pills from Community snapshot section; updated en.json with copy from May 2026 site audit; removed "ORCA Africa 2026" from LEAP Phase III name and Dr Oluteye bio for naming consistency. Full responsive CSS (1024/900/600px). Story count: 114 Done (+4), 154 total (+4). |
-| 1.5 | Jun 2026 | Engineering | Added F-05-5 (Public Archive Pages — US-05-17–18): publications archive page with PublicationsArchiveClient + PublicationArchiveCard components and live client-side search/type filtering; events archive refactored to EventsArchiveClient with search. Added F-08-10 (Pre-Approved Admin Invitations & Admin Sidebar Navigation — US-08-54–57): super admin can pre-approve email addresses before account creation; pre-approved admins auto-invited on join form submission (provision + invite + administrator role grant, no interview required); pre-approved list visible in admin Admins page with cancel action; website and community app cross-navigation links added to admin sidebar with i18n (nav_cross keys), superseding US-08-49 sidebar removal. Extended F-03-4 (Member Settings — US-03-22–23): settings select now shows option description and details list on selection in edit mode (before save); edit/save/cancel/whatsVisible keys added to all four locale files (EN/FR/AR/PT). Story count: 122 Done (+8), 162 total (+8). |

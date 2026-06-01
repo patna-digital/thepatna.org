@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { getWeekDays, formatDate } from "@/lib/calendar/core";
+import {
+  formatDate,
+  formatEventTimeLabel,
+  getWeekDays,
+  groupEventsByDate,
+  toLocalDateKey,
+} from "@/lib/calendar/core";
 
 /**
  * Calendar Week View Component
@@ -16,17 +22,7 @@ export function CalendarWeekView({
   const weekDays = useMemo(() => getWeekDays(currentDate, 1), [currentDate]);
 
   // Group events by date
-  const eventsByDate = useMemo(() => {
-    const grouped = {};
-    events.forEach((event) => {
-      const dateKey = new Date(event.starts_at).toISOString().split("T")[0];
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(event);
-    });
-    return grouped;
-  }, [events]);
+  const eventsByDate = useMemo(() => groupEventsByDate(events), [events]);
 
   const timeSlots = useMemo(() => {
     const slots = [];
@@ -98,8 +94,10 @@ export function CalendarWeekView({
 
         {/* Day columns */}
         {weekDays.map((date, index) => {
-          const dateKey = date.toISOString().split("T")[0];
+          const dateKey = toLocalDateKey(date);
           const dayEvents = eventsByDate[dateKey] || [];
+          const allDayEvents = dayEvents.filter((event) => event.is_all_day);
+          const timedEvents = dayEvents.filter((event) => !event.is_all_day);
           const isToday =
             date.toDateString() === new Date().toDateString();
 
@@ -112,11 +110,33 @@ export function CalendarWeekView({
                 <span className="day-name">{formatDate(date, "dayName")}</span>
                 <span className="day-number">{date.getDate()}</span>
               </div>
+              {allDayEvents.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.25rem",
+                    padding: "0.5rem",
+                  }}
+                >
+                  {allDayEvents.map((event, eventIndex) => (
+                    <button
+                      key={eventIndex}
+                      className={`calendar-event-chip ${event.event_source || "community"}`}
+                      onClick={() => onEventClick?.(event)}
+                      title={event.title}
+                      type="button"
+                    >
+                      <span className="event-title">{event.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="calendar-day-content">
                 {timeSlots.map((time) => (
                   <div key={time} className="calendar-hour-cell" />
                 ))}
-                {dayEvents.map((event, eventIndex) => {
+                {timedEvents.map((event, eventIndex) => {
                   const startHour = new Date(event.starts_at).getHours();
                   const startMinute = new Date(event.starts_at).getMinutes();
                   const endHour = new Date(event.ends_at).getHours();
@@ -139,10 +159,7 @@ export function CalendarWeekView({
                       title={event.title}
                     >
                       <span className="event-title">{event.title}</span>
-                      <span className="event-time">
-                        {formatDate(event.starts_at, "time")} -{" "}
-                        {formatDate(event.ends_at, "time")}
-                      </span>
+                      <span className="event-time">{formatEventTimeLabel(event)}</span>
                     </div>
                   );
                 })}

@@ -1,7 +1,13 @@
 import { listSupabaseAuthUsers } from "@/lib/supabase/admin";
+import { buildPublicBookingUrl } from "@/lib/calendar/booking";
+import {
+  resolveCodeOfConductAsset,
+  resolveNdaAsset,
+} from "@/lib/member-compliance-documents";
 import { resolveHeadshotAsset } from "@/lib/member-headshots";
 import { resolveResumeAsset } from "@/lib/member-resumes";
 import { buildProfileProgress } from "@/lib/profile-onboarding";
+import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
 function getLatestInvite(invites) {
   return (invites || []).reduce((latest, invite) => {
@@ -98,12 +104,149 @@ function inferRoleFromBio(professionalBio) {
     .replace(/^(a|an|the)\s+/i, "");
 }
 
+function getTranslatedDisplayValue(translatedByKey, cacheKey, fallback = "") {
+  return translatedByKey.get(cacheKey)?.displayText || fallback;
+}
+
+async function translateMemberViews(members, locale) {
+  if (!members.length) {
+    return members;
+  }
+
+  const translationItems = [];
+  const pushItem = (cacheKey, contentType, fieldName, text) => {
+    if (typeof text !== "string" || !text.trim()) {
+      return;
+    }
+
+    translationItems.push({
+      cacheKey,
+      contentType,
+      fieldName,
+      text,
+      format: "text",
+    });
+  };
+
+  for (const member of members) {
+    pushItem(`member:${member.id}:role_title`, "member", "role_title", member.roleTitleLabel || member.role_title || "");
+    pushItem(`member:${member.id}:country_of_residence`, "member", "country_of_residence", member.country_of_residence || "");
+    pushItem(`member:${member.id}:professional_bio`, "member", "professional_bio", member.professional_bio || "");
+    pushItem(`member:${member.id}:domain_knowledge`, "member", "domain_knowledge", member.cohortProfile?.domain_knowledge || "");
+    pushItem(`member:${member.id}:focus_area`, "member", "focus_area", member.cohortProfile?.focus_area || "");
+    pushItem(`member:${member.id}:notable_work`, "member", "notable_work", member.cohortProfile?.notable_work || "");
+    pushItem(`member:${member.id}:opportunity_interest`, "member", "opportunity_interest", member.cohortProfile?.opportunity_interest || "");
+
+    if (member.primaryCohort?.slug && member.primaryCohort?.name) {
+      pushItem(`cohort:${member.primaryCohort.slug}:name`, "cohort", "name", member.primaryCohort.name);
+    }
+
+    for (const cohort of member.secondaryCohorts || []) {
+      if (cohort?.slug && cohort?.name) {
+        pushItem(`cohort:${cohort.slug}:name`, "cohort", "name", cohort.name);
+      }
+    }
+
+    for (const tag of member.domainTags || []) {
+      if (tag?.slug && tag?.name) {
+        pushItem(`domain_tag:${tag.slug}:name`, "domain_tag", "name", tag.name);
+      }
+    }
+
+    for (const [index, language] of (member.languages || []).entries()) {
+      pushItem(`member:${member.id}:language:${index}`, "member", "language", language);
+    }
+  }
+
+  const translatedItems = await translateContentItems(locale, translationItems);
+  const translatedByKey = new Map(
+    translatedItems.map((item) => [item.cacheKey, item]),
+  );
+
+  return members.map((member) => ({
+    ...member,
+    roleTitleDisplay: getTranslatedDisplayValue(
+      translatedByKey,
+      `member:${member.id}:role_title`,
+      member.roleTitleLabel || member.role_title || "",
+    ),
+    organisationDisplay: member.organisationLabel || member.organisation_name || "",
+    countryDisplay: getTranslatedDisplayValue(
+      translatedByKey,
+      `member:${member.id}:country_of_residence`,
+      member.country_of_residence || "",
+    ),
+    professionalBioDisplay: getTranslatedDisplayValue(
+      translatedByKey,
+      `member:${member.id}:professional_bio`,
+      member.professional_bio || "",
+    ),
+    primaryCohort: member.primaryCohort
+      ? {
+          ...member.primaryCohort,
+          nameDisplay: getTranslatedDisplayValue(
+            translatedByKey,
+            `cohort:${member.primaryCohort.slug}:name`,
+            member.primaryCohort.name,
+          ),
+        }
+      : null,
+    secondaryCohorts: (member.secondaryCohorts || []).map((cohort) => ({
+      ...cohort,
+      nameDisplay: getTranslatedDisplayValue(
+        translatedByKey,
+        `cohort:${cohort.slug}:name`,
+        cohort.name,
+      ),
+    })),
+    domainTags: (member.domainTags || []).map((tag) => ({
+      ...tag,
+      nameDisplay: getTranslatedDisplayValue(
+        translatedByKey,
+        `domain_tag:${tag.slug}:name`,
+        tag.name,
+      ),
+    })),
+    languagesDisplay: (member.languages || []).map((language, index) =>
+      getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:language:${index}`,
+        language,
+      )
+    ),
+    cohortProfileDisplay: {
+      domainKnowledge: getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:domain_knowledge`,
+        member.cohortProfile?.domain_knowledge || "",
+      ),
+      focusArea: getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:focus_area`,
+        member.cohortProfile?.focus_area || "",
+      ),
+      notableWork: getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:notable_work`,
+        member.cohortProfile?.notable_work || "",
+      ),
+      opportunityInterest: getTranslatedDisplayValue(
+        translatedByKey,
+        `member:${member.id}:opportunity_interest`,
+        member.cohortProfile?.opportunity_interest || "",
+      ),
+    },
+  }));
+}
+
 export function buildMemberProfileView({
   authUser,
+  bookingSettings,
   cohortProfile,
   cohortRows,
   inviteRows,
   profile,
+  roleRows,
   spaceCount = 0,
   tagRows,
 }) {
@@ -119,6 +262,11 @@ export function buildMemberProfileView({
   const primaryCohort = normaliseCohort(primaryCohortRow?.cohorts);
   const headshotAsset = resolveHeadshotAsset(cohortProfile?.headshot_url, cohortProfile?.raw_responses);
   const resumeAsset = resolveResumeAsset(cohortProfile?.cv_url, cohortProfile?.raw_responses);
+  const ndaAsset = resolveNdaAsset(cohortProfile?.nda_url, cohortProfile?.raw_responses);
+  const codeOfConductAsset = resolveCodeOfConductAsset(
+    cohortProfile?.code_of_conduct_url,
+    cohortProfile?.raw_responses,
+  );
   const needsHeadshotRecovery = headshotAsset.source_kind === "external";
   const needsResumeRecovery = resumeAsset.source_kind === "external";
   const progress = buildProfileProgress({
@@ -160,6 +308,8 @@ export function buildMemberProfileView({
     hasHeadshot: Boolean(headshotAsset.display_url),
     needsHeadshotRecovery,
     resumeAsset,
+    ndaAsset,
+    codeOfConductAsset,
     resumeDownloadUrl: "",
     needsResumeRecovery,
     completionPercent: progress.completionPercent,
@@ -170,10 +320,16 @@ export function buildMemberProfileView({
     missingProfileFields: progress.missingProfileFields,
     remainingRequiredFields: progress.remainingRequiredFields,
     sectionStatus: progress.sectionStatus,
+    roles: (roleRows || []).map((row) => row.role).filter(Boolean),
     isImported: Boolean(profile?.migration_batch_id),
     wasContacted: Boolean(latestInvite),
     isActive: profile?.onboarding_status === "active",
     isProfileVisible: profile?.profile_status !== "inactive",
+    publicBookingEnabled: Boolean(bookingSettings?.public_booking_enabled),
+    publicBookingUrl: bookingSettings?.public_booking_enabled
+      ? buildPublicBookingUrl(bookingSettings.public_booking_url_slug)
+      : "",
+    publicBookingUrlSlug: bookingSettings?.public_booking_url_slug || "",
   };
 }
 
@@ -183,6 +339,7 @@ export async function fetchMemberProfileView({
   userId,
   includeAuthUser = false,
   includeInviteHistory = false,
+  locale,
 }) {
   const [
     authUsers,
@@ -192,12 +349,14 @@ export async function fetchMemberProfileView({
     inviteRowsResult,
     cohortProfileResult,
     spaceMembershipsResult,
+    bookingSettingsResult,
+    roleRowsResult,
   ] = await Promise.all([
     includeAuthUser ? listSupabaseAuthUsers(adminClient) : Promise.resolve([]),
     supabase
       .from("profiles")
       .select(
-        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
+        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, country_code, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
       )
       .eq("id", userId)
       .maybeSingle(),
@@ -214,6 +373,12 @@ export async function fetchMemberProfileView({
       : Promise.resolve({ data: [], error: null }),
     supabase.from("cohort_member_profiles").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("space_memberships").select("space_id, user_id").eq("user_id", userId),
+    supabase
+      .from("booking_settings")
+      .select("member_id, public_booking_enabled, public_booking_url_slug")
+      .eq("member_id", userId)
+      .maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id", userId),
   ]);
 
   // Only treat profile query errors as fatal - other queries can fail gracefully
@@ -248,17 +413,26 @@ export async function fetchMemberProfileView({
     ? 0
     : new Set((spaceMembershipsResult.data || []).map((row) => row.space_id).filter(Boolean)).size;
 
+  const [translatedMember] = await translateMemberViews(
+    [
+      buildMemberProfileView({
+        authUser,
+        bookingSettings: bookingSettingsResult.data,
+        cohortProfile: cohortProfileResult.data,
+        cohortRows: cohortRowsResult.data,
+        inviteRows: inviteRowsResult.data,
+        profile: profileResult.data,
+        roleRows: roleRowsResult.data,
+        spaceCount,
+        tagRows: tagRowsResult.data,
+      }),
+    ],
+    locale || await getRequestLocale(),
+  );
+
   return {
     error: null,
-    member: buildMemberProfileView({
-      authUser,
-      cohortProfile: cohortProfileResult.data,
-      cohortRows: cohortRowsResult.data,
-      inviteRows: inviteRowsResult.data,
-      profile: profileResult.data,
-      spaceCount,
-      tagRows: tagRowsResult.data,
-    }),
+    member: translatedMember,
   };
 }
 
@@ -341,7 +515,7 @@ export async function fetchActiveMemberCounts({ adminClient, cohortSlug = "" }) 
   };
 }
 
-export async function fetchActiveMemberDirectory({ adminClient }) {
+export async function fetchActiveMemberDirectory({ adminClient, locale }) {
   const { data: memberRoleRows, error: memberRoleError } = await adminClient
     .from("user_roles")
     .select("user_id")
@@ -363,11 +537,11 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
     };
   }
 
-  const [profilesResult, cohortRowsResult, tagRowsResult, cohortProfilesResult, spaceMembershipsResult] = await Promise.all([
+  const [profilesResult, cohortRowsResult, tagRowsResult, cohortProfilesResult, spaceMembershipsResult, bookingSettingsResult] = await Promise.all([
     adminClient
       .from("profiles")
       .select(
-        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
+        "id, email, first_name, surname, title, role_title, organisation_name, country_of_residence, country_code, professional_bio, visibility_setting, onboarding_status, migration_batch_id, invited_at, onboarding_completed_at, phone_number, whatsapp_number, timezone, profile_status, availability_status",
       )
       .in("id", memberIds)
       .eq("onboarding_status", "active")
@@ -389,6 +563,10 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
       .from("space_memberships")
       .select("user_id, space_id")
       .in("user_id", memberIds),
+    adminClient
+      .from("booking_settings")
+      .select("member_id, public_booking_enabled, public_booking_url_slug")
+      .in("member_id", memberIds),
   ]);
 
   const error =
@@ -396,7 +574,8 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
     cohortRowsResult.error ||
     tagRowsResult.error ||
     cohortProfilesResult.error ||
-    spaceMembershipsResult.error;
+    spaceMembershipsResult.error ||
+    bookingSettingsResult.error;
 
   if (error) {
     return {
@@ -422,6 +601,9 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
   const cohortProfileByUserId = new Map(
     (cohortProfilesResult.data || []).map((row) => [row.user_id, row]),
   );
+  const bookingSettingsByUserId = new Map(
+    (bookingSettingsResult.data || []).map((row) => [row.member_id, row]),
+  );
   const spaceCountsByUserId = new Map();
 
   for (const row of spaceMembershipsResult.data || []) {
@@ -434,18 +616,21 @@ export async function fetchActiveMemberDirectory({ adminClient }) {
     spaceCountsByUserId.set(row.user_id, existing);
   }
 
+  const members = (profilesResult.data || []).map((profile) =>
+    buildMemberProfileView({
+      authUser: null,
+      bookingSettings: bookingSettingsByUserId.get(profile.id) || null,
+      cohortProfile: cohortProfileByUserId.get(profile.id) || null,
+      cohortRows: allCohortsByUserId.get(profile.id) || [],
+      inviteRows: [],
+      profile,
+      spaceCount: spaceCountsByUserId.get(profile.id)?.size || 0,
+      tagRows: allTagsByUserId.get(profile.id) || [],
+    }),
+  );
+
   return {
     error: null,
-    members: (profilesResult.data || []).map((profile) =>
-      buildMemberProfileView({
-        authUser: null,
-        cohortProfile: cohortProfileByUserId.get(profile.id) || null,
-        cohortRows: allCohortsByUserId.get(profile.id) || [],
-        inviteRows: [],
-        profile,
-        spaceCount: spaceCountsByUserId.get(profile.id)?.size || 0,
-        tagRows: allTagsByUserId.get(profile.id) || [],
-      }),
-    ),
+    members: await translateMemberViews(members, locale || await getRequestLocale()),
   };
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
+import { getSafeRedirectPath } from "@/lib/auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const AUTH_ERROR_MESSAGES = {
@@ -23,6 +24,18 @@ function resolveAuthErrorMessage(code, description) {
   }
 
   return "This link is invalid or has already been used. Ask your administrator to send a new one.";
+}
+
+function resolveNextPath({ code, requestedNext, type }) {
+  if (requestedNext) {
+    return getSafeRedirectPath(requestedNext);
+  }
+
+  if (code || type === "invite" || type === "recovery") {
+    return "/auth/reset-password";
+  }
+
+  return "/app";
 }
 
 export default function AuthVerifyPage() {
@@ -53,12 +66,18 @@ export default function AuthVerifyPage() {
         const code = params.get("code");
         const tokenHash = params.get("token_hash");
         const type = params.get("type");
+        const hashType = hashParams.get("type");
+        const nextPath = resolveNextPath({
+          code,
+          requestedNext: params.get("next") || hashParams.get("next") || "",
+          type: type || hashType || "",
+        });
 
         if (code || (tokenHash && type)) {
           const callbackParams = new URLSearchParams(params);
 
-          if (!callbackParams.get("next") && (code || type === "invite" || type === "recovery")) {
-            callbackParams.set("next", "/auth/reset-password");
+          if (!callbackParams.get("next")) {
+            callbackParams.set("next", nextPath);
           }
 
           window.location.replace(`/auth/callback?${callbackParams.toString()}`);
@@ -68,7 +87,6 @@ export default function AuthVerifyPage() {
         // Legacy implicit-flow links arrive as hash params.
         const hashAccessToken = hashParams.get("access_token");
         const hashRefreshToken = hashParams.get("refresh_token");
-        const hashType = hashParams.get("type");
 
         if (hashAccessToken) {
           const supabase = createSupabaseBrowserClient();
@@ -83,11 +101,7 @@ export default function AuthVerifyPage() {
             return;
           }
 
-          if (hashType === "invite" || hashType === "recovery") {
-            router.push("/auth/reset-password");
-          } else {
-            router.push("/app");
-          }
+          router.replace(nextPath);
           return;
         }
 

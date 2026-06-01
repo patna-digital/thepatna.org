@@ -2,12 +2,15 @@
   "name": "@patna/web",
   "private": true,
   "scripts": {
+    "assistant:reindex": "node scripts/backfill-embeddings.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "translate": "node scripts/translate.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.53.0",
     "@azure/msal-node": "^5.1.1",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
@@ -23,8 +26,14 @@
     "date-fns": "^4.1.0",
     "googleapis": "^171.4.0",
     "ical.js": "^2.2.1",
+    "lucide-react": "^1.7.0",
     "next": "latest",
+    "next-intl": "^4.9.0",
+    "pdf-parse": "^1.1.1",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "react-simple-maps": "^3.0.0",
+    "resend": "^6.12.4",
+    "world-atlas": "^2.0.2"
   }
 }

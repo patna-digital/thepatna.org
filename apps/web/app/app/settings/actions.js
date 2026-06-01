@@ -1,13 +1,23 @@
 "use server";
 
 import { getAuthCallbackUrl } from "@/lib/auth";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { syncProfileAssistantDocument } from "@/lib/assistant-indexing";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { getSiteUrl } from "@/lib/env";
 import { revalidatePath } from "next/cache";
+import {
+  VALID_PROFILE_AVAILABILITY_STATUSES,
+  VALID_PROFILE_VISIBILITY_SETTINGS,
+} from "@/lib/profile-form-options";
+import { updatePreferences } from "@/lib/notifications";
 
-const VALID_VISIBILITY_SETTINGS = ["members_only", "public", "private"];
-const VALID_AVAILABILITY_STATUSES = ["available", "limited", "unavailable"];
+const VALID_DIGEST_FREQUENCIES = ["daily", "weekly", "never"];
+const BOOLEAN_PREF_KEYS = [
+  "email_digest_enabled",
+  "email_mentions_enabled",
+  "email_broadcasts_enabled",
+  "inapp_mentions_enabled",
+];
 
 export async function updateVisibilitySettingAction(formData) {
   const { user, supabase } = await getCurrentUserContext();
@@ -18,7 +28,7 @@ export async function updateVisibilitySettingAction(formData) {
 
   const visibility = String(formData.get("visibility_setting") || "").trim();
 
-  if (!VALID_VISIBILITY_SETTINGS.includes(visibility)) {
+  if (!VALID_PROFILE_VISIBILITY_SETTINGS.includes(visibility)) {
     return { ok: false, error: "Invalid visibility setting" };
   }
 
@@ -35,6 +45,12 @@ export async function updateVisibilitySettingAction(formData) {
     return { ok: false, error: "Failed to update visibility setting" };
   }
 
+  try {
+    await syncProfileAssistantDocument({ profileId: user.id });
+  } catch (assistantError) {
+    console.error("Failed to sync assistant profile after visibility update:", assistantError);
+  }
+
   revalidatePath("/app/settings");
   return { ok: true };
 }
@@ -48,7 +64,7 @@ export async function updateAvailabilityStatusAction(formData) {
 
   const availability = String(formData.get("availability_status") || "").trim();
 
-  if (!VALID_AVAILABILITY_STATUSES.includes(availability)) {
+  if (!VALID_PROFILE_AVAILABILITY_STATUSES.includes(availability)) {
     return { ok: false, error: "Invalid availability status" };
   }
 
@@ -63,6 +79,12 @@ export async function updateAvailabilityStatusAction(formData) {
   if (error) {
     console.error("Failed to update availability:", error);
     return { ok: false, error: "Failed to update availability status" };
+  }
+
+  try {
+    await syncProfileAssistantDocument({ profileId: user.id });
+  } catch (assistantError) {
+    console.error("Failed to sync assistant profile after availability update:", assistantError);
   }
 
   revalidatePath("/app/settings");
@@ -96,8 +118,63 @@ export async function updateTimezoneAction(formData) {
     return { ok: false, error: "Failed to update timezone" };
   }
 
+  try {
+    await syncProfileAssistantDocument({ profileId: user.id });
+  } catch (assistantError) {
+    console.error("Failed to sync assistant profile after timezone update:", assistantError);
+  }
+
   revalidatePath("/app/settings");
   return { ok: true };
+}
+
+export async function updateNotificationPreferenceAction(formData) {
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
+  if (!user || !supabase) return { ok: false, error: "Unauthorized" };
+
+  const key = String(formData.get("key") || "").trim();
+  const value = formData.get("value");
+
+  if (!BOOLEAN_PREF_KEYS.includes(key)) {
+    return { ok: false, error: "Invalid preference key" };
+  }
+
+  // Checkbox: "on" when checked, absent when unchecked
+  const boolValue = value === "on" || value === "true";
+
+  try {
+    await updatePreferences({ supabase, userId: user.id, prefs: { [key]: boolValue } });
+    revalidatePath("/app/settings");
+    return { ok: true };
+  } catch (err) {
+    console.error("updateNotificationPreferenceAction error:", err);
+    return { ok: false, error: "Failed to save preference" };
+  }
+}
+
+export async function updateDigestFrequencyAction(formData) {
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
+  if (!user || !supabase) return { ok: false, error: "Unauthorized" };
+
+  const frequency = String(formData.get("email_digest_frequency") || "").trim();
+  if (!VALID_DIGEST_FREQUENCIES.includes(frequency)) {
+    return { ok: false, error: "Invalid frequency" };
+  }
+
+  try {
+    await updatePreferences({ supabase, userId: user.id, prefs: { email_digest_frequency: frequency } });
+    revalidatePath("/app/settings");
+    return { ok: true };
+  } catch (err) {
+    console.error("updateDigestFrequencyAction error:", err);
+    return { ok: false, error: "Failed to save frequency" };
+  }
 }
 
 export async function requestPasswordResetAction() {

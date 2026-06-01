@@ -4,7 +4,12 @@
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { fetchProviderEvents, refreshAccessToken } from './providers';
+import { refreshGoogleCalendarConnectionMetadata } from './google-connection-metadata.js';
+import { getCalendarDisplayRange } from './core.js';
+import { fetchProviderEvents, refreshAccessToken } from './providers/index.js';
+import { syncMatchedBookingConferenceDetails } from './sync-bookings.js';
+
+export { syncMatchedBookingConferenceDetails } from './sync-bookings.js';
 
 /**
  * Sync events from an external calendar connection
@@ -13,10 +18,11 @@ import { fetchProviderEvents, refreshAccessToken } from './providers';
  * @returns {Promise<{success: boolean, stats: Object, error: Error|null}>}
  */
 export async function syncCalendarConnection(connection, options = {}) {
+  const { start: defaultTimeMin, end: defaultTimeMax } = getCalendarDisplayRange();
   const {
     forceFullSync = false,
-    timeMin = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    timeMax = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+    timeMin = defaultTimeMin,
+    timeMax = defaultTimeMax,
   } = options;
 
   const supabase = createSupabaseAdminClient();
@@ -31,16 +37,26 @@ export async function syncCalendarConnection(connection, options = {}) {
   };
 
   try {
+    if (!connection?.id) {
+      throw new Error('Calendar sync requires a saved connection id');
+    }
+
+    if (!connection?.provider) {
+      throw new Error(`Calendar connection ${connection.id} is missing a provider`);
+    }
+
+    if (!connection?.member_id) {
+      throw new Error(`Calendar connection ${connection.id} is missing a member id`);
+    }
+
     // Check if token needs refresh
     let accessToken = connection.access_token;
     let refreshToken = connection.refresh_token;
-    let tokenRefreshed = false;
 
     if (connection.token_expires_at && new Date(connection.token_expires_at) <= new Date()) {
       const newTokens = await refreshAccessToken(connection.provider, refreshToken);
       accessToken = newTokens.accessToken;
       refreshToken = newTokens.refreshToken;
-      tokenRefreshed = true;
 
       // Update tokens in database
       await supabase
@@ -52,6 +68,22 @@ export async function syncCalendarConnection(connection, options = {}) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', connection.id);
+    }
+
+    if (connection.provider === 'google') {
+      try {
+        const metadataRefresh = await refreshGoogleCalendarConnectionMetadata({
+          accessToken,
+          refreshToken,
+          memberId: connection.member_id,
+          supabase,
+        });
+
+        accessToken = metadataRefresh.accessToken;
+        refreshToken = metadataRefresh.refreshToken;
+      } catch (error) {
+        stats.errors.push(`Metadata refresh error: ${error.message}`);
+      }
     }
 
     // Fetch events from provider
@@ -129,6 +161,9 @@ export async function syncCalendarConnection(connection, options = {}) {
           organizer: event.organizer,
           status: event.status,
           visibility: event.visibility,
+          conference_url: event.conferenceUrl || null,
+          conference_provider: event.conferenceProvider || null,
+          conference_data: event.conferenceData || null,
           external_created_at: event.externalCreatedAt,
           external_updated_at: event.externalUpdatedAt,
           last_synced_at: new Date().toISOString(),
@@ -153,6 +188,9 @@ export async function syncCalendarConnection(connection, options = {}) {
           organizer: event.organizer,
           status: event.status,
           visibility: event.visibility,
+          conference_url: event.conferenceUrl || null,
+          conference_provider: event.conferenceProvider || null,
+          conference_data: event.conferenceData || null,
           external_updated_at: event.externalUpdatedAt,
           last_synced_at: new Date().toISOString(),
         });
@@ -186,6 +224,16 @@ export async function syncCalendarConnection(connection, options = {}) {
           stats.eventsUpdated++;
         }
       }
+    }
+
+    const bookingConferenceSync = await syncMatchedBookingConferenceDetails({
+      externalEvents,
+      memberId: connection.member_id,
+      supabase,
+    });
+
+    if (bookingConferenceSync.errors.length > 0) {
+      stats.errors.push(...bookingConferenceSync.errors.map((message) => `Booking sync error: ${message}`));
     }
 
     // Delete events that no longer exist (for incremental syncs)
@@ -444,15 +492,22 @@ export async function getMemberSyncStatus(memberId) {
     }
 
     // Get event counts per connection
-    const { data: eventCounts } = await supabase
+    const { data: externalEvents } = await supabase
       .from('external_calendar_events')
-      .select('connection_id, count')
-      .eq('member_id', memberId)
-      .group('connection_id');
+      .select('connection_id')
+      .eq('member_id', memberId);
 
-    const eventCountMap = new Map(
-      (eventCounts || []).map((e) => [e.connection_id, parseInt(e.count)])
-    );
+    const eventCountMap = new Map();
+    for (const event of externalEvents || []) {
+      if (!event?.connection_id) {
+        continue;
+      }
+
+      eventCountMap.set(
+        event.connection_id,
+        (eventCountMap.get(event.connection_id) || 0) + 1
+      );
+    }
 
     const enrichedConnections = (connections || []).map((conn) => ({
       ...conn,

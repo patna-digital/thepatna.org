@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { formatContentType } from "@/lib/insights";
+import { useLocale } from "next-intl";
+import { formatContentType } from "@/lib/content-types";
 
 const TYPE_CHIP_CLASSES = {
   report: "chip-neutral",
@@ -12,6 +13,8 @@ const TYPE_CHIP_CLASSES = {
 };
 
 export function MemberInsightsList({ insights }) {
+  const locale = useLocale();
+
   if (insights.length === 0) {
     return null;
   }
@@ -27,10 +30,10 @@ export function MemberInsightsList({ insights }) {
           <article className="member-insight-row">
             <div className="member-insight-row-top">
               <span className={`status-chip ${TYPE_CHIP_CLASSES[insight.content_type] || "chip-neutral"}`}>
-                {formatContentType(insight.content_type)}
+                {insight.contentTypeLabel || formatContentType(insight.content_type)}
               </span>
               <span className="member-insight-date">
-                {formatDate(insight.published_at)}
+                {formatDate(insight.published_at, locale)}
               </span>
             </div>
             <strong>{insight.title}</strong>
@@ -52,9 +55,9 @@ export function MemberInsightsList({ insights }) {
   );
 }
 
-function formatDate(value) {
+function formatDate(value, locale = "en") {
   if (!value) return "";
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
   }).format(new Date(value));
 }

@@ -1,77 +1,114 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { findConferenceLink, getConferenceCtaLabel } from "@/lib/calendar/conference";
 import {
   getCalendarDays,
   formatDate,
   getMonthName,
-  getPreviousMonth,
   getNextMonth,
+  getPreviousMonth,
+  toLocalDateKey,
 } from "@/lib/calendar/core";
 
-function DatePicker({ currentDate, onDateSelect, selectedDate, availableDates }) {
-  const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
+function formatMonthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatInTimeZone(dateValue, timeZone, options) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    ...options,
+  }).format(new Date(dateValue));
+}
+
+function formatClockTime(timeValue) {
+  const [hours = "0", minutes = "0"] = String(timeValue || "00:00").split(":");
+  const date = new Date(Date.UTC(2000, 0, 1, Number(hours), Number(minutes)));
+
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function formatSlotRange(slot) {
+  return `${formatClockTime(slot.start_time)} - ${formatClockTime(slot.end_time)}`;
+}
+
+function splitGuestEmailEntries(value) {
+  return String(value || "")
+    .split(/[\n,;]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function DatePicker({
+  availableDates,
+  currentMonthDate,
+  isLoading,
+  onMonthChange,
+  onSelectDate,
+  selectedDate,
+}) {
+  const month = currentMonthDate.getMonth();
+  const year = currentMonthDate.getFullYear();
   const days = useMemo(() => getCalendarDays(month, year), [month, year]);
-  const { month: prevMonth, year: prevYear } = getPreviousMonth(month, year);
+  const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
+  const selectedDateKey = selectedDate ? toLocalDateKey(selectedDate) : "";
+  const { month: previousMonth, year: previousYear } = getPreviousMonth(month, year);
   const { month: nextMonth, year: nextYear } = getNextMonth(month, year);
-
-  const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
-  const isDateAvailable = (date) => {
-    const dateStr = date.toISOString().split("T")[0];
-    return availableDates.includes(dateStr);
-  };
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const todayKey = toLocalDateKey(new Date());
 
   return (
-    <div className="date-picker">
-      <div className="date-picker-header">
+    <div className="booking-date-picker">
+      <div className="booking-picker-header">
         <button
-          className="picker-nav-btn"
-          onClick={() => onDateSelect(new Date(prevYear, prevMonth, 1))}
+          className="booking-picker-nav"
+          onClick={() => onMonthChange(new Date(previousYear, previousMonth, 1))}
           type="button"
         >
           ←
         </button>
-        <span className="picker-month">
-          {getMonthName(month)} {year}
-        </span>
+        <div>
+          <strong>{getMonthName(month)} {year}</strong>
+          <p>{isLoading ? "Checking availability…" : `${availableDates.length} day${availableDates.length === 1 ? "" : "s"} available`}</p>
+        </div>
         <button
-          className="picker-nav-btn"
-          onClick={() => onDateSelect(new Date(nextYear, nextMonth, 1))}
+          className="booking-picker-nav"
+          onClick={() => onMonthChange(new Date(nextYear, nextMonth, 1))}
           type="button"
         >
           →
         </button>
       </div>
 
-      <div className="picker-weekdays">
+      <div className="booking-picker-weekdays">
         {weekDays.map((day) => (
-          <div key={day} className="picker-weekday">
-            {day}
-          </div>
+          <span key={day}>{day}</span>
         ))}
       </div>
 
-      <div className="picker-days">
+      <div className="booking-picker-grid">
         {days.map(({ date, isCurrentMonth }, index) => {
-          const dateStr = date.toISOString().split("T")[0];
-          const isSelected = selectedDate?.toISOString().split("T")[0] === dateStr;
-          const isAvailable = isDateAvailable(date);
-          const isPast = date < new Date().setHours(0, 0, 0, 0);
+          const dateKey = toLocalDateKey(date);
+          const isAvailable = availableDateSet.has(dateKey);
+          const isSelected = selectedDateKey === dateKey;
+          const isPast = dateKey < todayKey;
 
           return (
             <button
-              key={index}
-              className={`picker-day ${isCurrentMonth ? "current" : "other"} ${
-                isSelected ? "selected" : ""
-              } ${isAvailable ? "available" : ""} ${isPast ? "past" : ""}`}
-              onClick={() => !isPast && isAvailable && onDateSelect(date)}
-              disabled={isPast || !isAvailable}
+              key={`${dateKey}-${index}`}
+              className={`booking-picker-day ${isCurrentMonth ? "is-current" : "is-adjacent"} ${isAvailable ? "is-available" : ""} ${isSelected ? "is-selected" : ""}`}
+              disabled={!isAvailable || isPast}
+              onClick={() => onSelectDate(date)}
               type="button"
             >
-              {date.getDate()}
-              {isAvailable && !isPast && <span className="availability-dot" />}
+              <span>{date.getDate()}</span>
+              {isAvailable && !isPast ? <span className="booking-picker-dot" /> : null}
             </button>
           );
         })}
@@ -80,27 +117,36 @@ function DatePicker({ currentDate, onDateSelect, selectedDate, availableDates })
   );
 }
 
-function TimeSlotPicker({ slots, selectedSlot, onSelect }) {
-  if (slots.length === 0) {
+function TimeSlotPicker({ isLoading, onSelect, selectedSlot, slots, timezone }) {
+  if (isLoading) {
+    return <p className="booking-status-note">Loading available times…</p>;
+  }
+
+  if (!slots.length) {
     return (
-      <div className="no-slots">
-        <p>No available slots for this date</p>
+      <div className="booking-empty-card">
+        <strong>No open slots on this day</strong>
+        <p>Try another date or come back later if more time is added.</p>
       </div>
     );
   }
 
   return (
-    <div className="time-slots">
-      <h3>Select a time</h3>
-      <div className="slots-grid">
+    <div className="booking-slot-panel">
+      <div className="booking-slot-panel-header">
+        <strong>Select a time</strong>
+        <span>{timezone}</span>
+      </div>
+      <div className="booking-slot-grid">
         {slots.map((slot) => (
           <button
             key={slot.id}
-            className={`time-slot-btn ${selectedSlot?.id === slot.id ? "selected" : ""}`}
+            className={`booking-slot-button ${selectedSlot?.id === slot.id ? "is-selected" : ""}`}
             onClick={() => onSelect(slot)}
             type="button"
           >
-            {slot.start_time}
+            <span>{formatSlotRange(slot)}</span>
+            <small>{timezone}</small>
           </button>
         ))}
       </div>
@@ -108,779 +154,844 @@ function TimeSlotPicker({ slots, selectedSlot, onSelect }) {
   );
 }
 
-function BookingForm({ slot, memberName, settings, onSubmit, onBack }) {
+function BookingForm({
+  isSubmitting,
+  memberName,
+  onBack,
+  onSubmit,
+  selectedSlot,
+  settings,
+}) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    guestEmails: "",
     organisation: "",
     notes: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     await onSubmit(formData);
-    setIsSubmitting(false);
   };
 
   return (
-    <div className="booking-form-container">
+    <div className="booking-form-shell">
       <button className="back-btn" onClick={onBack} type="button">
-        ← Back to time selection
+        ← Back to times
       </button>
 
-      <div className="booking-summary">
-        <h3>Booking Details</h3>
-        <div className="summary-row">
-          <span>Date:</span>
-          <strong>{formatDate(slot.slot_date, "long")}</strong>
-        </div>
-        <div className="summary-row">
-          <span>Time:</span>
-          <strong>
-            {slot.start_time} - {slot.end_time}
-          </strong>
-        </div>
-        <div className="summary-row">
-          <span>Duration:</span>
-          <strong>{settings.default_meeting_duration} minutes</strong>
-        </div>
+      <div className="booking-summary-card">
+        <strong>Meeting summary</strong>
+        <dl>
+          <div>
+            <dt>Date</dt>
+            <dd>{formatDate(selectedSlot.slot_date, "long")}</dd>
+          </div>
+          <div>
+            <dt>Time</dt>
+            <dd>{formatSlotRange(selectedSlot)}</dd>
+          </div>
+          <div>
+            <dt>Length</dt>
+            <dd>{settings.default_meeting_duration} minutes</dd>
+          </div>
+          <div>
+            <dt>With</dt>
+            <dd>{memberName}</dd>
+          </div>
+        </dl>
       </div>
 
       <form className="booking-form" onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="name">Your Name *</label>
+          <label htmlFor="booker-name">Your name</label>
           <input
+            id="booker-name"
+            onChange={(event) => handleChange("name", event.target.value)}
+            placeholder="Jane Doe"
+            required
             type="text"
-            id="name"
             value={formData.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-            required
-            placeholder="John Doe"
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="email">Email Address *</label>
+          <label htmlFor="booker-email">Email address</label>
           <input
+            id="booker-email"
+            onChange={(event) => handleChange("email", event.target.value)}
+            placeholder="jane@example.com"
+            required
             type="email"
-            id="email"
             value={formData.email}
-            onChange={(e) => handleChange("email", e.target.value)}
-            required
-            placeholder="john@example.com"
           />
+          <span className="booking-field-help">
+            PATNA uses this to confirm the booking and send the calendar invite.
+          </span>
         </div>
 
         <div className="form-group">
-          <label htmlFor="organisation">Organisation</label>
-          <input
-            type="text"
-            id="organisation"
-            value={formData.organisation}
-            onChange={(e) => handleChange("organisation", e.target.value)}
-            placeholder="Company or institution"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="notes">Additional Notes</label>
+          <label htmlFor="booker-guests">Additional guest emails</label>
           <textarea
-            id="notes"
-            value={formData.notes}
-            onChange={(e) => handleChange("notes", e.target.value)}
-            placeholder="What would you like to discuss?"
+            id="booker-guests"
+            onChange={(event) => handleChange("guestEmails", event.target.value)}
+            placeholder={"guest.one@example.com\nguest.two@example.com"}
             rows={3}
+            value={formData.guestEmails}
+          />
+          <span className="booking-field-help">
+            Optional. Add one email per line or separate them with commas. PATNA will invite these guests too.
+          </span>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="booker-organisation">Organisation</label>
+          <input
+            id="booker-organisation"
+            onChange={(event) => handleChange("organisation", event.target.value)}
+            placeholder="Organisation or institution"
+            type="text"
+            value={formData.organisation}
           />
         </div>
 
-        {settings.cancellation_policy && (
-          <div className="cancellation-policy">
-            <strong>Cancellation Policy:</strong>
+        <div className="form-group">
+          <label htmlFor="booker-notes">What would you like to discuss?</label>
+          <textarea
+            id="booker-notes"
+            onChange={(event) => handleChange("notes", event.target.value)}
+            placeholder="Optional context to help the conversation start well."
+            rows={4}
+            value={formData.notes}
+          />
+        </div>
+
+        {settings.cancellation_policy ? (
+          <div className="booking-policy-card">
+            <strong>Booking policy</strong>
             <p>{settings.cancellation_policy}</p>
           </div>
-        )}
+        ) : null}
 
-        <button
-          type="submit"
-          className="primary-button submit-btn"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Confirming..." : "Confirm Booking"}
+        <button className="primary-button submit-btn" disabled={isSubmitting} type="submit">
+          {isSubmitting ? "Confirming…" : "Confirm booking"}
         </button>
       </form>
     </div>
   );
 }
 
-function BookingConfirmation({ booking, memberName, settings }) {
+function BookingConfirmation({ booking, memberName, onReset, settings, writeback }) {
+  const meetingMatch = findConferenceLink(
+    booking.location_details,
+    writeback?.conferenceUrl,
+  );
+  const meetingUrl = booking.location_details || writeback?.conferenceUrl || null;
+  const meetingProvider = writeback?.conferenceProvider || meetingMatch?.provider || null;
+
   return (
     <div className="booking-confirmation">
-      <div className="confirmation-icon">✓</div>
-      <h2>Booking Confirmed!</h2>
-      <p className="confirmation-message">
-        {settings.confirmation_message ||
-          `Your meeting with ${memberName} has been scheduled.`}
+      <div className="confirmation-mark">✓</div>
+      <h2>Booking confirmed</h2>
+      <p className="confirmation-copy">
+        {settings.confirmation_message || `Your time with ${memberName} has been reserved in PATNA.`}
       </p>
 
-      <div className="confirmation-details">
-        <div className="detail-row">
-          <span>Date:</span>
-          <strong>{formatDate(booking.starts_at, "long")}</strong>
-        </div>
-        <div className="detail-row">
-          <span>Time:</span>
-          <strong>
-            {formatDate(booking.starts_at, "time")} -{" "}
-            {formatDate(booking.ends_at, "time")}
-          </strong>
-        </div>
+      <div className="booking-summary-card">
+        <strong>Booked time</strong>
+        <dl>
+          <div>
+            <dt>Date</dt>
+            <dd>
+              {formatInTimeZone(booking.starts_at, booking.timezone || settings.timezone, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </dd>
+          </div>
+          <div>
+            <dt>Time</dt>
+            <dd>
+              {formatInTimeZone(booking.starts_at, booking.timezone || settings.timezone, {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}{" "}
+              –{" "}
+              {formatInTimeZone(booking.ends_at, booking.timezone || settings.timezone, {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </dd>
+          </div>
+          <div>
+            <dt>Booked by</dt>
+            <dd>{booking.booker_name} ({booking.booker_email})</dd>
+          </div>
+          {Array.isArray(booking.guest_emails) && booking.guest_emails.length > 0 ? (
+            <div>
+              <dt>Guests</dt>
+              <dd>{booking.guest_emails.join(", ")}</dd>
+            </div>
+          ) : null}
+        </dl>
       </div>
 
-      <p className="confirmation-email">
-        A confirmation email has been sent to {booking.booker_email}
-      </p>
+      {writeback?.provider === "google" && writeback.success ? (
+        <p className="confirmation-meta">
+          The host’s connected Google Calendar was updated, and calendar invites were sent to all attendees.
+        </p>
+      ) : null}
+
+      {meetingUrl ? (
+        <a
+          className="secondary-button confirmation-link"
+          href={meetingUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          {getConferenceCtaLabel(meetingProvider)}
+        </a>
+      ) : null}
+
+      <button className="secondary-button" onClick={onReset} type="button">
+        Book another time
+      </button>
     </div>
   );
 }
 
 export function BookingPageClient({ settings, memberId, memberName }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [availableSlots, setAvailableSlots] = useState([]);
   const [availableDates, setAvailableDates] = useState([]);
+  const [availableSlots, setAvailableSlots] = useState([]);
   const [booking, setBooking] = useState(null);
-  const [step, setStep] = useState("date"); // date, time, form, confirmed
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoadingMonth, setIsLoadingMonth] = useState(false);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+  const [step, setStep] = useState("date");
+  const [writebackResult, setWritebackResult] = useState(null);
+  const bookingUnavailable = !settings.writeback_ready;
 
-  // Generate available dates for the month (mock - in real app would fetch from API)
-  useMemo(() => {
-    const dates = [];
-    const today = new Date();
-    const maxDays = settings.maximum_booking_days_ahead || 30;
-    
-    for (let i = 0; i < maxDays; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      
-      // Only add weekdays (Mon-Fri) by default
-      const dayOfWeek = date.getDay();
-      const availableDays = settings.available_days || [1, 2, 3, 4, 5];
-      
-      if (availableDays.includes(dayOfWeek)) {
-        dates.push(date.toISOString().split("T")[0]);
+  const currentMonthKey = formatMonthKey(currentMonthDate);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadAvailableDates() {
+      if (bookingUnavailable) {
+        setAvailableDates([]);
+        setIsLoadingMonth(false);
+        return;
+      }
+
+      setIsLoadingMonth(true);
+      setErrorMessage("");
+
+      try {
+        const response = await fetch(`/api/calendar/slots?memberId=${memberId}&month=${currentMonthKey}`);
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Failed to load available dates");
+        }
+
+        if (!isCancelled) {
+          setAvailableDates(payload.availableDates || []);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setAvailableDates([]);
+          setErrorMessage(error.message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingMonth(false);
+        }
       }
     }
-    setAvailableDates(dates);
-  }, [settings]);
 
-  const handleDateSelect = useCallback(async (date) => {
-    setSelectedDate(date);
-    setStep("time");
-    
-    // Fetch available slots for this date
-    const dateStr = date.toISOString().split("T")[0];
-    try {
-      const response = await fetch(
-        `/api/calendar/slots?memberId=${memberId}&date=${dateStr}`
-      );
-      if (response.ok) {
-        const slots = await response.json();
-        setAvailableSlots(slots);
-      } else {
-        // Mock slots if API not available
-        const mockSlots = [
-          { id: "1", start_time: "09:00", end_time: "09:30", slot_date: dateStr },
-          { id: "2", start_time: "09:30", end_time: "10:00", slot_date: dateStr },
-          { id: "3", start_time: "10:00", end_time: "10:30", slot_date: dateStr },
-          { id: "4", start_time: "10:30", end_time: "11:00", slot_date: dateStr },
-          { id: "5", start_time: "11:00", end_time: "11:30", slot_date: dateStr },
-          { id: "6", start_time: "14:00", end_time: "14:30", slot_date: dateStr },
-          { id: "7", start_time: "14:30", end_time: "15:00", slot_date: dateStr },
-          { id: "8", start_time: "15:00", end_time: "15:30", slot_date: dateStr },
-        ];
-        setAvailableSlots(mockSlots);
-      }
-    } catch {
-      // Fallback to mock slots
-      setAvailableSlots([]);
-    }
-  }, [memberId, settings]);
+    loadAvailableDates();
 
-  const handleSlotSelect = useCallback((slot) => {
-    setSelectedSlot(slot);
-    setStep("form");
-  }, []);
-
-  const handleBookingSubmit = useCallback(async (formData) => {
-    // Create booking
-    const bookingData = {
-      slot_id: selectedSlot.id,
-      booker_name: formData.name,
-      booker_email: formData.email,
-      booker_organisation: formData.organisation,
-      booker_notes: formData.notes,
-      title: `Meeting with ${memberName}`,
-      starts_at: new Date(`${selectedSlot.slot_date}T${selectedSlot.start_time}`).toISOString(),
-      ends_at: new Date(`${selectedSlot.slot_date}T${selectedSlot.end_time}`).toISOString(),
+    return () => {
+      isCancelled = true;
     };
+  }, [bookingUnavailable, currentMonthKey, memberId]);
+
+  async function loadSlotsForDate(date) {
+    const dateKey = toLocalDateKey(date);
+    setSelectedDate(date);
+    setSelectedSlot(null);
+    setBooking(null);
+    setWritebackResult(null);
+    setStep("time");
+    setIsLoadingSlots(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch(`/api/calendar/slots?memberId=${memberId}&date=${dateKey}`);
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to load available slots");
+      }
+
+      setAvailableSlots(payload || []);
+    } catch (error) {
+      setAvailableSlots([]);
+      setErrorMessage(error.message);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  }
+
+  async function handleBookingSubmit(formData) {
+    if (!selectedSlot || bookingUnavailable) {
+      if (bookingUnavailable) {
+        setErrorMessage(
+          "Bookings are temporarily unavailable while the host finishes configuring a writable Google Calendar booking destination.",
+        );
+      }
+      return;
+    }
+
+    setIsSubmittingBooking(true);
+    setErrorMessage("");
 
     try {
       const response = await fetch("/api/calendar/bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bookingData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          member_id: memberId,
+          slot_id: selectedSlot.id,
+          slot_date: selectedSlot.slot_date,
+          start_time: selectedSlot.start_time,
+          end_time: selectedSlot.end_time,
+          booker_name: formData.name,
+          booker_email: formData.email,
+          guest_emails: splitGuestEmailEntries(formData.guestEmails),
+          booker_organisation: formData.organisation,
+          booker_notes: formData.notes,
+          title: `Meeting with ${memberName}`,
+        }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setBooking(result.booking);
-        setStep("confirmed");
-      } else {
-        alert("Failed to create booking. Please try again.");
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to confirm booking");
       }
-    } catch (error) {
-      // Mock booking for demo
-      setBooking({
-        ...bookingData,
-        id: "mock-booking-id",
-        status: "confirmed",
-      });
-      setStep("confirmed");
-    }
-  }, [selectedSlot, memberName]);
 
-  const handleBack = useCallback(() => {
-    if (step === "form") {
-      setStep("time");
-      setSelectedSlot(null);
-    } else if (step === "time") {
-      setStep("date");
-      setSelectedDate(null);
+      setBooking(payload.booking);
+      setWritebackResult(payload.writeback || null);
+      setStep("confirmed");
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsSubmittingBooking(false);
     }
-  }, [step]);
+  }
+
+  function resetBookingFlow() {
+    setBooking(null);
+    setSelectedSlot(null);
+    setAvailableSlots([]);
+    setWritebackResult(null);
+    setErrorMessage("");
+    setStep("date");
+  }
 
   return (
-    <div className="booking-content">
-      {step === "confirmed" ? (
-        <BookingConfirmation
-          booking={booking}
-          memberName={memberName}
-          settings={settings}
-        />
-      ) : step === "form" ? (
-        <BookingForm
-          slot={selectedSlot}
-          memberName={memberName}
-          settings={settings}
-          onSubmit={handleBookingSubmit}
-          onBack={handleBack}
-        />
-      ) : (
-        <div className="booking-selector">
-          <div className="selector-section">
-            <h2>Select a Date</h2>
-            <DatePicker
-              currentDate={currentDate}
-              onDateSelect={handleDateSelect}
-              selectedDate={selectedDate}
-              availableDates={availableDates}
-            />
+    <div className="booking-flow-shell">
+      <div className="booking-flow-main">
+        <section className="booking-flow-column booking-flow-column-calendar">
+          <div className="booking-section-heading">
+            <span className="booking-step">1</span>
+            <div>
+              <strong>Choose a date</strong>
+              <p>Select from real availability pulled from PATNA.</p>
+            </div>
           </div>
 
-          {step === "time" && (
-            <div className="selector-section">
-              <TimeSlotPicker
-                slots={availableSlots}
-                selectedSlot={selectedSlot}
-                onSelect={handleSlotSelect}
-              />
+          {bookingUnavailable ? (
+            <div className="booking-empty-card booking-empty-card-large">
+              <strong>Scheduling temporarily unavailable</strong>
+              <p>
+                PATNA is waiting for the host to finish configuring a writable Google Calendar booking destination.
+                Please try again shortly.
+              </p>
             </div>
+          ) : (
+            <DatePicker
+              availableDates={availableDates}
+              currentMonthDate={currentMonthDate}
+              isLoading={isLoadingMonth}
+              onMonthChange={setCurrentMonthDate}
+              onSelectDate={loadSlotsForDate}
+              selectedDate={selectedDate}
+            />
           )}
-        </div>
-      )}
+        </section>
+
+        <section className="booking-flow-column booking-flow-column-details">
+          {errorMessage ? <div className="booking-error">{errorMessage}</div> : null}
+
+          {bookingUnavailable ? (
+            <div className="booking-empty-card booking-empty-card-large">
+              <strong>Booking setup in progress</strong>
+              <p>
+                This page will accept bookings as soon as the host selects a synced writable Google calendar destination in PATNA.
+              </p>
+            </div>
+          ) : null}
+
+          {step === "date" && !bookingUnavailable ? (
+            <div className="booking-empty-card booking-empty-card-large">
+              <strong>Pick a day to continue</strong>
+              <p>
+                Once you choose a date, PATNA will show the open times that fit this member’s
+                availability, notice window, meeting buffers, and connected calendar conflicts.
+              </p>
+            </div>
+          ) : null}
+
+          {step === "time" && !bookingUnavailable ? (
+            <>
+              <div className="booking-section-heading">
+                <span className="booking-step">2</span>
+                <div>
+                  <strong>{selectedDate ? formatDate(selectedDate, "long") : "Select a time"}</strong>
+                  <p>All times are shown in {settings.timezone || "UTC"}.</p>
+                </div>
+              </div>
+              <TimeSlotPicker
+                isLoading={isLoadingSlots}
+                onSelect={(slot) => {
+                  setSelectedSlot(slot);
+                  setStep("form");
+                }}
+                selectedSlot={selectedSlot}
+                slots={availableSlots}
+                timezone={settings.timezone || "UTC"}
+              />
+            </>
+          ) : null}
+
+          {step === "form" && selectedSlot && !bookingUnavailable ? (
+            <>
+              <div className="booking-section-heading">
+                <span className="booking-step">3</span>
+                <div>
+                  <strong>Share a few details</strong>
+                  <p>We’ll use these to confirm the PATNA booking.</p>
+                </div>
+              </div>
+              <BookingForm
+                isSubmitting={isSubmittingBooking}
+                memberName={memberName}
+                onBack={() => setStep("time")}
+                onSubmit={handleBookingSubmit}
+                selectedSlot={selectedSlot}
+                settings={settings}
+              />
+            </>
+          ) : null}
+
+          {step === "confirmed" && booking && !bookingUnavailable ? (
+            <BookingConfirmation
+              booking={booking}
+              memberName={memberName}
+              onReset={resetBookingFlow}
+              settings={settings}
+              writeback={writebackResult}
+            />
+          ) : null}
+        </section>
+      </div>
 
       <style jsx>{`
-        .booking-content {
-          padding: 2rem;
+        .booking-flow-shell {
+          width: 100%;
         }
 
-        .booking-selector {
+        .booking-flow-main {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 2rem;
+          grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 1fr);
+          gap: 1.25rem;
         }
 
-        .selector-section h2 {
-          font-size: var(--text-lg);
-          font-weight: 700;
-          color: var(--ink);
-          margin: 0 0 1rem 0;
+        .booking-flow-column {
+          padding: 1.25rem;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(14px);
+          box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
         }
 
-        /* Date Picker */
-        .date-picker {
-          background: var(--surface);
-          border-radius: var(--radius-lg);
-          padding: 1rem;
-        }
-
-        .date-picker-header {
+        .booking-section-heading {
           display: flex;
-          align-items: center;
-          justify-content: space-between;
+          align-items: flex-start;
+          gap: 0.875rem;
           margin-bottom: 1rem;
         }
 
-        .picker-nav-btn {
-          width: 32px;
-          height: 32px;
-          display: flex;
+        .booking-step {
+          width: 2rem;
+          height: 2rem;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
-          background: var(--white);
-          color: var(--ink-muted);
-          cursor: pointer;
-          transition: all 160ms ease;
-        }
-
-        .picker-nav-btn:hover {
-          background: var(--blue-pale);
-          color: var(--blue-dark);
-        }
-
-        .picker-month {
+          border-radius: 999px;
+          background: #0f3a8a;
+          color: white;
           font-weight: 700;
-          color: var(--ink);
+          flex-shrink: 0;
         }
 
-        .picker-weekdays {
+        .booking-section-heading strong {
+          display: block;
+          font-size: 1rem;
+          color: #0f172a;
+        }
+
+        .booking-section-heading p {
+          margin: 0.2rem 0 0;
+          color: #475569;
+          font-size: 0.92rem;
+        }
+
+        .booking-error {
+          margin-bottom: 1rem;
+          padding: 0.8rem 0.9rem;
+          border-radius: 16px;
+          background: #fff1f2;
+          color: #be123c;
+          font-size: 0.92rem;
+        }
+
+        .booking-empty-card {
           display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 0.25rem;
-          margin-bottom: 0.5rem;
+          gap: 0.45rem;
+          padding: 1rem;
+          border-radius: 20px;
+          background: #f8fafc;
+          color: #475569;
         }
 
-        .picker-weekday {
-          text-align: center;
-          font-size: var(--text-xs);
+        .booking-empty-card-large {
+          min-height: 220px;
+          align-content: center;
+        }
+
+        .booking-empty-card strong,
+        .booking-status-note {
+          color: #0f172a;
+        }
+
+        .booking-date-picker {
+          display: grid;
+          gap: 1rem;
+        }
+
+        .booking-picker-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+        }
+
+        .booking-picker-header p {
+          margin: 0.2rem 0 0;
+          font-size: 0.88rem;
+          color: #64748b;
+        }
+
+        .booking-picker-nav {
+          width: 2.6rem;
+          height: 2.6rem;
+          border: 1px solid rgba(15, 23, 42, 0.1);
+          border-radius: 999px;
+          background: white;
+          color: #0f172a;
+          cursor: pointer;
+        }
+
+        .booking-picker-weekdays,
+        .booking-picker-grid {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          gap: 0.55rem;
+        }
+
+        .booking-picker-weekdays {
+          font-size: 0.76rem;
           font-weight: 700;
-          color: var(--ink-soft);
+          letter-spacing: 0.04em;
           text-transform: uppercase;
+          color: #64748b;
         }
 
-        .picker-days {
+        .booking-picker-day {
+          min-height: 4.5rem;
           display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 0.25rem;
-        }
-
-        .picker-day {
-          aspect-ratio: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          border-radius: var(--radius-sm);
-          background: transparent;
-          font-size: var(--text-sm);
+          align-content: space-between;
+          justify-items: flex-start;
+          padding: 0.75rem;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          border-radius: 18px;
+          background: #f8fafc;
+          color: #0f172a;
           cursor: pointer;
-          position: relative;
-          transition: all 160ms ease;
+          transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
         }
 
-        .picker-day:hover:not(:disabled) {
-          background: var(--blue-pale);
+        .booking-picker-day.is-adjacent {
+          opacity: 0.45;
         }
 
-        .picker-day.other {
-          color: var(--ink-soft);
-          opacity: 0.5;
+        .booking-picker-day.is-available {
+          background: rgba(15, 58, 138, 0.06);
+          border-color: rgba(15, 58, 138, 0.2);
         }
 
-        .picker-day.past {
-          color: var(--ink-soft);
-          opacity: 0.3;
+        .booking-picker-day.is-selected {
+          border-color: #0f3a8a;
+          box-shadow: inset 0 0 0 1px #0f3a8a;
+          background: rgba(15, 58, 138, 0.12);
+        }
+
+        .booking-picker-day:disabled {
           cursor: not-allowed;
         }
 
-        .picker-day.available {
-          font-weight: 700;
-          color: var(--blue-dark);
+        .booking-picker-day:not(:disabled):hover {
+          transform: translateY(-1px);
+          border-color: rgba(15, 58, 138, 0.35);
         }
 
-        .picker-day.selected {
-          background: var(--blue-dark);
-          color: var(--white);
+        .booking-picker-dot {
+          width: 0.45rem;
+          height: 0.45rem;
+          border-radius: 999px;
+          background: #0f3a8a;
         }
 
-        .availability-dot {
-          width: 4px;
-          height: 4px;
-          background: #10b981;
-          border-radius: 50%;
-          position: absolute;
-          bottom: 4px;
-        }
-
-        /* Time Slots */
-        .time-slots h3 {
-          font-size: var(--text-md);
-          font-weight: 700;
-          color: var(--ink);
-          margin: 0 0 1rem 0;
-        }
-
-        .slots-grid {
+        .booking-slot-panel {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 0.5rem;
+          gap: 1rem;
         }
 
-        .time-slot-btn {
-          padding: 0.75rem;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          background: var(--white);
-          color: var(--ink);
-          font-size: var(--text-sm);
-          font-weight: 600;
+        .booking-slot-panel-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+          color: #475569;
+          font-size: 0.92rem;
+        }
+
+        .booking-slot-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+          gap: 0.75rem;
+        }
+
+        .booking-slot-button {
+          display: grid;
+          gap: 0.15rem;
+          justify-items: flex-start;
+          padding: 0.9rem 1rem;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          border-radius: 18px;
+          background: #f8fafc;
+          color: #0f172a;
           cursor: pointer;
-          transition: all 160ms ease;
         }
 
-        .time-slot-btn:hover {
-          border-color: var(--blue-bright);
-          background: var(--blue-pale);
+        .booking-slot-button.is-selected,
+        .booking-slot-button:hover {
+          border-color: #0f3a8a;
+          background: rgba(15, 58, 138, 0.08);
         }
 
-        .time-slot-btn.selected {
-          background: var(--blue-dark);
-          color: var(--white);
-          border-color: var(--blue-dark);
+        .booking-slot-button span {
+          font-weight: 700;
+          line-height: 1.4;
         }
 
-        .no-slots {
-          text-align: center;
-          padding: 2rem;
-          color: var(--ink-soft);
+        .booking-slot-button small {
+          color: #64748b;
+          font-size: 0.78rem;
         }
 
-        /* Booking Form */
-        .booking-form-container {
-          max-width: 500px;
-          margin: 0 auto;
+        .booking-form-shell,
+        .booking-confirmation {
+          display: grid;
+          gap: 1rem;
         }
 
         .back-btn {
-          margin-bottom: 1.5rem;
-          padding: 0.5rem 0;
+          width: fit-content;
+          padding: 0;
           border: none;
-          background: none;
-          color: var(--blue-dark);
-          font-size: var(--text-sm);
+          background: transparent;
+          color: #0f3a8a;
           font-weight: 600;
           cursor: pointer;
-          transition: opacity 160ms ease;
         }
 
-        .back-btn:hover {
-          opacity: 0.7;
+        .booking-summary-card,
+        .booking-policy-card {
+          padding: 1rem;
+          border-radius: 20px;
+          background: #f8fafc;
         }
 
-        .booking-summary {
-          background: var(--surface);
-          border-radius: var(--radius-md);
-          padding: 1.25rem;
-          margin-bottom: 1.5rem;
+        .booking-summary-card strong,
+        .booking-policy-card strong {
+          display: block;
+          margin-bottom: 0.75rem;
+          color: #0f172a;
         }
 
-        .booking-summary h3 {
-          font-size: var(--text-sm);
-          font-weight: 700;
-          color: var(--ink);
-          margin: 0 0 1rem 0;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
+        .booking-summary-card dl {
+          display: grid;
+          gap: 0.65rem;
+          margin: 0;
         }
 
-        .summary-row {
+        .booking-summary-card dl div {
           display: flex;
+          align-items: baseline;
           justify-content: space-between;
-          padding: 0.5rem 0;
-          border-bottom: 1px solid var(--border);
+          gap: 1rem;
         }
 
-        .summary-row:last-child {
-          border-bottom: none;
+        .booking-summary-card dt {
+          color: #64748b;
         }
 
-        .summary-row span {
-          color: var(--ink-soft);
-        }
-
-        .summary-row strong {
-          color: var(--ink);
+        .booking-summary-card dd {
+          margin: 0;
+          color: #0f172a;
+          font-weight: 600;
+          text-align: right;
         }
 
         .booking-form {
-          display: flex;
-          flex-direction: column;
+          display: grid;
           gap: 1rem;
         }
 
         .form-group {
-          display: flex;
-          flex-direction: column;
+          display: grid;
           gap: 0.5rem;
         }
 
         .form-group label {
-          font-size: var(--text-sm);
+          font-size: 0.9rem;
           font-weight: 700;
-          color: var(--ink);
+          color: #0f172a;
+        }
+
+        .booking-field-help {
+          font-size: 0.8rem;
+          line-height: 1.5;
+          color: #64748b;
         }
 
         .form-group input,
         .form-group textarea {
-          padding: 0.75rem 1rem;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          font-size: var(--text-body);
-          transition: border-color 160ms ease;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-          outline: none;
-          border-color: var(--blue-bright);
+          padding: 0.85rem 1rem;
+          border: 1px solid rgba(15, 23, 42, 0.12);
+          border-radius: 16px;
+          background: white;
+          color: #0f172a;
+          font: inherit;
         }
 
         .form-group textarea {
           resize: vertical;
-          min-height: 80px;
-        }
-
-        .cancellation-policy {
-          padding: 1rem;
-          background: var(--surface);
-          border-radius: var(--radius-md);
-          font-size: var(--text-sm);
-        }
-
-        .cancellation-policy strong {
-          display: block;
-          margin-bottom: 0.5rem;
-          color: var(--ink);
-        }
-
-        .cancellation-policy p {
-          margin: 0;
-          color: var(--ink-muted);
+          min-height: 110px;
         }
 
         .submit-btn {
-          margin-top: 0.5rem;
+          width: 100%;
         }
 
-        /* Confirmation */
         .booking-confirmation {
+          min-height: 100%;
+          align-content: center;
           text-align: center;
-          padding: 2rem;
         }
 
-        .confirmation-icon {
-          width: 80px;
-          height: 80px;
-          margin: 0 auto 1.5rem;
-          display: flex;
+        .confirmation-mark {
+          width: 4rem;
+          height: 4rem;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: #d1fae5;
-          color: #059669;
-          font-size: 2.5rem;
-          border-radius: 50%;
+          margin: 0 auto;
+          border-radius: 999px;
+          background: rgba(5, 150, 105, 0.14);
+          color: #047857;
+          font-size: 2rem;
+          font-weight: 700;
         }
 
         .booking-confirmation h2 {
-          font-size: var(--text-2xl);
-          font-weight: 700;
-          color: var(--ink);
-          margin: 0 0 1rem 0;
+          margin: 0;
+          color: #0f172a;
+          font-size: 1.7rem;
         }
 
-        .confirmation-message {
-          font-size: var(--text-md);
-          color: var(--ink-muted);
-          margin: 0 0 1.5rem 0;
+        .confirmation-copy,
+        .confirmation-meta {
+          margin: 0;
+          color: #475569;
         }
 
-        .confirmation-details {
-          background: var(--surface);
-          border-radius: var(--radius-md);
-          padding: 1.25rem;
-          margin-bottom: 1.5rem;
-          text-align: left;
+        .confirmation-link {
+          justify-self: center;
         }
 
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 0.5rem 0;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .detail-row:last-child {
-          border-bottom: none;
-        }
-
-        .detail-row span {
-          color: var(--ink-soft);
-        }
-
-        .detail-row strong {
-          color: var(--ink);
-        }
-
-        .confirmation-email {
-          font-size: var(--text-sm);
-          color: var(--ink-soft);
-        }
-
-        @media (max-width: 640px) {
-          .booking-content {
-            padding: 1rem;
-          }
-
-          .booking-selector {
-            grid-template-columns: 1fr;
-          }
-
-          .slots-grid {
+        @media (max-width: 900px) {
+          .booking-flow-main {
             grid-template-columns: 1fr;
           }
         }
-      `}</style>
-
-      <style jsx global>{`
-        .booking-page {
-          min-height: 100vh;
-          background: linear-gradient(180deg, var(--blue-soft) 0%, var(--white) 100%);
-          padding: 2rem 1rem;
-        }
-
-        .booking-page-container {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        .booking-header {
-          text-align: center;
-          margin-bottom: 2rem;
-        }
-
-        .booking-brand {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          background: var(--white);
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--border);
-          box-shadow: var(--shadow-soft);
-        }
-
-        .booking-logo {
-          font-size: 1.25rem;
-          color: var(--blue-dark);
-        }
-
-        .booking-brand-name {
-          font-weight: 700;
-          color: var(--ink);
-        }
-
-        .booking-main {
-          background: var(--white);
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--border);
-          box-shadow: var(--shadow-deep);
-          overflow: hidden;
-        }
-
-        .booking-profile {
-          text-align: center;
-          padding: 2.5rem 2rem;
-          background: linear-gradient(135deg, var(--blue-pale) 0%, var(--white) 100%);
-          border-bottom: 1px solid var(--border);
-        }
-
-        .booking-avatar {
-          width: 80px;
-          height: 80px;
-          margin: 0 auto 1rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--blue-dark);
-          color: var(--white);
-          font-size: 2rem;
-          font-weight: 700;
-          border-radius: 50%;
-          box-shadow: var(--shadow-soft);
-        }
-
-        .booking-name {
-          font-size: var(--text-2xl);
-          font-weight: 700;
-          color: var(--ink);
-          margin: 0 0 0.25rem 0;
-        }
-
-        .booking-title {
-          font-size: var(--text-md);
-          color: var(--ink-muted);
-          margin: 0 0 1rem 0;
-        }
-
-        .booking-bio {
-          font-size: var(--text-sm);
-          color: var(--ink-soft);
-          max-width: 500px;
-          margin: 0 auto;
-          line-height: 1.6;
-        }
-
-        .booking-footer {
-          text-align: center;
-          padding: 2rem;
-          color: var(--ink-soft);
-          font-size: var(--text-sm);
-        }
-
-        .booking-footer strong {
-          color: var(--blue-dark);
-        }
 
         @media (max-width: 640px) {
-          .booking-page {
-            padding: 1rem;
+          .booking-picker-weekdays,
+          .booking-picker-grid {
+            gap: 0.4rem;
           }
 
-          .booking-profile {
-            padding: 1.5rem 1rem;
+          .booking-picker-day {
+            min-height: 4rem;
+            padding: 0.6rem;
           }
 
-          .booking-name {
-            font-size: var(--text-xl);
+          .booking-slot-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
       `}</style>

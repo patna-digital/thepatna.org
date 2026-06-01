@@ -18,12 +18,19 @@ const SCHEDULE_CHIP = {
 function getSearchText(event) {
   return [
     event.title,
+    event.sourceTitle,
     event.location,
+    event.sourceLocation,
     event.summary,
+    event.sourceSummary,
+    event.displayDateDisplay,
     event.display_date,
     event.patna_involvement,
+    event.sourcePatnaInvolvement,
     ...(event.organising_institutions || []),
+    ...(event.sourceOrganisingInstitutions || []),
     ...(event.themes || []),
+    ...(event.sourceThemes || []),
   ]
     .filter(Boolean)
     .join(" ")
@@ -40,15 +47,22 @@ export function AdminEventsList({ events }) {
   }, [events, search]);
 
   return (
-    <>
-      {/* Results count */}
-      {search ? (
-        <p className="muted-note">
-          Showing {filtered.length} of {events.length} events matching "{search}".
-        </p>
-      ) : null}
+    <div className="stack">
+      <div className="admin-list-search">
+        <span className="admin-list-search-icon" aria-hidden="true">⌕</span>
+        <input
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search title, institution, theme, location…"
+          type="search"
+          value={search}
+        />
+        {search ? (
+          <span className="admin-list-search-count">
+            {filtered.length} of {events.length}
+          </span>
+        ) : null}
+      </div>
 
-      {/* Event list */}
       <article className="dashboard-card app-list-card">
         {filtered.length ? (
           <div className="app-list">
@@ -65,14 +79,14 @@ export function AdminEventsList({ events }) {
                         {event.location ? <span>{event.location}</span> : null}
                       </div>
                       <div className="app-row-signals">
-                        <span className="status-chip chip-neutral">{event.event_type || "Event"}</span>
+                        <span className="status-chip chip-neutral">{event.eventTypeDisplay || event.event_type || "Event"}</span>
                         <span className={`status-chip ${scheduleChip}`}>{event.schedule_status}</span>
                         <span className={`status-chip ${publishChip}`}>{event.status}</span>
                         <span className="app-row-expand-hint">Details</span>
                       </div>
                     </div>
                     <div className="app-row-meta">
-                      <span>{event.display_date || "Date pending"}</span>
+                      <span>{event.displayDateDisplay || event.display_date || "Date pending"}</span>
                       {event.organising_institutions?.length ? (
                         <span>
                           {event.organising_institutions[0]}
@@ -95,7 +109,7 @@ export function AdminEventsList({ events }) {
                       </div>
                       <div className="app-row-detail-field">
                         <strong>Date</strong>
-                        <p>{event.display_date || "Pending"}</p>
+                        <p>{event.displayDateDisplay || event.display_date || "Pending"}</p>
                       </div>
                       <div className="app-row-detail-field">
                         <strong>Institutions</strong>
@@ -150,6 +164,6 @@ export function AdminEventsList({ events }) {
           </div>
         )}
       </article>
-    </>
+    </div>
   );
 }

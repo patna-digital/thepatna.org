@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
-import { fetchMemberInsights, INSIGHT_CONTENT_TYPES } from "@/lib/insights";
+import { INSIGHT_CONTENT_TYPES } from "@/lib/content-types";
+import { fetchMemberInsights } from "@/lib/insights";
 import { FeaturedPublicationCard } from "@/components/publication-card";
 import { MemberPublicationsList } from "./components/member-publications-list";
 
 export default async function MemberPublicationsPage({ searchParams }) {
+  const t = await getTranslations();
   const { user, supabase } = await getCurrentUserContext({
     includeProfile: false,
     includeRoles: false,
@@ -35,15 +38,16 @@ export default async function MemberPublicationsPage({ searchParams }) {
 
   return (
     <MemberWorkspaceShell
-      eyebrow="Knowledge"
+      eyebrow={t("publications.appLabel")}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
-      subtitle={`${publications?.length || 0} publications, reports, briefs, and case studies from across PATNA's work.`}
-      title="Publications Library"
+      subtitle={t("publications.appSubtitle", { count: publications?.length || 0 })}
+      title={t("publications.appTitle")}
     >
       <div className="member-dashboard-stack">
         {error && (
           <div className="settings-notice settings-notice-error">
-            Failed to load publications. Please try again.
+            {t("publications.appError")}
           </div>
         )}
 
@@ -59,9 +63,9 @@ export default async function MemberPublicationsPage({ searchParams }) {
         <article className="dashboard-card member-module-card">
           <div className="member-section-heading">
             <div>
-              <h3>Library</h3>
+              <h3>{t("publications.libraryHeading")}</h3>
               <p className="member-section-copy">
-                Browse by format and topic to find the most relevant PATNA material.
+                {t("publications.libraryCopy")}
               </p>
             </div>
             <div className="member-filter-pill-row">
@@ -69,7 +73,7 @@ export default async function MemberPublicationsPage({ searchParams }) {
                 className={typeFilter === "all" ? "filter-tab active-filter" : "filter-tab"}
                 href="/app/publications"
               >
-                All
+                {t("publications.filterAll")}
               </Link>
               {INSIGHT_CONTENT_TYPES.slice(0, 4).map((type) => (
                 <Link
@@ -79,7 +83,7 @@ export default async function MemberPublicationsPage({ searchParams }) {
                   }
                   href={`/app/publications?type=${type.value}`}
                 >
-                  {type.label}
+                  {t(`contentTypes.${type.value}`)}
                 </Link>
               ))}
             </div>
@@ -92,21 +96,21 @@ export default async function MemberPublicationsPage({ searchParams }) {
               className="insights-search-input"
               defaultValue={search}
               name="search"
-              placeholder="Search publications..."
+              placeholder={t("publications.searchPlaceholder")}
               type="search"
             />
-            <button className="secondary-button" type="submit">Search</button>
+            <button className="secondary-button" type="submit">{t("publications.btnSearch")}</button>
           </form>
 
           <MemberPublicationsList publications={rest} />
 
           {rest.length === 0 && !error && (
             <div className="app-row-empty">
-              <strong>No publications found</strong>
+              <strong>{t("publications.emptySearch")}</strong>
               <p>
                 {search || typeFilter !== "all"
-                  ? "Try adjusting your search or filters."
-                  : "Check back soon for new content."}
+                  ? t("publications.emptyTryFilters")
+                  : t("publications.emptyCheckBack")}
               </p>
             </div>
           )}

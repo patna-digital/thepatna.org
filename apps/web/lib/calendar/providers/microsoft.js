@@ -3,7 +3,7 @@
  * Handles Microsoft Graph API operations for Outlook Calendar
  */
 
-import { refreshAccessToken } from './config';
+import { refreshAccessToken } from './config.js';
 
 const GRAPH_API_BASE = 'https://graph.microsoft.com/v1.0';
 

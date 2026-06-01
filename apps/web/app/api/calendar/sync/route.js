@@ -123,13 +123,16 @@ export async function GET(request) {
         id,
         provider,
         calendar_name,
+        access_role,
         provider_account_email,
         last_synced_at,
         last_sync_error,
         sync_enabled,
-        is_active
+        is_active,
+        is_primary_calendar
       `)
       .eq('member_id', memberId)
+      .order('is_primary_calendar', { ascending: false })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -137,15 +140,22 @@ export async function GET(request) {
     }
 
     // Get event counts for each connection
-    const { data: eventCounts } = await supabase
+    const { data: externalEvents } = await supabase
       .from('external_calendar_events')
-      .select('connection_id, count')
-      .eq('member_id', memberId)
-      .group('connection_id');
+      .select('connection_id')
+      .eq('member_id', memberId);
 
-    const eventCountMap = new Map(
-      (eventCounts || []).map((e) => [e.connection_id, parseInt(e.count)])
-    );
+    const eventCountMap = new Map();
+    for (const event of externalEvents || []) {
+      if (!event?.connection_id) {
+        continue;
+      }
+
+      eventCountMap.set(
+        event.connection_id,
+        (eventCountMap.get(event.connection_id) || 0) + 1
+      );
+    }
 
     const enrichedConnections = (connections || []).map((conn) => ({
       ...conn,

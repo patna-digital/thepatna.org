@@ -236,11 +236,20 @@ function ToolbarButton({ children, onClick, active, disabled, label }) {
 function handleLink(editor) {
   if (!editor) return;
   const prev = editor.getAttributes("link").href || "";
-  const url = window.prompt("Link URL", prev);
-  if (url === null) return;
-  if (url === "") {
+  const raw = window.prompt("Link URL", prev);
+  if (raw === null) return;
+  if (raw === "") {
     editor.chain().focus().unsetLink().run();
   } else {
-    editor.chain().focus().setLink({ href: url }).run();
+    const href = normaliseUrl(raw);
+    editor.chain().focus().setLink({ href }).run();
   }
+}
+
+function normaliseUrl(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  // Leave anchors, mailto, tel, and already-protocolled URLs as-is
+  if (/^(#|https?:\/\/|mailto:|tel:)/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
 }

@@ -1,27 +1,98 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  INSIGHT_CONTENT_TYPES,
+  INSIGHT_STATUSES,
+  INSIGHT_VISIBILITY,
+  formatContentType,
+  formatPublishStatus,
+  generateInsightSlug,
+} from "@/lib/content-types";
+import { getRequestLocale, translateContentItems } from "@/lib/translation";
+import {
+  getNextPrimaryAttachment,
+  normalisePublicationAttachment,
+  orderPublicationAttachments,
+} from "@/lib/publication-attachments";
 
-// Valid content types for insights
-export const INSIGHT_CONTENT_TYPES = [
-  { value: "report", label: "Report" },
-  { value: "brief", label: "Brief" },
-  { value: "case_study", label: "Case Study" },
-  { value: "article", label: "Article" },
-  { value: "workshop_proceedings", label: "Workshop Proceedings" },
-];
+export {
+  INSIGHT_CONTENT_TYPES,
+  INSIGHT_STATUSES,
+  INSIGHT_VISIBILITY,
+  formatContentType,
+  formatPublishStatus,
+  generateInsightSlug,
+} from "@/lib/content-types";
 
-// Valid publish statuses
-export const INSIGHT_STATUSES = [
-  { value: "draft", label: "Draft", color: "warning" },
-  { value: "published", label: "Published", color: "success" },
-  { value: "archived", label: "Archived", color: "muted" },
-];
+function normaliseInsight(item) {
+  return {
+    ...item,
+    attachments: orderPublicationAttachments(item.content_attachments || item.attachments || []),
+    tags: item.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || item.tags || [],
+  };
+}
 
-// Valid visibility levels
-export const INSIGHT_VISIBILITY = [
-  { value: "public", label: "Public" },
-  { value: "members", label: "Members only" },
-  { value: "restricted", label: "Restricted" },
-];
+async function translateInsightsForDisplay(insights, locale) {
+  if (!insights.length) {
+    return insights;
+  }
+
+  const items = [];
+  const pushItem = (cacheKey, fieldName, text) => {
+    if (typeof text !== "string" || !text.trim()) {
+      return;
+    }
+
+    items.push({
+      cacheKey,
+      contentType: "insight",
+      fieldName,
+      text,
+    });
+  };
+
+  for (const insight of insights) {
+    pushItem(`insight:${insight.id}:title`, "title", insight.title || "");
+    pushItem(`insight:${insight.id}:summary`, "summary", insight.summary || "");
+    pushItem(`insight:${insight.id}:body`, "body", insight.body || "");
+    pushItem(`insight:${insight.id}:meta_description`, "meta_description", insight.meta_description || "");
+    pushItem(`insight:${insight.id}:cover_image_alt`, "cover_image_alt", insight.cover_image_alt || "");
+    pushItem(
+      `content_type:${insight.content_type}:label`,
+      "content_type_label",
+      formatContentType(insight.content_type),
+    );
+
+    for (const tag of insight.tags || []) {
+      if (tag?.slug && tag?.name) {
+        pushItem(`domain_tag:${tag.slug}:name`, "tag_name", tag.name);
+      }
+    }
+  }
+
+  const translated = await translateContentItems(locale, items);
+  const translatedByKey = new Map(translated.map((item) => [item.cacheKey, item.displayText]));
+
+  return insights.map((insight) => ({
+    ...insight,
+    sourceTitle: insight.title,
+    sourceSummary: insight.summary,
+    sourceBody: insight.body,
+    title: translatedByKey.get(`insight:${insight.id}:title`) || insight.title,
+    summary: translatedByKey.get(`insight:${insight.id}:summary`) || insight.summary,
+    body: translatedByKey.get(`insight:${insight.id}:body`) || insight.body,
+    meta_description:
+      translatedByKey.get(`insight:${insight.id}:meta_description`) || insight.meta_description,
+    cover_image_alt:
+      translatedByKey.get(`insight:${insight.id}:cover_image_alt`) || insight.cover_image_alt,
+    contentTypeLabel:
+      translatedByKey.get(`content_type:${insight.content_type}:label`) ||
+      formatContentType(insight.content_type),
+    tags: (insight.tags || []).map((tag) => ({
+      ...tag,
+      originalName: tag.name,
+      name: translatedByKey.get(`domain_tag:${tag.slug}:name`) || tag.name,
+    })),
+  }));
+}
 
 /**
  * Fetch insights for admin interface (all statuses)
@@ -76,14 +147,19 @@ export async function fetchAdminInsights({ supabase, filters = {} }) {
       ]);
 
       return {
-        ...insight,
-        tags: tagsResult.data?.map((t) => t.domain_tags).filter(Boolean) || [],
-        attachments: attachmentsResult.data || [],
+        ...normaliseInsight({
+          ...insight,
+          content_attachments: attachmentsResult.data || [],
+          content_tag_map: tagsResult.data || [],
+        }),
       };
     })
   );
 
-  return { insights: insightsWithRelations, error: null };
+  return {
+    insights: await translateInsightsForDisplay(insightsWithRelations, await getRequestLocale()),
+    error: null,
+  };
 }
 
 /**
@@ -127,13 +203,12 @@ export async function fetchMemberInsights({ supabase, filters = {} }) {
   }
 
   // Transform data
-  const insights = (data || []).map((item) => ({
-    ...item,
-    tags: item.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || [],
-    attachments: item.content_attachments || [],
-  }));
+  const insights = (data || []).map(normaliseInsight);
 
-  return { insights, error: null };
+  return {
+    insights: await translateInsightsForDisplay(insights, await getRequestLocale()),
+    error: null,
+  };
 }
 
 /**
@@ -163,13 +238,11 @@ export async function fetchInsightBySlug({ supabase, slug, includeUnpublished = 
     return { insight: null, error: { message: "Insight not found" } };
   }
 
-  const insight = {
-    ...data,
-    tags: data.content_tag_map?.map((t) => t.domain_tags).filter(Boolean) || [],
-    attachments: data.content_attachments || [],
-  };
+  const insight = normaliseInsight(data);
 
-  return { insight, error: null };
+  const [translatedInsight] = await translateInsightsForDisplay([insight], await getRequestLocale());
+
+  return { insight: translatedInsight, error: null };
 }
 
 /**
@@ -187,6 +260,7 @@ export async function createInsight({ adminSupabase, data, userId }) {
     published_at,
     tag_ids = [],
     featured = false,
+    needs_review = false,
     cover_image_url = null,
     cover_image_alt = null,
     meta_description = null,
@@ -204,6 +278,7 @@ export async function createInsight({ adminSupabase, data, userId }) {
       visibility,
       slug,
       featured,
+      needs_review,
       cover_image_url,
       cover_image_alt,
       meta_description,
@@ -250,6 +325,7 @@ export async function updateInsight({ adminSupabase, id, data, userId }) {
     published_at,
     tag_ids,
     featured,
+    needs_review,
     cover_image_url,
     cover_image_alt,
     meta_description,
@@ -266,6 +342,7 @@ export async function updateInsight({ adminSupabase, id, data, userId }) {
     updated_by_user_id: userId,
     updated_at: new Date().toISOString(),
     ...(featured !== undefined && { featured }),
+    ...(needs_review !== undefined && { needs_review }),
     ...(cover_image_url !== undefined && { cover_image_url }),
     ...(cover_image_alt !== undefined && { cover_image_alt }),
     ...(meta_description !== undefined && { meta_description }),
@@ -358,7 +435,44 @@ export async function deleteInsight({ adminSupabase, id }) {
 /**
  * Add attachment to insight
  */
-export async function addInsightAttachment({ adminSupabase, content_id, file_url, title, file_type }) {
+export async function addInsightAttachment({
+  adminSupabase,
+  content_id,
+  file_url,
+  title,
+  file_type,
+  source_kind,
+  storage_path,
+  original_url,
+  is_primary = false,
+}) {
+  const { data: existingAttachments, error: existingError } = await adminSupabase
+    .from("content_attachments")
+    .select("*")
+    .eq("content_id", content_id);
+
+  if (existingError) {
+    console.error("Failed to load existing attachments:", existingError);
+    return { attachment: null, error: existingError };
+  }
+
+  const orderedExistingAttachments = orderPublicationAttachments(existingAttachments || []);
+  const nextSortOrder = orderedExistingAttachments.length;
+  const shouldBePrimary = Boolean(is_primary) || orderedExistingAttachments.length === 0;
+
+  if (shouldBePrimary && orderedExistingAttachments.length > 0) {
+    const { error: resetPrimaryError } = await adminSupabase
+      .from("content_attachments")
+      .update({ is_primary: false })
+      .eq("content_id", content_id)
+      .eq("is_primary", true);
+
+    if (resetPrimaryError) {
+      console.error("Failed to clear previous primary attachment:", resetPrimaryError);
+      return { attachment: null, error: resetPrimaryError };
+    }
+  }
+
   const { data, error } = await adminSupabase
     .from("content_attachments")
     .insert({
@@ -366,6 +480,11 @@ export async function addInsightAttachment({ adminSupabase, content_id, file_url
       file_url,
       title: title || "Attachment",
       file_type: file_type || "application/pdf",
+      source_kind: source_kind || null,
+      storage_path: storage_path || null,
+      original_url: original_url || null,
+      is_primary: shouldBePrimary,
+      sort_order: nextSortOrder,
     })
     .select()
     .single();
@@ -375,13 +494,87 @@ export async function addInsightAttachment({ adminSupabase, content_id, file_url
     return { attachment: null, error };
   }
 
-  return { attachment: data, error: null };
+  return { attachment: normalisePublicationAttachment(data), error: null };
+}
+
+export async function setPrimaryInsightAttachment({ adminSupabase, attachment_id, content_id }) {
+  const { data: attachment, error: attachmentError } = await adminSupabase
+    .from("content_attachments")
+    .select("*")
+    .eq("id", attachment_id)
+    .eq("content_id", content_id)
+    .single();
+
+  if (attachmentError) {
+    console.error("Failed to load attachment to promote:", attachmentError);
+    return { attachment: null, error: attachmentError };
+  }
+
+  const { error: resetError } = await adminSupabase
+    .from("content_attachments")
+    .update({ is_primary: false })
+    .eq("content_id", content_id)
+    .eq("is_primary", true);
+
+  if (resetError) {
+    console.error("Failed to clear previous primary attachment:", resetError);
+    return { attachment: null, error: resetError };
+  }
+
+  const { data, error } = await adminSupabase
+    .from("content_attachments")
+    .update({ is_primary: true })
+    .eq("id", attachment_id)
+    .eq("content_id", content_id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Failed to set primary attachment:", error);
+    return { attachment: null, error };
+  }
+
+  return { attachment: normalisePublicationAttachment(data), error: null };
 }
 
 /**
  * Remove attachment from insight
  */
 export async function removeInsightAttachment({ adminSupabase, attachment_id }) {
+  const { data: attachment, error: attachmentError } = await adminSupabase
+    .from("content_attachments")
+    .select("*")
+    .eq("id", attachment_id)
+    .single();
+
+  if (attachmentError) {
+    console.error("Failed to load attachment for removal:", attachmentError);
+    return { error: attachmentError };
+  }
+
+  const normalisedAttachment = normalisePublicationAttachment(attachment);
+
+  if (normalisedAttachment.source_kind === "storage" && normalisedAttachment.storage_path) {
+    const { error: storageError } = await adminSupabase.storage
+      .from("publications")
+      .remove([normalisedAttachment.storage_path]);
+
+    if (storageError) {
+      console.error("Failed to remove attachment storage object:", storageError);
+      return { error: storageError };
+    }
+  }
+
+  const { data: siblingAttachments, error: siblingsError } = await adminSupabase
+    .from("content_attachments")
+    .select("*")
+    .eq("content_id", normalisedAttachment.content_id);
+
+  if (siblingsError) {
+    console.error("Failed to load attachment siblings:", siblingsError);
+    return { error: siblingsError };
+  }
+
   const { error } = await adminSupabase
     .from("content_attachments")
     .delete()
@@ -390,6 +583,22 @@ export async function removeInsightAttachment({ adminSupabase, attachment_id }) 
   if (error) {
     console.error("Failed to remove attachment:", error);
     return { error };
+  }
+
+  if (normalisedAttachment.is_primary) {
+    const nextPrimaryAttachment = getNextPrimaryAttachment(siblingAttachments || [], attachment_id);
+
+    if (nextPrimaryAttachment) {
+      const { error: promoteError } = await adminSupabase
+        .from("content_attachments")
+        .update({ is_primary: true })
+        .eq("id", nextPrimaryAttachment.id);
+
+      if (promoteError) {
+        console.error("Failed to promote replacement primary attachment:", promoteError);
+        return { error: promoteError };
+      }
+    }
   }
 
   return { error: null };
@@ -455,38 +664,32 @@ export function filterInsights(insights, filters) {
   });
 }
 
-/**
- * Generate URL-friendly slug
- */
-export function generateInsightSlug(title) {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+export async function fetchAdjacentInsights({ supabase, publishedAt, slug }) {
+  const [prevResult, nextResult] = await Promise.all([
+    supabase
+      .from("content_items")
+      .select("title, slug")
+      .eq("publish_status", "published")
+      .in("visibility", ["public", "members"])
+      .lt("published_at", publishedAt)
+      .neq("slug", slug)
+      .order("published_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("content_items")
+      .select("title, slug")
+      .eq("publish_status", "published")
+      .in("visibility", ["public", "members"])
+      .gt("published_at", publishedAt)
+      .neq("slug", slug)
+      .order("published_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-/**
- * Format content type for display
- */
-export function formatContentType(type) {
-  const typeMap = {
-    report: "Report",
-    brief: "Brief",
-    case_study: "Case Study",
-    article: "Article",
-    workshop_proceedings: "Workshop Proceedings",
+  return {
+    prev: prevResult.data || null,
+    next: nextResult.data || null,
   };
-  return typeMap[type] || type;
-}
-
-/**
- * Format publish status for display
- */
-export function formatPublishStatus(status) {
-  const statusMap = {
-    draft: "Draft",
-    published: "Published",
-    archived: "Archived",
-  };
-  return statusMap[status] || status;
 }

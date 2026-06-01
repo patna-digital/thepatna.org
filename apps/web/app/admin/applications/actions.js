@@ -2,10 +2,15 @@
 
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
+import { syncCommunityApplicationAssistantDocument } from "@/lib/assistant-indexing";
+import { sendAccessSetupEmail } from "@/lib/access-emails";
 import { getAuthCallbackUrl } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
-import { createSupabaseAdminClient, listSupabaseAuthUsers } from "@/lib/supabase/admin";
+import { provisionMemberFromApplication } from "@/lib/member-provisioning";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
+import { sendEmail } from "@/lib/email/resend";
+import { assignmentEmailHtml } from "@/lib/email/templates/assignment";
 
 function createAuditInviteRow({ createdByUserId, email, method, userId }) {
   return {
@@ -43,10 +48,181 @@ export async function reviewApplicationAction(formData) {
     .eq("id", applicationId);
 
   if (error) {
-    redirect(`/admin/applications?notice=error`);
+    redirect("/admin/applications?notice=error");
   }
 
-  redirect(`/admin/applications?notice=saved`);
+  try {
+    await syncCommunityApplicationAssistantDocument({
+      adminSupabase: supabase,
+      applicationId,
+    });
+  } catch (assistantError) {
+    console.error("reviewApplicationAction assistant sync error:", assistantError);
+  }
+
+  redirect("/admin/applications?notice=saved");
+}
+
+/**
+ * Assign an application to an admin — creates an in-app notification and
+ * sends an email to the assignee.
+ */
+export async function assignApplicationAction(formData) {
+  const { supabase, user: currentAdmin } = await requireAdminContext();
+  const adminClient = createSupabaseAdminClient();
+
+  const applicationId = String(formData.get("application_id") || "").trim();
+  const assigneeId = String(formData.get("assigned_to_user_id") || "").trim();
+  const assignmentNotes = String(formData.get("assignment_notes") || "").trim();
+
+  if (!applicationId || !assigneeId) {
+    redirect("/admin/applications?notice=missing-fields");
+  }
+
+  // Load application + assigner profile in parallel
+  const [{ data: application }, { data: assigner }, { data: assignee }] = await Promise.all([
+    adminClient
+      .from("community_applications")
+      .select("id, first_name, surname, submitted_by_email, status")
+      .eq("id", applicationId)
+      .maybeSingle(),
+    adminClient
+      .from("profiles")
+      .select("id, first_name, surname, email")
+      .eq("id", currentAdmin.id)
+      .maybeSingle(),
+    adminClient
+      .from("profiles")
+      .select("id, first_name, surname, email")
+      .eq("id", assigneeId)
+      .maybeSingle(),
+  ]);
+
+  if (!application || !assignee) {
+    redirect("/admin/applications?notice=error");
+  }
+
+  const { error: updateError } = await adminClient
+    .from("community_applications")
+    .update({
+      assigned_to_user_id: assigneeId,
+      assignment_notes: assignmentNotes || null,
+      assigned_at: new Date().toISOString(),
+    })
+    .eq("id", applicationId);
+
+  if (updateError) {
+    redirect("/admin/applications?notice=error");
+  }
+
+  const applicantName = [application.first_name, application.surname].filter(Boolean).join(" ") || application.submitted_by_email;
+  const assignerName = [assigner?.first_name, assigner?.surname].filter(Boolean).join(" ") || "An admin";
+  const assigneeName = [assignee.first_name, assignee.surname].filter(Boolean).join(" ") || assignee.email;
+
+  const siteUrl = getSiteUrl();
+  const applicationLink = `${siteUrl}/admin/applications`;
+
+  // Create in-app notification for the assignee
+  await adminClient.from("notifications").insert({
+    recipient_id: assigneeId,
+    type: "task_assignment",
+    title: `Application assigned to you: ${applicantName}`,
+    body: assignmentNotes
+      ? assignmentNotes.slice(0, 200)
+      : `${assignerName} has assigned an applicant review to you.`,
+    link: "/admin/applications",
+    metadata: {
+      application_id: applicationId,
+      assigner_id: currentAdmin.id,
+      assigner_name: assignerName,
+      applicant_name: applicantName,
+    },
+  });
+
+  // Send email notification to assignee
+  if (assignee.email) {
+    try {
+      await sendEmail({
+        to: assignee.email,
+        subject: `Application assigned to you: ${applicantName}`,
+        html: assignmentEmailHtml({
+          recipientName: assigneeName,
+          assignerName,
+          applicantName,
+          applicantEmail: application.submitted_by_email,
+          applicationStatus: application.status,
+          assignmentNotes,
+          applicationLink,
+        }),
+      });
+    } catch (emailError) {
+      // Non-fatal: in-app notification was created; log email failure
+      console.error("assignApplicationAction email error:", emailError);
+    }
+  }
+
+  redirect("/admin/applications?notice=assigned");
+}
+
+/**
+ * Save admin-assigned cohorts for an application (replaces single cohort field).
+ * Accepts: cohort_ids[] (array of cohort UUIDs) and primary_cohort_id.
+ */
+export async function updateApplicationCohortsAction(formData) {
+  const { supabase, user } = await requireAdminContext();
+
+  const applicationId = String(formData.get("application_id") || "").trim();
+  const primaryCohortId = String(formData.get("primary_cohort_id") || "").trim();
+  const rawCohortIds = formData.getAll("cohort_ids[]");
+  const cohortIds = rawCohortIds
+    .map((id) => String(id).trim())
+    .filter(Boolean);
+
+  if (!applicationId) {
+    redirect("/admin/applications?notice=missing-fields");
+  }
+
+  // Always include primary in the set
+  const allCohortIds = primaryCohortId
+    ? [...new Set([...cohortIds, primaryCohortId])]
+    : cohortIds;
+
+  // Replace all cohort assignments for this application
+  const { error: deleteError } = await supabase
+    .from("application_assigned_cohorts")
+    .delete()
+    .eq("application_id", applicationId);
+
+  if (deleteError) {
+    redirect("/admin/applications?notice=error");
+  }
+
+  if (allCohortIds.length > 0) {
+    const rows = allCohortIds.map((cohortId) => ({
+      application_id: applicationId,
+      cohort_id: cohortId,
+      is_primary: cohortId === primaryCohortId,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("application_assigned_cohorts")
+      .insert(rows);
+
+    if (insertError) {
+      redirect("/admin/applications?notice=error");
+    }
+  }
+
+  // Keep legacy assigned_cohort_id in sync with primary for backward compat
+  await supabase
+    .from("community_applications")
+    .update({
+      assigned_cohort_id: primaryCohortId || null,
+      reviewed_by_user_id: user.id,
+    })
+    .eq("id", applicationId);
+
+  redirect("/admin/applications?notice=cohorts-saved");
 }
 
 export async function approveAndInviteApplicationAction(formData) {
@@ -75,128 +251,87 @@ export async function approveAndInviteApplicationAction(formData) {
     redirect("/admin/applications?notice=error");
   }
 
-  // Check if a profile already exists for this email
   const { data: existingProfile } = await adminClient
     .from("profiles")
     .select("id")
     .eq("email", email)
     .maybeSingle();
 
-  let userId = existingProfile?.id;
+  let userId = existingProfile?.id || "";
   let deliveryMethod = "manual_reset";
 
+  try {
+    const accessEmailResult = await sendAccessSetupEmail({
+      adminClient,
+      email,
+      profileId: existingProfile?.id || "",
+    });
+
+    userId = accessEmailResult.userId || userId;
+    deliveryMethod = accessEmailResult.deliveryMethod;
+  } catch {
+    redirect("/admin/applications?notice=error");
+  }
+
   if (!userId) {
-    // Invite creates auth user; the DB trigger (handle_new_user) creates profiles(id, email)
-    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
+    redirect("/admin/applications?notice=error");
+  }
+
+  try {
+    await provisionMemberFromApplication({
+      adminClient,
+      application: {
+        ...application,
+        status: "approved",
+      },
+      defaultOnboardingStatus: existingProfile ? "" : "invited",
+      email,
+      userId,
     });
-
-    if (inviteError) {
-      // User may already exist in auth.users without a matching profile row (e.g. DB trigger failure).
-      // Fall back to a password-reset email so they can still gain access.
-      if (inviteError.message?.toLowerCase().includes("already")) {
-        const authUsers = await listSupabaseAuthUsers(adminClient);
-        const existingAuthUser = authUsers.find(
-          (u) => String(u.email || "").toLowerCase() === email,
-        );
-        if (!existingAuthUser) redirect("/admin/applications?notice=error");
-
-        userId = existingAuthUser.id;
-        deliveryMethod = "manual_reset";
-
-        const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
-          redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
-        });
-        if (resetError) redirect("/admin/applications?notice=error");
-      } else {
-        redirect("/admin/applications?notice=error");
-      }
-    } else {
-      userId = inviteData.user.id;
-      deliveryMethod = "supabase_invite";
-    }
-  } else {
-    // User already exists — send a password reset so they can set access
-    const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
-      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
-    });
-
-    if (resetError) {
-      redirect("/admin/applications?notice=error");
-    }
+  } catch {
+    redirect("/admin/applications?notice=error");
   }
 
-  // Resolve domain tag IDs from expertise slugs
-  const expertiseSlugs = application.expertise_slugs || [];
-  let tagIds = [];
-
-  if (expertiseSlugs.length) {
-    const { data: matchedTags } = await adminClient
-      .from("domain_tags")
-      .select("id, slug")
-      .in("slug", expertiseSlugs);
-
-    tagIds = (matchedTags || []).map((t) => t.id);
-  }
-
-  // Seed profile fields from application data
-  const profileUpdate = {
-    first_name: application.first_name,
-    surname: application.surname,
-    role_title: application.role_title || null,
-    organisation_name: application.organisation || null,
-    country_of_residence: application.country || null,
-    phone_number: application.phone_number || null,
-    professional_bio: application.motivation_text || null,
-    invited_at: new Date().toISOString(),
-    profile_status: "active",
-  };
-
-  // Only set onboarding_status for brand-new users — don't downgrade an existing active member
-  if (!existingProfile) {
-    profileUpdate.onboarding_status = "invited";
-  }
-
-  await adminClient.from("profiles").update(profileUpdate).eq("id", userId);
-
-  // Assign member role so user appears in the member directory
-  await adminClient
-    .from("user_roles")
+  const { error: inviteProfileError } = await adminClient
+    .from("profiles")
     .upsert(
-      { user_id: userId, role: "member" },
-      { onConflict: "user_id,role", ignoreDuplicates: true },
+      {
+        id: userId,
+        email,
+        invited_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
     );
 
-  // Seed domain tags from expertise slugs
-  if (tagIds.length) {
-    await adminClient
-      .from("user_tags")
-      .upsert(
-        tagIds.map((tagId) => ({ user_id: userId, tag_id: tagId })),
-        { onConflict: "user_id,tag_id", ignoreDuplicates: true },
-      );
+  if (inviteProfileError) {
+    redirect("/admin/applications?notice=error");
   }
 
-  // Assign cohort if set on the application
-  if (application.assigned_cohort_id) {
-    await adminClient
-      .from("user_cohorts")
-      .upsert(
-        { user_id: userId, cohort_id: application.assigned_cohort_id, is_primary: true },
-        { onConflict: "user_id,cohort_id", ignoreDuplicates: true },
-      );
-  }
-
-  // Audit invite record
-  await adminClient
+  const { error: inviteAuditError } = await adminClient
     .from("invites")
     .insert(createAuditInviteRow({ createdByUserId: adminUser.id, email, method: deliveryMethod, userId }));
 
-  // Mark application approved and record who actioned it
-  await adminClient
+  if (inviteAuditError) {
+    redirect("/admin/applications?notice=error");
+  }
+
+  const { error: applicationUpdateError } = await adminClient
     .from("community_applications")
     .update({ status: "approved", reviewed_by_user_id: adminUser.id })
     .eq("id", applicationId);
+
+  if (applicationUpdateError) {
+    redirect("/admin/applications?notice=error");
+  }
+
+  try {
+    await syncCommunityApplicationAssistantDocument({
+      adminSupabase: adminClient,
+      applicationId,
+    });
+  } catch (assistantError) {
+    console.error("approveAndInviteApplicationAction assistant sync error:", assistantError);
+  }
 
   redirect("/admin/applications?notice=invited");
 }
@@ -227,56 +362,48 @@ export async function resendApplicationInviteAction(formData) {
     redirect("/admin/applications?notice=error");
   }
 
-  // Look up profile by email to get the user ID
   const { data: profile } = await adminClient
     .from("profiles")
     .select("id")
     .eq("email", email)
     .maybeSingle();
 
-  // Try to get auth user directly by ID (avoids pagination issues with listSupabaseAuthUsers)
-  let authUserExists = false;
-  if (profile?.id) {
-    const { data: authUserData } = await adminClient.auth.admin.getUserById(profile.id);
-    authUserExists = Boolean(authUserData?.user?.id);
-  }
-
-  let userId = profile?.id;
+  let userId = profile?.id || "";
   let deliveryMethod = "manual_reset";
 
-  if (!authUserExists) {
-    // No auth user yet — create one via invite
-    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
+  try {
+    const accessEmailResult = await sendAccessSetupEmail({
+      adminClient,
+      email,
+      profileId: profile?.id || "",
     });
 
-    if (error) {
-      redirect("/admin/applications?notice=error");
-    }
-
-    userId = data.user.id;
-    deliveryMethod = "supabase_invite";
-  } else {
-    // Auth user exists — always use password reset (avoids expired/duplicate invite tokens)
-    const { error } = await adminClient.auth.resetPasswordForEmail(email, {
-      redirectTo: getAuthCallbackUrl(getSiteUrl(), "/auth/reset-password"),
-    });
-
-    if (error) {
-      redirect("/admin/applications?notice=error");
-    }
+    userId = accessEmailResult.userId || userId;
+    deliveryMethod = accessEmailResult.deliveryMethod;
+  } catch {
+    redirect("/admin/applications?notice=error");
   }
 
   if (userId) {
-    await adminClient
+    const { error: profileUpdateError } = await adminClient
       .from("profiles")
-      .update({ invited_at: new Date().toISOString() })
-      .eq("id", userId);
+      .upsert(
+        { id: userId, email, invited_at: new Date().toISOString() },
+        { onConflict: "id" },
+      );
+
+    if (profileUpdateError) {
+      redirect("/admin/applications?notice=error");
+    }
   }
 
-  await adminClient
+  const { error: inviteAuditError } = await adminClient
     .from("invites")
     .insert(createAuditInviteRow({ createdByUserId: adminUser.id, email, method: deliveryMethod, userId }));
+
+  if (inviteAuditError) {
+    redirect("/admin/applications?notice=error");
+  }
 
   redirect("/admin/applications?notice=invite-resent");
 }

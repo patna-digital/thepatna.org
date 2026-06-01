@@ -24,25 +24,7 @@ export async function grantAdminRoleAction(formData) {
     .maybeSingle();
 
   if (lookupError || !profile) {
-    const { data: existingPreApproval } = await adminClient
-      .from("pre_approved_admins")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (existingPreApproval) {
-      redirect("/admin/admins?notice=already-pre-approved");
-    }
-
-    const { error: preApproveError } = await adminClient
-      .from("pre_approved_admins")
-      .insert({ email, added_by_user_id: user.id });
-
-    if (preApproveError) {
-      redirect("/admin/admins?notice=error");
-    }
-
-    redirect("/admin/admins?notice=pre-approved");
+    redirect("/admin/admins?notice=not-found");
   }
 
   if (profile.id === user.id) {
@@ -142,26 +124,4 @@ export async function revokeAdminRoleAction(formData) {
   }
 
   redirect("/admin/admins?notice=revoked");
-}
-
-export async function revokePreApprovedAdminAction(formData) {
-  await requireSuperAdminContext();
-  const adminClient = createSupabaseAdminClient();
-
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-
-  if (!email) {
-    redirect("/admin/admins?notice=missing-fields");
-  }
-
-  const { error } = await adminClient
-    .from("pre_approved_admins")
-    .delete()
-    .eq("email", email);
-
-  if (error) {
-    redirect("/admin/admins?notice=error");
-  }
-
-  redirect("/admin/admins?notice=pre-approved-removed");
 }

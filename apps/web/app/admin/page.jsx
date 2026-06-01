@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
 import { requireAdminContext } from "@/lib/supabase/access";
 
 export default async function AdminPage() {
+  const t = await getTranslations();
   const { supabase } = await requireAdminContext();
 
   const [
@@ -34,77 +36,102 @@ export default async function AdminPage() {
   return (
     <DashboardShell
       brandHref="/admin"
-      brandLabel="PATNA Admin"
-      eyebrow="Admin workspace"
+      brandLabel={t("admin.brandLabel")}
+      eyebrow={t("admin.eyebrow")}
       navItems={adminNav}
       spotlight={{
-        label: "Live workflow",
-        title: "Community application review",
-        body: "This workspace supports application review, member preparation, and operational coordination across PATNA.",
+        label: t("admin.spotlightLabel"),
+        title: t("admin.spotlightTitle"),
+        body: t("admin.spotlightBody"),
       }}
-      title="Admin overview"
-      subtitle="Monitor applications, imported members, and the operational queues that support PATNA’s community workflows."
+      title={t("admin.title")}
+      subtitle={t("admin.subtitle")}
     >
-      <div className="summary-grid">
-        <div className="summary-tile">
+      <div className="admin-stat-grid admin-stat-grid-5">
+        <div className="admin-stat-card">
           <strong>{applicationsCount ?? 0}</strong>
-          <span>Total applications</span>
+          <h4>{t("admin.tileTotalApplications")}</h4>
+          <p>All time</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-warning">
           <strong>{submittedCount ?? 0}</strong>
-          <span>Submitted</span>
+          <h4>{t("admin.tileSubmitted")}</h4>
+          <p>Awaiting review</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-muted">
           <strong>{interviewingCount ?? 0}</strong>
-          <span>Interviewing</span>
+          <h4>{t("admin.tileInterviewing")}</h4>
+          <p>In progress</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-success">
           <strong>{membersCount ?? 0}</strong>
-          <span>Total members</span>
+          <h4>{t("admin.tileTotalMembers")}</h4>
+          <p>Active role holders</p>
         </div>
-        <div className="summary-tile">
+        <div className="admin-stat-card tone-warning">
           <strong>{pendingInviteCount ?? 0}</strong>
-          <span>Pending invites</span>
-        </div>
-        <div className="summary-tile is-disabled">
-          <strong>—</strong>
-          <span>Active events</span>
+          <h4>{t("admin.tilePendingInvites")}</h4>
+          <p>Not yet contacted</p>
         </div>
       </div>
 
-      <div className="card-grid">
-        <article className="dashboard-card">
-          <h3>Applications</h3>
-          <p>Review community applications, capture notes, update status, and prepare invite decisions.</p>
-          <div className="content-meta">
+      <div className="admin-action-grid">
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Review queue</div>
+          <h3>{t("admin.applicationsTitle")}</h3>
+          <p>{t("admin.applicationsText")}</p>
+          <div className="admin-action-card-footer">
             <Link className="primary-button" href="/admin/applications">
-              Open review queue
+              {t("admin.btnApplicationsQueue")}
             </Link>
           </div>
         </article>
-        <article className="dashboard-card">
-          <h3>Members</h3>
-          <p>Review imported cohort members, inspect onboarding status, and send login emails when you are ready.</p>
-          <div className="content-meta">
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Cohort directory</div>
+          <h3>{t("admin.membersTitle")}</h3>
+          <p>{t("admin.membersText")}</p>
+          <div className="admin-action-card-footer">
             <Link className="primary-button" href="/admin/members">
-              Open member queue
+              {t("admin.btnMembersQueue")}
             </Link>
           </div>
         </article>
-        <article className="dashboard-card">
-          <h3>Events</h3>
-          <p>Manage the PATNA events register, publication state, and ownership-aware event metadata.</p>
-          <div className="content-meta">
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Scheduling</div>
+          <h3>{t("admin.eventsTitle")}</h3>
+          <p>{t("admin.eventsText")}</p>
+          <div className="admin-action-card-footer">
             <Link className="primary-button" href="/admin/events">
-              Open events workspace
+              {t("admin.btnEventsWorkspace")}
             </Link>
           </div>
         </article>
-        <article className="dashboard-card is-disabled">
-          <h3>Pipelines <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--ink-soft)', marginLeft: '0.5rem' }}>(Coming soon)</span></h3>
-          <p>Track service requests, partnership leads, and collaboration proposals from the public site.</p>
-          <div className="content-meta">
-            <span className="status-chip chip-muted">Not available</span>
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Spaces</div>
+          <h3>Community spaces</h3>
+          <p>Manage working groups, cohort rooms, and constituency spaces — control membership, tags, and visibility.</p>
+          <div className="admin-action-card-footer">
+            <Link className="primary-button" href="/admin/spaces">
+              Open spaces
+            </Link>
+          </div>
+        </article>
+        <article className="admin-action-card">
+          <div className="admin-action-card-label">Knowledge</div>
+          <h3>Insights library</h3>
+          <p>Publish reports, briefs, and articles to the member knowledge base. Manage editorial status and visibility.</p>
+          <div className="admin-action-card-footer">
+            <Link className="primary-button" href="/admin/insights">
+              Open insights
+            </Link>
+          </div>
+        </article>
+        <article className="admin-action-card is-disabled">
+          <div className="admin-action-card-label">Coming soon</div>
+          <h3>{t("admin.pipelinesTitle")}</h3>
+          <p>{t("admin.pipelinesText")}</p>
+          <div className="admin-action-card-footer">
+            <span className="status-chip chip-muted">{t("admin.pipelinesNotAvailable")}</span>
           </div>
         </article>
       </div>

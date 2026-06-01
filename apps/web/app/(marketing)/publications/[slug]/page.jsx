@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
-import { fetchPublicPublicationBySlug } from "@/lib/publications";
+import { PublicationBreadcrumb } from "@/components/publication-breadcrumb";
+import {
+  findPrimaryPublicationAttachment,
+  getPublicationAttachmentFileUrl,
+} from "@/lib/publication-attachments";
+import {
+  fetchPublicPublicationBySlug,
+  fetchAdjacentPublications,
+} from "@/lib/publications";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -15,17 +24,36 @@ export async function generateMetadata({ params }) {
 
 export default async function PublicationDetailPage({ params }) {
   const { slug } = await params;
-  const pub = await fetchPublicPublicationBySlug(slug);
+  const [pub, t, locale] = await Promise.all([
+    fetchPublicPublicationBySlug(slug),
+    getTranslations(),
+    getLocale(),
+  ]);
 
   if (!pub) notFound();
 
-  const pdfAttachment = pub.attachments.find(
-    (a) => a.file_type === "pdf" || a.file_url?.endsWith(".pdf")
-  );
-  const typeLabel = CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
+  const adjacent = pub.published_at
+    ? await fetchAdjacentPublications({ publishedAt: pub.published_at, slug: pub.slug })
+    : { prev: null, next: null };
+
+  const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
+  const readHref = getPublicationAttachmentFileUrl(pdfAttachment, { disposition: "inline" });
+  const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
     <>
+      <div className="publication-detail-shell">
+        <div className="publication-detail-inner">
+          <PublicationBreadcrumb
+            crumbs={[
+              { label: "Home", href: "/" },
+              { label: "Publications", href: "/publications" },
+              { label: pub.title },
+            ]}
+          />
+        </div>
+      </div>
+
       <MarketingPageHero
         label={typeLabel}
         title={pub.title}
@@ -52,7 +80,7 @@ export default async function PublicationDetailPage({ params }) {
               <span className="status-chip chip-neutral">{typeLabel}</span>
               {pub.published_at && (
                 <time dateTime={pub.published_at}>
-                  {formatDate(pub.published_at)}
+                  {formatDate(pub.published_at, locale)}
                 </time>
               )}
               {pub.tags?.length > 0 &&
@@ -65,12 +93,11 @@ export default async function PublicationDetailPage({ params }) {
             {pdfAttachment && (
               <a
                 className="publication-download-btn publication-download-btn-lg"
-                download
-                href={pdfAttachment.file_url}
+                href={readHref}
                 rel="noreferrer"
                 target="_blank"
               >
-                ↓ Download PDF
+                {t("publicationUi.openPdf")}
               </a>
             )}
           </div>
@@ -89,21 +116,66 @@ export default async function PublicationDetailPage({ params }) {
             )
           )}
 
+          {/* Gallery */}
+          {pub.gallery?.length > 0 && (
+            <div className="publication-gallery">
+              <h2 className="publication-gallery-title">Gallery</h2>
+              <div className="publication-gallery-grid">
+                {pub.gallery.map((image) => (
+                  <figure className="publication-gallery-figure" key={image.id}>
+                    <img
+                      alt={image.alt_text || ""}
+                      className="publication-gallery-img"
+                      src={image.image_url}
+                    />
+                    {image.caption ? (
+                      <figcaption className="publication-gallery-caption">
+                        {image.caption}
+                      </figcaption>
+                    ) : null}
+                  </figure>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Footer nav */}
           <div className="publication-detail-footer">
             <Link className="secondary-button" href="/publications">
-              ← Back to Publications
+              {t("publicationUi.backToPublications")}
             </Link>
             {pdfAttachment && (
               <a
                 className="primary-button"
-                download
-                href={pdfAttachment.file_url}
+                href={readHref}
                 rel="noreferrer"
                 target="_blank"
               >
-                ↓ Download PDF
+                {t("publicationUi.openPdf")}
               </a>
+            )}
+
+            {(adjacent.prev || adjacent.next) && (
+              <div className="publication-prev-next">
+                {adjacent.prev && (
+                  <Link
+                    className="publication-prev-link"
+                    href={`/publications/${adjacent.prev.slug}`}
+                  >
+                    <span className="publication-prev-next-label">← Previous</span>
+                    <span className="publication-prev-next-title">{adjacent.prev.title}</span>
+                  </Link>
+                )}
+                {adjacent.next && (
+                  <Link
+                    className="publication-next-link"
+                    href={`/publications/${adjacent.next.slug}`}
+                  >
+                    <span className="publication-prev-next-label">Next →</span>
+                    <span className="publication-prev-next-title">{adjacent.next.title}</span>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -124,7 +196,7 @@ const CONTENT_TYPE_LABELS = {
   workshop_proceedings: "Workshop Proceedings",
 };
 
-function formatDate(value) {
+function formatDate(value, locale = "en") {
   if (!value) return "";
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(new Date(value));
+  return new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(value));
 }

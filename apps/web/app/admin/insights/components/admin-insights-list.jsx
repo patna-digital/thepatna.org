@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { formatContentType, formatPublishStatus } from "@/lib/content-types";
+import { getPublicationAttachmentFileUrl } from "@/lib/publication-attachments";
 import { deleteInsightAction } from "../[insightId]/actions";
-import { formatContentType, formatPublishStatus } from "@/lib/insights";
 
 const STATUS_CHIP_CLASSES = {
   published: "chip-success",
@@ -67,6 +68,11 @@ export function AdminInsightsList({ insights }) {
                   <span className="status-chip chip-neutral">
                     {insight.visibility}
                   </span>
+                  {insight.needs_review && (
+                    <span className="status-chip chip-warning" title="This publication has been flagged as needing review">
+                      Needs review
+                    </span>
+                  )}
                   <span className="app-row-expand-hint">Details</span>
                 </div>
               </div>
@@ -102,7 +108,7 @@ export function AdminInsightsList({ insights }) {
                     {insight.attachments.map((attachment) => (
                       <a
                         key={attachment.id}
-                        href={attachment.file_url}
+                        href={getPublicationAttachmentFileUrl(attachment, { disposition: "inline" })}
                         target="_blank"
                         rel="noreferrer"
                         className="status-chip chip-neutral"

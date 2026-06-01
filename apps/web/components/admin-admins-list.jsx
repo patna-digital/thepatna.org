@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { grantAdminRoleAction, revokeAdminRoleAction, revokePreApprovedAdminAction } from "../app/admin/admins/actions";
+import { grantAdminRoleAction, revokeAdminRoleAction } from "../app/admin/admins/actions";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -59,32 +59,7 @@ function AdminRow({ admin, currentUserId, isSuperAdmin }) {
   );
 }
 
-function PreApprovedRow({ entry }) {
-  return (
-    <tr>
-      <td>{entry.email}</td>
-      <td>{formatDate(entry.created_at)}</td>
-      <td>
-        <form action={revokePreApprovedAdminAction}>
-          <input type="hidden" name="email" value={entry.email} />
-          <button
-            className="btn btn-sm btn-danger-outline"
-            type="submit"
-            onClick={(e) => {
-              if (!window.confirm(`Cancel pre-approval for ${entry.email}?`)) {
-                e.preventDefault();
-              }
-            }}
-          >
-            Cancel
-          </button>
-        </form>
-      </td>
-    </tr>
-  );
-}
-
-export function AdminAdminsList({ admins, currentUserId, isSuperAdmin, preApprovedAdmins = [] }) {
+export function AdminAdminsList({ admins, currentUserId, isSuperAdmin }) {
   const formRef = useRef(null);
   const [searchError, setSearchError] = useState("");
 
@@ -107,7 +82,7 @@ export function AdminAdminsList({ admins, currentUserId, isSuperAdmin, preApprov
             <div>
               <h3 className="card-heading">Add an admin</h3>
               <p className="text-muted">
-                Enter an email address to grant admin access. If they don't have a PATNA account yet, they'll be pre-approved and automatically become an admin when they join.
+                The user must already have a PATNA account. Enter their email address to grant administrator access.
               </p>
             </div>
             <form
@@ -164,38 +139,6 @@ export function AdminAdminsList({ admins, currentUserId, isSuperAdmin, preApprov
           )}
         </div>
       </article>
-
-      {/* Pre-approved admins — super admin only */}
-      {isSuperAdmin && (
-        <article className="dashboard-card">
-          <div className="stack">
-            <div>
-              <h3 className="card-heading">Pre-approved admins</h3>
-              <p className="text-muted">
-                These people will automatically become admins when they join PATNA via the join form.
-              </p>
-            </div>
-            {preApprovedAdmins.length === 0 ? (
-              <p className="empty-state">No pre-approved admins.</p>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Email</th>
-                    <th>Pre-approved on</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preApprovedAdmins.map((entry) => (
-                    <PreApprovedRow entry={entry} key={entry.id} />
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </article>
-      )}
     </div>
   );
 }

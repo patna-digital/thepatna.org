@@ -10,20 +10,27 @@ export const CALENDAR_PROVIDERS = {
     name: 'Google Calendar',
     icon: '🔍',
     color: '#4285F4',
+    status: 'available',
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token',
     scopes: [
+      'openid',
+      'email',
+      'profile',
       'https://www.googleapis.com/auth/calendar.readonly',
       'https://www.googleapis.com/auth/calendar.events.readonly',
+      'https://www.googleapis.com/auth/calendar.events',
     ],
     supportsWebhook: true,
     supportsSync: true,
+    supportsWriteBack: true,
   },
   microsoft: {
     id: 'microsoft',
     name: 'Outlook Calendar',
     icon: '📧',
     color: '#0078D4',
+    status: 'available',
     authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
     tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
     scopes: [
@@ -33,12 +40,14 @@ export const CALENDAR_PROVIDERS = {
     ],
     supportsWebhook: true,
     supportsSync: true,
+    supportsWriteBack: false,
   },
   apple: {
     id: 'apple',
     name: 'Apple Calendar',
     icon: '🍎',
     color: '#FF9500',
+    status: 'available',
     // Apple uses App-specific passwords or iCloud integration
     // For now, we'll use CalDAV or iCal URL approach
     supportsWebhook: false,
@@ -49,6 +58,7 @@ export const CALENDAR_PROVIDERS = {
     name: 'Zoho Calendar',
     icon: '📊',
     color: '#E42527',
+    status: 'coming_soon',
     authUrl: 'https://accounts.zoho.com/oauth/v2/auth',
     tokenUrl: 'https://accounts.zoho.com/oauth/v2/token',
     scopes: [
@@ -57,15 +67,18 @@ export const CALENDAR_PROVIDERS = {
     ],
     supportsWebhook: false,
     supportsSync: true,
+    supportsWriteBack: false,
   },
   generic_ical: {
     id: 'generic_ical',
     name: 'iCal Feed',
     icon: '📅',
     color: '#6B7280',
+    status: 'available',
     // iCal feeds use direct URL import, no OAuth
     supportsWebhook: false,
     supportsSync: true,
+    supportsWriteBack: false,
   },
 };
 
