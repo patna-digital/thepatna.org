@@ -18313,6 +18313,12 @@ body.patna-assistant-body-locked {
   padding: 6rem 5rem;
 }
 
+.v3-members-inner {
+  width: min(1200px, calc(100vw - 4rem));
+  margin: 0 auto;
+  padding: 0 5rem;
+}
+
 .v3-members-header {
   display: flex;
   justify-content: space-between;
@@ -19188,10 +19194,10 @@ body.patna-assistant-body-locked {
   background: var(--white);
 }
 
-.about-vm-photo-grid {
+.about-patna-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  grid-template-columns: 38% 1fr;
+  gap: 5rem;
   align-items: start;
   margin-top: 2rem;
 }
@@ -19202,12 +19208,10 @@ body.patna-assistant-body-locked {
   gap: 0;
 }
 
-.about-patna-story-block {
-  max-width: 740px;
-  margin: 3.5rem auto 0;
-  padding-top: 3rem;
+.about-patna-story-inline {
+  margin-top: 2.5rem;
+  padding-top: 2.5rem;
   border-top: 1px solid var(--border);
-  text-align: left;
 }
 
 .about-patna-vm-row {
@@ -19429,53 +19433,69 @@ body.patna-assistant-body-locked {
   .cohorts-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .about-patna-grid {
+    grid-template-columns: 44% 1fr;
+    gap: 3.5rem;
+  }
 }
 
 @media (max-width: 900px) {
-  .about-vm-photo-grid {
+  .about-patna-grid {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-
   .about-patna-image-wrap {
     order: -1;
   }
-
   .about-patna-img {
     max-height: 340px;
     object-fit: cover;
   }
-
-  .about-patna-story-block {
-    max-width: 100%;
-    margin-top: 2.5rem;
-    padding-top: 2.5rem;
+  .about-patna-story-inline {
+    margin-top: 2rem;
+    padding-top: 2rem;
   }
-
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 2.5rem 0;
   }
-
-  .stats-item + .stats-item::before {
-    display: none;
-  }
-
+  .stats-item + .stats-item::before,
   .stats-item:nth-child(2)::before,
   .stats-item:nth-child(3)::before,
   .stats-item:nth-child(4)::before {
     display: none;
   }
+  .v3-members-inner {
+    padding: 0 2rem;
+  }
 }
 
-@media (max-width: 600px) {
-  .cohorts-grid {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 640px) {
+  /* About section */
+  .about-patna-section { padding: 3.5rem 0; }
+  .about-patna-img { max-height: 260px; }
+  .about-patna-vm-row { grid-template-columns: 56px 1fr; gap: 1rem; }
 
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  /* Stats band */
+  .stats-band { padding: 2.5rem 0; }
+  .stats-num { font-size: 2.5rem; }
+  .stats-grid { gap: 2rem 0; }
+
+  /* Cohorts */
+  .cohorts-section { padding: 3.5rem 0; }
+  .cohorts-grid { grid-template-columns: 1fr; }
+
+  /* Community snapshot */
+  .v3-members-inner { padding: 0 1.25rem; }
+  .v3-members-title { font-size: clamp(1.6rem, 5.5vw, 2rem); line-height: 1.15; }
+  .v3-members-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .v3-member-card { padding: 1.1rem 1rem; }
+  .v3-member-avatar { width: 44px; height: 44px; }
+  .v3-member-name { font-size: 13px; }
+  .v3-member-role { font-size: 11px; }
+
+  /* LEAP section */
+  .leap-card-title { font-size: var(--text-md); }
 }
 
 /* ── Partners section (About page) ─────────────────────────────────────────── */
@@ -19570,7 +19590,8 @@ body.patna-assistant-body-locked {
   .feat-split-grid { grid-template-columns: 1fr; }
   .feat-main-footer { align-items: flex-start; flex-direction: column; gap: 0.75rem; }
 
-  .v3-members-section { padding: 4rem 2rem; }
+  .v3-members-section { padding: 4rem 0; }
+  .v3-members-inner { padding: 0 2rem; }
   .v3-members-grid { grid-template-columns: 1fr 1fr; }
   .v3-members-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
 
