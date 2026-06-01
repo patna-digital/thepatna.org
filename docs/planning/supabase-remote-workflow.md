@@ -3,6 +3,7 @@
 This project now includes:
 - remote-safe SQL migrations in `supabase/migrations/`
 - a reference seed file in `supabase/seed/001_reference_data.sql`
+- Supabase Edge Functions in `supabase/functions/`
 - package scripts for linking, pushing migrations, and generating database types
 
 ## 1. Fill the local environment
@@ -53,7 +54,23 @@ This writes:
 apps/web/lib/database.types.ts
 ```
 
-## 5. Load the reference seed data
+## 5. Deploy required Edge Functions
+
+Some features depend on Supabase Edge Functions in addition to SQL migrations.
+For the assistant index, you must deploy:
+
+```bash
+supabase functions deploy embed-document --project-ref "$SUPABASE_PROJECT_ID"
+supabase functions deploy embed-query --project-ref "$SUPABASE_PROJECT_ID"
+```
+
+Ensure the project has the required function secrets set:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+If the admin assistant page shows “not deployed,” check both migrations and function deployment.
+
+## 6. Load the reference seed data
 
 The CLI push command does not automatically execute `supabase/seed/001_reference_data.sql` in this setup.
 

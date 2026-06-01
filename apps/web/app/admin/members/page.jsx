@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { AdminMembersBulkAction } from "@/components/admin-members-bulk-action";
+import { AdminMembersListClient } from "@/components/admin-members-list-client";
 import { DashboardShell } from "@/components/dashboard-shell";
 import {
   fetchAdminMembersDirectory,
-  getMemberInviteLabel,
   matchesMemberCohortFilter,
   matchesMemberStatusFilter,
   MEMBER_STATUS_FILTERS,
@@ -12,67 +12,74 @@ import { adminNav } from "@/lib/patna-data";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminContext } from "@/lib/supabase/access";
 import {
+  repairSelectedMemberProfilesAction,
   sendMemberInviteAction,
   sendSelectedMemberInvitesAction,
   updateMemberProfileStatusAction,
 } from "./actions";
 
-function formatDate(value) {
-  if (!value) {
-    return "Not yet";
-  }
-
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+function pct(value, total) {
+  return total > 0 ? Math.round((value / total) * 100) : 0;
 }
 
-function getNoticeMessage(notice, sentCount, failedCount, profileStatus) {
-  if (notice === "sent") {
-    return "Login email sent.";
-  }
-
-  if (notice === "bulk-sent") {
-    return `${sentCount || 0} login emails sent.`;
-  }
-
-  if (notice === "bulk-partial") {
-    return `${sentCount || 0} login emails sent, ${failedCount || 0} failed.`;
-  }
-
-  if (notice === "error") {
-    return "Member email action failed. Please retry.";
-  }
-
-  if (notice === "missing-fields") {
-    return "Select at least one member first.";
-  }
-
-  if (notice === "profile-status-updated") {
-    return `Profile marked ${profileStatus || "updated"}.`;
-  }
-
-  if (notice === "profile-status-error") {
-    return "Profile status could not be updated. Please retry.";
-  }
-
-  return "";
+function StatCard({ value, total, label, description, tone, barPct }) {
+  return (
+    <div className={`admin-stat-card${tone ? ` tone-${tone}` : ""}`}>
+      <strong>{value}</strong>
+      <h4>{label}</h4>
+      {barPct !== undefined ? (
+        <div className="stat-progress">
+          <div className="stat-progress-track">
+            <div className="stat-progress-fill" style={{ width: `${barPct}%` }} />
+          </div>
+          <span className="stat-progress-pct">{barPct}%</span>
+        </div>
+      ) : null}
+      <p>{description}</p>
+    </div>
+  );
 }
 
-function buildMembersPath({ cohort, status }) {
+function getNoticeMessage(notice, sentCount, failedCount, profileStatus, repairedCount, skippedCount, repairFailedCount) {
+  const messages = {
+    sent: "Login email sent.",
+    error: "Action failed. Please retry.",
+    "missing-fields": "Select at least one member first.",
+    "profile-status-error": "Profile status could not be updated.",
+  };
+  if (notice === "bulk-sent") return `${sentCount || 0} login emails sent.`;
+  if (notice === "bulk-partial") return `${sentCount || 0} sent, ${failedCount || 0} failed.`;
+  if (notice === "repair-summary")
+    return `Repair complete: ${repairedCount || 0} repaired, ${skippedCount || 0} up to date, ${repairFailedCount || 0} failed.`;
+  if (notice === "profile-status-updated") return `Profile marked ${profileStatus || "updated"}.`;
+  return messages[notice] || "";
+}
+
+function buildMembersPath({ cohort, status, q } = {}) {
   const params = new URLSearchParams();
-
-  if (status && status !== "all") {
-    params.set("status", status);
-  }
-
-  if (cohort && cohort !== "all") {
-    params.set("cohort", cohort);
-  }
-
+  if (status && status !== "all") params.set("status", status);
+  if (cohort && cohort !== "all") params.set("cohort", cohort);
+  if (q) params.set("q", q);
   const query = params.toString();
   return query ? `/admin/members?${query}` : "/admin/members";
+}
+
+function matchesMemberSearch(member, query) {
+  if (!query) return true;
+  const text = [
+    member.displayName,
+    member.email,
+    member.organisation_name,
+    member.role_title,
+    member.country_of_residence,
+    member.primaryCohort?.name,
+    ...(member.secondaryCohorts || []).map((c) => c.name),
+    ...(member.domainTags || []).map((t) => t.name),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return text.includes(query.toLowerCase());
 }
 
 const PRIMARY_FILTERS = [
@@ -86,87 +93,40 @@ const PRIMARY_FILTERS = [
 
 const SECONDARY_FILTERS = [
   { key: "profile-active", label: "Profile active" },
-  { key: "profile-inactive", label: "Profile inactive" },
-  { key: "headshot-recovery", label: "Headshot recovery" },
-  { key: "resume-recovery", label: "Resume recovery" },
+  { key: "profile-inactive", label: "Inactive" },
+  { key: "headshot-recovery", label: "Headshot" },
+  { key: "resume-recovery", label: "Resume" },
 ];
-
-function getFilterCount(key, members, counts) {
-  return key === "all" ? members.length : counts[key];
-}
-
-function formatLabel(value) {
-  return String(value || "")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
-function getChipClass(tone = "neutral") {
-  return `status-chip chip-${tone}`;
-}
-
-function getMemberAlert(member) {
-  const issues = [];
-
-  if (member.needsHeadshotRecovery) {
-    issues.push("Headshot recovery needed");
-  }
-
-  if (member.needsResumeRecovery) {
-    issues.push("Resume recovery needed");
-  }
-
-  if (!member.isProfileComplete && member.missingProfileFields.length) {
-    issues.push(`Missing: ${member.missingProfileFields.join(", ")}`);
-  }
-
-  if (issues.length) {
-    return {
-      tone: "warning",
-      message: issues.join(" • "),
-    };
-  }
-
-  return {
-    tone: "neutral",
-    message: member.isActive
-      ? "Onboarding data is on file and this member is ready for access management."
-      : "This member will still complete onboarding after setting a password.",
-  };
-}
 
 export default async function AdminMembersPage({ searchParams }) {
   const { supabase } = await requireAdminContext();
   const adminClient = createSupabaseAdminClient();
-  const resolvedSearchParams = await searchParams;
-  const activeFilter =
-    typeof resolvedSearchParams?.status === "string" && MEMBER_STATUS_FILTERS.includes(resolvedSearchParams.status)
-      ? resolvedSearchParams.status
-      : "all";
-  const notice =
-    typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
-  const sentCount = Number.parseInt(String(resolvedSearchParams?.sent || "0"), 10) || 0;
-  const failedCount = Number.parseInt(String(resolvedSearchParams?.failed || "0"), 10) || 0;
-  const updatedProfileStatus =
-    typeof resolvedSearchParams?.profile_status === "string" ? resolvedSearchParams.profile_status : "";
+  const p = await searchParams;
 
-  const { error: dataError, members, counts, cohortOptions } = await fetchAdminMembersDirectory({
-    supabase,
-    adminClient,
-  });
+  const activeFilter =
+    typeof p?.status === "string" && MEMBER_STATUS_FILTERS.includes(p.status) ? p.status : "all";
+  const notice = typeof p?.notice === "string" ? p.notice : "";
+  const sentCount = Number.parseInt(String(p?.sent || "0"), 10) || 0;
+  const failedCount = Number.parseInt(String(p?.failed || "0"), 10) || 0;
+  const repairedCount = Number.parseInt(String(p?.repaired || "0"), 10) || 0;
+  const skippedCount = Number.parseInt(String(p?.skipped || "0"), 10) || 0;
+  const repairFailedCount = Number.parseInt(String(p?.failed || "0"), 10) || 0;
+  const updatedStatus = typeof p?.profile_status === "string" ? p.profile_status : "";
+  const searchQuery = typeof p?.q === "string" ? p.q.trim() : "";
+
+  const { error: dataError, members, counts, cohortOptions } = await fetchAdminMembersDirectory({ supabase, adminClient });
 
   const activeCohort =
-    typeof resolvedSearchParams?.cohort === "string" &&
-    cohortOptions.some((cohort) => cohort.slug === resolvedSearchParams.cohort)
-      ? resolvedSearchParams.cohort
-      : "all";
+    typeof p?.cohort === "string" && cohortOptions.some((c) => c.slug === p.cohort) ? p.cohort : "all";
 
-  const filteredMembers = members.filter(
-    (member) =>
-      matchesMemberStatusFilter(member, activeFilter) && matchesMemberCohortFilter(member, activeCohort),
-  );
+  const filteredMembers = members
+    .filter((m) => matchesMemberStatusFilter(m, activeFilter) && matchesMemberCohortFilter(m, activeCohort))
+    .filter((m) => matchesMemberSearch(m, searchQuery));
+
   const returnPath = buildMembersPath({ cohort: activeCohort, status: activeFilter });
   const exportHref = `/admin/members/export${returnPath === "/admin/members" ? "" : returnPath.replace("/admin/members", "")}`;
+  const total = members.length;
+  const isError = notice === "error" || notice === "profile-status-error";
 
   return (
     <DashboardShell
@@ -176,233 +136,148 @@ export default async function AdminMembersPage({ searchParams }) {
       navItems={adminNav}
       spotlight={{
         label: "Member access",
-        title: "Imported cohort directory",
-        body: "Review imported members, verify onboarding state, and control when login emails are actually sent.",
+        title: "Cohort directory",
+        body: "Review imported members, verify onboarding state, and control login access.",
       }}
-      title="Member access queue"
-      subtitle="This queue separates member import from member contact. Imported cohort members can be reviewed first, then emailed from the admin portal when you are ready."
+      title="Members"
+      subtitle="Manage cohort members, onboarding, and login access."
     >
-      <article className="dashboard-card admin-member-toolbar-card">
-        <div className="stack">
-          <div className="admin-member-controls">
-            <div className="member-filter-stack">
-              <div className="filter-tab-group filter-tab-group-primary">
-                {PRIMARY_FILTERS.map((filter) => (
-                  <Link
-                    className={activeFilter === filter.key ? "filter-tab active-filter" : "filter-tab"}
-                    href={buildMembersPath({ status: filter.key, cohort: activeCohort })}
-                    key={filter.key}
-                  >
-                    {filter.label} ({getFilterCount(filter.key, members, counts)})
-                  </Link>
-                ))}
-              </div>
+      {/* ── Stats ───────────────────────────────────────────────────── */}
+      <div className="admin-stat-grid">
+        <StatCard
+          value={total}
+          label="Total members"
+          description="All records in the cohort directory"
+        />
+        <StatCard
+          value={counts.active ?? 0}
+          total={total}
+          label="Active"
+          description="Completed onboarding and signed in"
+          tone="success"
+          barPct={pct(counts.active ?? 0, total)}
+        />
+        <StatCard
+          value={counts.contacted ?? 0}
+          total={total}
+          label="Contacted"
+          description="Login or invite email has been sent"
+          tone="muted"
+          barPct={pct(counts.contacted ?? 0, total)}
+        />
+        <StatCard
+          value={counts["not-sent"] ?? 0}
+          total={total}
+          label="Not yet invited"
+          description="No login email sent — action required"
+          tone="warning"
+          barPct={pct(counts["not-sent"] ?? 0, total)}
+        />
+      </div>
 
-              <div className="filter-tab-group filter-tab-group-secondary">
-                {SECONDARY_FILTERS.map((filter) => (
+      {/* ── Toolbar ─────────────────────────────────────────────────── */}
+      <article className="dashboard-card admin-toolbar-card">
+        <div className="stack">
+          {/* Status + cohort row */}
+          <div className="admin-toolbar-main">
+            <div className="dashboard-toolbar">
+              {PRIMARY_FILTERS.map((f) => {
+                const count = f.key === "all" ? total : (counts[f.key] ?? 0);
+                return (
                   <Link
-                    className={
-                      activeFilter === filter.key
-                        ? "filter-tab filter-tab-secondary active-filter"
-                        : "filter-tab filter-tab-secondary"
-                    }
-                    href={buildMembersPath({ status: filter.key, cohort: activeCohort })}
-                    key={filter.key}
+                    className={activeFilter === f.key ? "filter-tab active-filter" : "filter-tab"}
+                    href={buildMembersPath({ status: f.key, cohort: activeCohort })}
+                    key={f.key}
                   >
-                    {filter.label} ({getFilterCount(filter.key, members, counts)})
+                    {f.label}
+                    <span className="filter-tab-count">{count}</span>
                   </Link>
-                ))}
-              </div>
+                );
+              })}
+              <div className="filter-tab-divider" />
+              {SECONDARY_FILTERS.map((f) => (
+                <Link
+                  className={activeFilter === f.key ? "filter-tab filter-tab-secondary active-filter" : "filter-tab filter-tab-secondary"}
+                  href={buildMembersPath({ status: f.key, cohort: activeCohort })}
+                  key={f.key}
+                >
+                  {f.label}
+                  <span className="filter-tab-count">{counts[f.key] ?? 0}</span>
+                </Link>
+              ))}
             </div>
 
-            <div className="member-toolbar-actions-panel">
-              <form className="inline-filter-form" method="get">
-                {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
-                <label>
-                  Cohort
-                  <select defaultValue={activeCohort} name="cohort">
-                    <option value="all">All cohorts</option>
-                    {cohortOptions.map((cohort) => (
-                      <option key={cohort.slug} value={cohort.slug}>
-                        {cohort.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button className="secondary-button" type="submit">
-                  Apply filter
-                </button>
-              </form>
+            <form className="inline-filter-form" method="get">
+              {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
+              <select defaultValue={activeCohort} name="cohort">
+                <option value="all">All cohorts</option>
+                {cohortOptions.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.name}</option>
+                ))}
+              </select>
+              <button className="secondary-button" type="submit">Filter</button>
+            </form>
+          </div>
 
-              <div className="admin-member-actions">
-                <Link className="secondary-button" href={exportHref}>
-                  Export member status
-                </Link>
-                <form action={sendSelectedMemberInvitesAction} id="bulk-member-action-form">
-                  <input name="return_to" type="hidden" value={returnPath} />
-                  <AdminMembersBulkAction />
-                </form>
+          {/* Search + actions row */}
+          <div className="admin-toolbar-actions">
+            <form className="admin-search-form" method="get">
+              {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
+              {activeCohort !== "all" ? <input name="cohort" type="hidden" value={activeCohort} /> : null}
+              <div className="admin-search-field">
+                <span className="admin-search-icon" aria-hidden="true">⌕</span>
+                <input
+                  defaultValue={searchQuery}
+                  name="q"
+                  placeholder="Search name, email, organisation, cohort…"
+                  type="search"
+                />
+                {searchQuery ? (
+                  <Link aria-label="Clear search" className="admin-search-clear" href={buildMembersPath({ status: activeFilter, cohort: activeCohort })}>
+                    ✕
+                  </Link>
+                ) : null}
               </div>
+              <button className="secondary-button" type="submit">Search</button>
+            </form>
+
+            <div className="admin-toolbar-right">
+              <Link className="secondary-button" href={exportHref}>Export CSV</Link>
+              <form action={sendSelectedMemberInvitesAction} id="bulk-member-action-form">
+                <input name="return_to" type="hidden" value={returnPath} />
+                <AdminMembersBulkAction
+                  secondaryAction={repairSelectedMemberProfilesAction}
+                  secondaryLabel="Repair selected"
+                />
+              </form>
             </div>
           </div>
 
-          {notice ? <p className={notice === "error" || notice === "profile-status-error" ? "form-error" : "form-success"}>{getNoticeMessage(notice, sentCount, failedCount, updatedProfileStatus)}</p> : null}
+          {/* Feedback */}
+          {searchQuery ? (
+            <p className="admin-search-notice">
+              {filteredMembers.length} result{filteredMembers.length === 1 ? "" : "s"} for <strong>"{searchQuery}"</strong>
+              {" · "}
+              <Link href={buildMembersPath({ status: activeFilter, cohort: activeCohort })}>Clear</Link>
+            </p>
+          ) : null}
+          {notice ? (
+            <p className={isError ? "form-error" : "form-success"}>
+              {getNoticeMessage(notice, sentCount, failedCount, updatedStatus, repairedCount, skippedCount, repairFailedCount)}
+            </p>
+          ) : null}
           {dataError ? <p className="form-error">{dataError.message}</p> : null}
         </div>
       </article>
 
-      <div className="stack">
-        {filteredMembers.length ? (
-          filteredMembers.map((member) => (
-            <article className="dashboard-card member-record-card" key={member.id}>
-              <div className="member-record-header">
-                <div className="member-selection-block">
-                  <label className="member-select-label">
-                    <input form="bulk-member-action-form" name="profile_ids" type="checkbox" value={member.id} />
-                    <span>Select</span>
-                  </label>
-                  <div className="member-identity">
-                    <strong>{member.displayName}</strong>
-                    <p>{member.email}</p>
-                  </div>
-                </div>
-                <div className="member-status-strip">
-                  <span className={getChipClass(member.wasContacted ? "neutral" : "warning")}>
-                    {getMemberInviteLabel(member.latestInvite)}
-                  </span>
-                  <span className={getChipClass(member.isActive ? "success" : "warning")}>
-                    {formatLabel(member.onboarding_status)}
-                  </span>
-                  <span className={getChipClass(member.profileStatus === "inactive" ? "muted" : "success")}>
-                    Profile {member.profileStatus}
-                  </span>
-                  <span className={getChipClass(member.isProfileComplete ? "success" : "warning")}>
-                    {member.completionPercent}% complete
-                  </span>
-                </div>
-              </div>
-
-              <dl className="member-definition-grid">
-                <div className="member-detail-card">
-                  <dt>Primary cohort</dt>
-                  <dd>{member.primaryCohort?.name || "Not assigned"}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Secondary cohorts</dt>
-                  <dd>{member.secondaryCohorts.length ? member.secondaryCohorts.map((cohort) => cohort.name).join(", ") : "None recorded"}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Organisation</dt>
-                  <dd>{member.organisation_name || "Not provided"}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Role</dt>
-                  <dd>{member.role_title || "Not provided"}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Country</dt>
-                  <dd>{member.country_of_residence || "Not provided"}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Phone / WhatsApp</dt>
-                  <dd>{member.phone_number || member.whatsapp_number ? [member.phone_number, member.whatsapp_number].filter(Boolean).join(" / ") : "Not provided"}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Timezone</dt>
-                  <dd>{member.timezone || "Not provided"}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Availability</dt>
-                  <dd>{formatLabel(member.availabilityStatus)}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Form completion</dt>
-                  <dd>
-                    {member.cohortProfile?.completed_at
-                      ? `Completed ${formatDate(member.cohortProfile.completed_at)}`
-                      : "Still required"}
-                  </dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Last login email</dt>
-                  <dd>{member.latestInvite ? formatDate(member.latestInvite.created_at) : "Not sent yet"}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Last sign-in</dt>
-                  <dd>{formatDate(member.authUser?.last_sign_in_at)}</dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Headshot</dt>
-                  <dd>
-                    {member.needsHeadshotRecovery
-                      ? "Recovery needed"
-                      : member.hasHeadshot
-                        ? "Ready"
-                        : "Missing"}
-                  </dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Resume</dt>
-                  <dd>
-                    {member.needsResumeRecovery
-                      ? "Recovery needed"
-                      : member.resumeAsset?.source_kind === "storage"
-                        ? "Stored"
-                        : member.resumeAsset?.source_kind === "external"
-                          ? "External"
-                          : "Missing"}
-                  </dd>
-                </div>
-                <div className="member-detail-card">
-                  <dt>Migration batch</dt>
-                  <dd>{member.migration_batch_id || "Legacy / manual"}</dd>
-                </div>
-              </dl>
-
-              <div className="member-action-row">
-                <div
-                  className={
-                    getMemberAlert(member).tone === "warning"
-                      ? "member-alert member-alert-warning"
-                      : "member-alert"
-                  }
-                >
-                  {getMemberAlert(member).message}
-                </div>
-                <div className="admin-member-row-actions">
-                  <Link className="secondary-button" href={`/admin/members/${member.id}`}>
-                    {member.needsHeadshotRecovery ? "Recover headshot" : "View full profile"}
-                  </Link>
-                  <form action={updateMemberProfileStatusAction}>
-                    <input name="profile_id" type="hidden" value={member.id} />
-                    <input name="return_to" type="hidden" value={returnPath} />
-                    <input
-                      name="next_status"
-                      type="hidden"
-                      value={member.profileStatus === "inactive" ? "active" : "inactive"}
-                    />
-                    <button className="secondary-button" type="submit">
-                      Mark {member.profileStatus === "inactive" ? "active" : "inactive"}
-                    </button>
-                  </form>
-                  <form action={sendMemberInviteAction}>
-                    <input name="profile_id" type="hidden" value={member.id} />
-                    <input name="return_to" type="hidden" value={returnPath} />
-                    <button className="primary-button" type="submit">
-                      {member.latestInvite ? "Resend login email" : "Send login email"}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </article>
-          ))
-        ) : (
-          <article className="dashboard-card">
-            <h3>No members found</h3>
-            <p>No members match the current filter yet.</p>
-          </article>
-        )}
-      </div>
+      {/* ── List ────────────────────────────────────────────────────── */}
+      <AdminMembersListClient
+        initialSearch={searchQuery}
+        members={filteredMembers}
+        returnPath={returnPath}
+        sendInviteAction={sendMemberInviteAction}
+        updateStatusAction={updateMemberProfileStatusAction}
+      />
     </DashboardShell>
   );
 }

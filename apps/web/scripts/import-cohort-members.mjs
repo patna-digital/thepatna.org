@@ -576,7 +576,7 @@ async function main() {
 
       if (args.sendInvites) {
         ({ data, error } = await supabase.auth.admin.inviteUserByEmail(row.email, {
-          redirectTo: `${siteUrl}/auth/callback?next=/app`,
+          redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`,
         }));
         deliveryMethod = "supabase_invite";
       } else {
@@ -607,7 +607,7 @@ async function main() {
       deliveryMethod = "manual_reset";
 
       const { error } = await supabase.auth.resetPasswordForEmail(row.email, {
-        redirectTo: `${siteUrl}/auth/callback?next=/app`,
+        redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`,
       });
 
       if (error) {

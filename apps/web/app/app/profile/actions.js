@@ -1,8 +1,13 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseMemberProfileFormData, persistMemberProfile } from "@/lib/member-profile-updates";
-import { getNextProfileSectionId, normaliseProfileSectionId } from "@/lib/profile-onboarding";
+import {
+  parseMemberProfileFormData,
+  persistMemberProfile,
+  replaceMemberHeadshot,
+} from "@/lib/member-profile-updates";
+import { normaliseProfileSectionId } from "@/lib/profile-onboarding";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 
@@ -38,7 +43,6 @@ export async function saveMemberProfileAction(formData) {
   const values = parseMemberProfileFormData(formData);
   const adminSupabase = createSupabaseAdminClient();
   const activeStep = normaliseProfileSectionId(values.sectionId) || "identity-contact";
-  const editMode = values.flowMode !== "guided";
   const result = await persistMemberProfile({
     adminSupabase,
     supabase,
@@ -48,28 +52,59 @@ export async function saveMemberProfileAction(formData) {
 
   if (!result.ok) {
     if (result.reason === "invalid-selection") {
-      redirect(buildProfileRedirect({ editMode, notice: "invalid-selection", step: activeStep }));
+      redirect(buildProfileRedirect({ editMode: true, notice: "invalid-selection", step: activeStep }));
     }
 
-    redirect(buildProfileRedirect({ editMode, notice: "save-error", step: activeStep }));
+    redirect(buildProfileRedirect({ editMode: true, notice: "save-error", step: activeStep }));
   }
 
-  if (values.flowMode === "guided") {
-    if (values.intent === "continue") {
-      const targetStep = normaliseProfileSectionId(values.nextStepId) || getNextProfileSectionId(activeStep) || result.firstIncompleteSection;
-      redirect(buildProfileRedirect({ notice: "saved", step: targetStep }));
-    }
+  redirect(buildProfileRedirect({ editMode: true, notice: "saved", step: activeStep }));
+}
 
-    if (values.intent === "finish") {
-      if (result.isComplete) {
-        redirect(buildProfileRedirect({ notice: "completed" }));
-      }
+export async function replaceOwnHeadshotAction(formData) {
+  const { user, supabase } = await getCurrentUserContext({
+    includeProfile: false,
+    includeRoles: false,
+  });
 
-      redirect(buildProfileRedirect({ notice: "saved", step: result.firstIncompleteSection }));
-    }
-
-    redirect(buildProfileRedirect({ notice: "saved", step: activeStep }));
+  if (!user || !supabase) {
+    redirect("/auth/login?next=/app/profile");
   }
 
-  redirect(buildProfileRedirect({ notice: "saved" }));
+  const adminClient = createSupabaseAdminClient();
+  const headshotFile = formData.get("headshot_file");
+  const result = await replaceMemberHeadshot({
+    adminSupabase: adminClient,
+    file: typeof headshotFile?.arrayBuffer === "function" ? headshotFile : null,
+    updatedByUserId: user.id,
+    userId: user.id,
+  });
+
+  if (!result.ok) {
+    const notice =
+      result.reason === "missing-file"
+        ? "headshot-missing-file"
+        : result.reason === "file-too-large"
+          ? "headshot-file-too-large"
+          : "headshot-error";
+
+    redirect(buildProfileRedirect({ notice }));
+  }
+
+  const { data: bookingSettings } = await supabase
+    .from("booking_settings")
+    .select("public_booking_url_slug")
+    .eq("member_id", user.id)
+    .maybeSingle();
+
+  revalidatePath("/app");
+  revalidatePath("/app/profile");
+  revalidatePath("/app/members");
+  revalidatePath("/app/calendar");
+
+  if (bookingSettings?.public_booking_url_slug) {
+    revalidatePath(`/book/${bookingSettings.public_booking_url_slug}`);
+  }
+
+  redirect(buildProfileRedirect({ notice: "headshot-updated" }));
 }

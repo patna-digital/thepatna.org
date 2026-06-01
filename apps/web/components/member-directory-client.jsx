@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { MemberProfileModal } from "./member-profile-modal";
 
 function getInitials(name) {
   const parts = String(name || "")
@@ -12,96 +14,96 @@ function getInitials(name) {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("") || "P";
 }
 
-function getAvailabilityLabel(status) {
-  const value = String(status || "").trim().toLowerCase();
-  return value ? value.replace(/\b\w/g, (character) => character.toUpperCase()) : "";
-}
-
 function getSearchText(member) {
   return [
     member.displayNameLabel || member.displayName,
+    member.roleTitleDisplay,
     member.roleTitleLabel || member.role_title,
+    member.organisationDisplay,
     member.organisationLabel || member.organisation_name,
+    member.countryDisplay,
     member.country_of_residence,
+    member.professionalBioDisplay,
     member.professional_bio,
+    member.primaryCohort?.nameDisplay,
     member.primaryCohort?.name,
-    ...(member.domainTags || []).map((tag) => tag.name),
+    ...(member.domainTags || []).flatMap((tag) => [tag.nameDisplay, tag.name]),
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 }
 
-function getBioExcerpt(member) {
+function getBioExcerpt(member, t) {
   const source =
+    member.professionalBioDisplay ||
     member.professional_bio ||
     [
+      member.roleTitleDisplay,
       member.roleTitleLabel || member.role_title,
+      member.organisationDisplay,
       member.organisationLabel || member.organisation_name,
+      member.countryDisplay,
       member.country_of_residence,
     ]
       .filter(Boolean)
       .join(" · ");
 
   if (!source) {
-    return "Profile summary still being completed.";
+    return t("profileIncomplete");
   }
 
   return source.length > 148 ? `${source.slice(0, 145)}...` : source;
 }
 
+const LOWERCASE_WORDS = new Set(["a", "an", "the", "and", "but", "or", "nor", "for", "so", "yet", "at", "by", "in", "of", "on", "to", "up", "as", "is", "it"]);
+
+function toRoleCase(str) {
+  if (!str) return str;
+  return str
+    .split(" ")
+    .map((word, i) =>
+      i === 0 || !LOWERCASE_WORDS.has(word.toLowerCase())
+        ? word.charAt(0).toUpperCase() + word.slice(1)
+        : word.toLowerCase()
+    )
+    .join(" ");
+}
+
 function getCohortTone(cohortSlug) {
-  if (cohortSlug === "academic") {
-    return "academic";
-  }
-
-  if (cohortSlug === "industry") {
-    return "industry";
-  }
-
-  if (cohortSlug === "civil-society") {
-    return "civil";
-  }
-
+  if (cohortSlug === "academic") return "academic";
+  if (cohortSlug === "industry") return "industry";
+  if (cohortSlug === "civil-society") return "civil";
   return "policy";
 }
 
-function getSpaceCountLabel(count) {
-  return `${count} space${count === 1 ? "" : "s"}`;
+function getSpaceCountLabel(count, t) {
+  return count === 1 ? t("spacesSingular", { count }) : t("spacesPlural", { count });
 }
 
 export function MemberDirectoryClient({ directory }) {
+  const t = useTranslations("members");
   const [searchTerm, setSearchTerm] = useState("");
   const [cohortFilter, setCohortFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
+  const [selectedMember, setSelectedMember] = useState(null);
 
   const filteredMembers = useMemo(() => {
     const normalisedSearch = searchTerm.trim().toLowerCase();
 
     return directory.members.filter((member) => {
-      if (cohortFilter !== "all" && member.primaryCohort?.slug !== cohortFilter) {
-        return false;
-      }
-
-      if (tagFilter !== "all" && !member.domainTags.some((tag) => tag.slug === tagFilter)) {
-        return false;
-      }
-
-      if (countryFilter !== "all" && member.country_of_residence !== countryFilter) {
-        return false;
-      }
-
-      if (normalisedSearch && !getSearchText(member).includes(normalisedSearch)) {
-        return false;
-      }
-
+      if (cohortFilter !== "all" && member.primaryCohort?.slug !== cohortFilter) return false;
+      if (tagFilter !== "all" && !member.domainTags.some((tag) => tag.slug === tagFilter)) return false;
+      if (countryFilter !== "all" && member.country_of_residence !== countryFilter) return false;
+      if (normalisedSearch && !getSearchText(member).includes(normalisedSearch)) return false;
       return true;
     });
   }, [cohortFilter, countryFilter, directory.members, searchTerm, tagFilter]);
 
   return (
     <div className="member-directory-shell">
+      {/* Cohort summary tiles */}
       <div className="member-directory-summary-row">
         {directory.summary.map((item) => (
           <button
@@ -119,16 +121,17 @@ export function MemberDirectoryClient({ directory }) {
         ))}
       </div>
 
-      <article className="dashboard-card member-directory-toolbar-card">
+      {/* Search + filter toolbar */}
+      <article className="member-directory-toolbar-card">
         <div className="member-directory-toolbar-grid">
           <label className="member-directory-search">
             <span aria-hidden="true" className="member-directory-search-icon">
               ⌕
             </span>
-            <span className="sr-only">Search members</span>
+            <span className="sr-only">{t("searchLabel")}</span>
             <input
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search name, org, or expertise..."
+              placeholder={t("searchPlaceholder")}
               type="search"
               value={searchTerm}
             />
@@ -137,7 +140,7 @@ export function MemberDirectoryClient({ directory }) {
           <div className="member-directory-toolbar-controls">
             <div className="member-directory-selects">
               <select onChange={(event) => setCohortFilter(event.target.value)} value={cohortFilter}>
-                <option value="all">All Cohorts</option>
+                <option value="all">{t("filterAllCohorts")}</option>
                 {directory.filters.cohorts.map((cohort) => (
                   <option key={cohort.slug} value={cohort.slug}>
                     {cohort.name}
@@ -146,7 +149,7 @@ export function MemberDirectoryClient({ directory }) {
               </select>
 
               <select onChange={(event) => setTagFilter(event.target.value)} value={tagFilter}>
-                <option value="all">All Tags</option>
+                <option value="all">{t("filterAllTags")}</option>
                 {directory.filters.tags.map((tag) => (
                   <option key={tag.slug} value={tag.slug}>
                     {tag.name}
@@ -155,114 +158,155 @@ export function MemberDirectoryClient({ directory }) {
               </select>
 
               <select onChange={(event) => setCountryFilter(event.target.value)} value={countryFilter}>
-                <option value="all">All Countries</option>
+                <option value="all">{t("filterAllCountries")}</option>
                 {directory.filters.countries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
+                  <option key={country.value} value={country.value}>
+                    {country.label}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="member-directory-toolbar-meta">
-              <strong>{filteredMembers.length} results</strong>
+              <strong>{t("results", { count: filteredMembers.length })}</strong>
             </div>
           </div>
         </div>
       </article>
 
+      {/* Member grid */}
       <div className="member-directory-grid member-directory-grid-rich">
         {filteredMembers.map((member) => {
           const isSelf = member.id === directory.currentUserId;
           const tone = getCohortTone(member.primaryCohort?.slug);
-          const extraTagCount = Math.max(member.domainTags.length - 3, 0);
-          const availabilityLabel = getAvailabilityLabel(member.availabilityStatus);
-          const roleLabel = member.roleTitleLabel || "";
-          const organisationLabel = member.organisationLabel || "";
-          const organisationLine = [organisationLabel, member.country_of_residence].filter(Boolean).join(" · ");
+          const roleLabel = toRoleCase(member.roleTitleDisplay || member.roleTitleLabel || "");
+          const organisationLabel = member.organisationDisplay || member.organisationLabel || "";
+          const countryLabel = member.countryDisplay || member.country_of_residence || "";
+
+          const allCohorts = [
+            member.primaryCohort,
+            ...(member.secondaryCohorts || []),
+          ].filter(Boolean);
+          const visibleTags = member.domainTags.slice(0, 3 - Math.min(allCohorts.length, 2));
+          const remainingCount = member.domainTags.length - visibleTags.length;
 
           return (
-            <article className={`dashboard-card member-directory-profile-card tone-${tone}`} key={member.id}>
-              <div className="member-directory-card-top">
-                <div className="member-directory-identity-row">
-                  <div className="member-headshot-frame member-headshot-frame-small member-directory-avatar">
-                    {member.headshotSrc ? (
-                      <img
-                        alt={`${member.displayNameLabel || member.displayName} headshot`}
-                        className="member-headshot-image"
-                        src={member.headshotSrc}
-                      />
-                    ) : (
-                      <span className="member-headshot-fallback">{getInitials(member.displayNameLabel || member.displayName)}</span>
-                    )}
-                  </div>
+            <article
+              className={`member-directory-profile-card tone-${tone}`}
+              key={member.id}
+              onClick={() => setSelectedMember(member)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedMember(member);
+                }
+              }}
+              aria-label={`View profile: ${member.displayNameLabel || member.displayName}`}
+            >
+              {isSelf ? (
+                <span className="member-directory-you-chip">{t("youChip")}</span>
+              ) : null}
 
-                  <div className="member-directory-copy">
-                    <div className="member-directory-name-row">
-                      <strong>{member.displayNameLabel || member.displayName}</strong>
-                      <div className="member-directory-state-row">
-                        {isSelf ? <span className="status-chip chip-neutral">You</span> : null}
-                        {availabilityLabel ? <span className="status-chip chip-muted">{availabilityLabel}</span> : null}
-                      </div>
-                    </div>
-                    <p className={`member-directory-role-line${roleLabel ? "" : " is-placeholder"}`}>
-                      {roleLabel || "Role pending"}
-                    </p>
-                    <p
-                      className={`member-directory-organisation-line${
-                        organisationLine ? "" : " is-placeholder"
-                      }`}
-                    >
-                      {organisationLine || "Organisation pending"}
-                    </p>
+              <div className="member-directory-identity-row">
+                <div className={`member-directory-avatar tone-${tone}`}>
+                  {member.headshotSrc ? (
+                    <img
+                      alt={`${member.displayNameLabel || member.displayName} headshot`}
+                      className="member-headshot-image"
+                      src={member.headshotSrc}
+                    />
+                  ) : (
+                    <span>{getInitials(member.displayNameLabel || member.displayName)}</span>
+                  )}
+                </div>
+
+                <div className="member-directory-copy">
+                  <strong className="member-directory-name">
+                    {member.displayNameLabel || member.displayName}
+                  </strong>
+                  <p className={`member-directory-role-line${roleLabel ? "" : " is-placeholder"}`}>
+                    {roleLabel || t("rolePending")}
+                  </p>
+                  <div className="member-directory-meta-lines">
+                    {organisationLabel ? (
+                      <span className="member-directory-meta-line-item">
+                        <svg aria-hidden="true" fill="none" height="11" viewBox="0 0 12 12" width="11" xmlns="http://www.w3.org/2000/svg"><rect height="7" rx="0.8" stroke="currentColor" strokeWidth="1.2" width="8" x="2" y="4"/><path d="M4 4V3a2 2 0 0 1 4 0v1" stroke="currentColor" strokeWidth="1.2"/></svg>
+                        {organisationLabel}
+                      </span>
+                    ) : null}
+                    {countryLabel ? (
+                      <span className="member-directory-meta-line-item">
+                        <svg aria-hidden="true" fill="none" height="11" viewBox="0 0 12 12" width="11" xmlns="http://www.w3.org/2000/svg"><path d="M6 1a3.5 3.5 0 0 1 3.5 3.5C9.5 7.5 6 11 6 11S2.5 7.5 2.5 4.5A3.5 3.5 0 0 1 6 1Z" stroke="currentColor" strokeWidth="1.2"/><circle cx="6" cy="4.5" fill="currentColor" r="1.2"/></svg>
+                        {countryLabel}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
 
-              {member.primaryCohort || member.domainTags.length ? (
+              {allCohorts.length || member.domainTags.length ? (
                 <div className="member-directory-tag-row member-directory-tag-row-secondary">
-                  {member.primaryCohort ? (
-                    <span className={`status-chip member-directory-cohort-chip tone-${tone}`}>
-                      {member.primaryCohort.name}
-                    </span>
-                  ) : null}
-                  {member.domainTags.slice(0, 3).map((tag) => (
-                    <span className="status-chip chip-neutral" key={tag.slug}>
-                      {tag.name}
+                  {allCohorts.map((cohort) => (
+                    <span
+                      className={`status-chip member-directory-cohort-chip tone-${getCohortTone(cohort.slug)}`}
+                      key={cohort.slug}
+                    >
+                      {cohort.nameDisplay || cohort.name}
                     </span>
                   ))}
-                  {extraTagCount ? (
-                    <span className="status-chip chip-muted">+{extraTagCount}</span>
+                  {visibleTags.map((tag) => (
+                    <span className="status-chip chip-neutral" key={tag.slug}>
+                      {tag.nameDisplay || tag.name}
+                    </span>
+                  ))}
+                  {remainingCount > 0 ? (
+                    <span className="status-chip chip-muted">+{remainingCount}</span>
                   ) : null}
                 </div>
               ) : null}
 
-              <p className="member-directory-excerpt">{getBioExcerpt(member)}</p>
+              <p className="member-directory-excerpt">{getBioExcerpt(member, t)}</p>
 
               <div className="member-directory-card-footer">
-                <span className="member-directory-footer-note">{getSpaceCountLabel(member.spaceCount || 0)}</span>
-                {isSelf ? (
-                  <Link className="secondary-button member-directory-card-button" href="/app/profile">
-                    Edit Profile
-                  </Link>
-                ) : (
-                  <div className="member-directory-card-action-stack">
-                    <button
-                      className="secondary-button member-directory-card-button"
-                      disabled
-                      title="Coming soon"
-                      type="button"
-                    >
-                      Contact
-                    </button>
-                    <span className="member-directory-card-action-note">Coming soon</span>
-                  </div>
-                )}
+                <span className="member-directory-footer-note">{getSpaceCountLabel(member.spaceCount || 0, t)}</span>
+                <div
+                  className="member-directory-card-action-stack"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {isSelf ? (
+                    <Link className="member-directory-card-button" href="/app/profile">
+                      {t("btnEditProfile")}
+                    </Link>
+                  ) : null}
+                  <button
+                    className="member-directory-card-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedMember(member);
+                    }}
+                    type="button"
+                  >
+                    {t("btnViewProfile")}
+                  </button>
+                </div>
               </div>
             </article>
           );
         })}
       </div>
+
+      {/* Profile modal */}
+      {selectedMember ? (
+        <MemberProfileModal
+          isAdmin={false}
+          isSelf={selectedMember.id === directory.currentUserId}
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+        />
+      ) : null}
     </div>
   );
 }
