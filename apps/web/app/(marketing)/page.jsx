@@ -159,6 +159,9 @@ export default async function HomePage() {
       <section className="about-patna-section">
         <div className="section-inner">
           <div className="section-label">{t("home.aboutLabel")}</div>
+          <h2 className="about-patna-h2">
+            {t("home.aboutH2")} <em>{t("home.aboutH2Em")}</em>
+          </h2>
 
           <div className="about-patna-grid">
             {/* Left text column — ~38% width on desktop */}
@@ -243,41 +246,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── COMMUNITY SNAPSHOT (v3 member cards) ── */}
-      <section className="v3-members-section" aria-label="Community snapshot">
-        <div className="v3-members-inner">
-          <div className="v3-members-header">
-            <div>
-              <div className="v3-members-label">{t("home.communityLabel")}</div>
-              <h2 className="v3-members-title">
-                {t("home.communityH2")} <em>{t("home.communityH2Em")}</em>
-              </h2>
-            </div>
-            <Link className="v3-members-link" href="/community">
-              {t("home.communityViewAll")}
-            </Link>
-          </div>
-
-          <div className="v3-members-grid">
-            {communityMembers.map((member) => (
-              <article className="v3-member-card" key={member.id}>
-                <div className="v3-member-avatar">
-                  {member.headshotUrl ? (
-                    <img src={member.headshotUrl} alt="" />
-                  ) : (
-                    <span className="v3-member-avatar-fallback">{getInitials(member.name)}</span>
-                  )}
-                </div>
-                <div className="v3-member-name">{member.name}</div>
-                <div className="v3-member-role">{member.role}</div>
-                {member.cohort && <span className="v3-member-cohort">{member.cohort}</span>}
-                {member.country && <div className="v3-member-country">{member.country}</div>}
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── LEAP PROJECTS ── */}
       <section className="section projects-section-bg">
         <div className="section-inner">
@@ -309,6 +277,41 @@ export default async function HomePage() {
                     {t("home.leapReadFullProject")}
                   </Link>
                 </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── COMMUNITY SNAPSHOT (v3 member cards) ── */}
+      <section className="v3-members-section" aria-label="Community snapshot">
+        <div className="v3-members-inner">
+          <div className="v3-members-header">
+            <div>
+              <div className="v3-members-label">{t("home.communityLabel")}</div>
+              <h2 className="v3-members-title">
+                {t("home.communityH2")} <em>{t("home.communityH2Em")}</em>
+              </h2>
+            </div>
+            <Link className="v3-members-link" href="/community">
+              {t("home.communityViewAll")}
+            </Link>
+          </div>
+
+          <div className="v3-members-grid">
+            {communityMembers.map((member) => (
+              <article className="v3-member-card" key={member.id}>
+                <div className="v3-member-avatar">
+                  {member.headshotUrl ? (
+                    <img src={member.headshotUrl} alt="" />
+                  ) : (
+                    <span className="v3-member-avatar-fallback">{getInitials(member.name)}</span>
+                  )}
+                </div>
+                <div className="v3-member-name">{member.name}</div>
+                <div className="v3-member-role">{member.role}</div>
+                {member.cohort && <span className="v3-member-cohort">{member.cohort}</span>}
+                {member.country && <div className="v3-member-country">{member.country}</div>}
               </article>
             ))}
           </div>
@@ -370,7 +373,7 @@ export default async function HomePage() {
 
             <div className="home-events-grid">
               {events.map((event) => (
-                <article className="home-event-card" key={event.slug}>
+                <Link className="home-event-card" href={`/events/${event.slug}`} key={event.slug}>
                   <div className="home-event-date-block" aria-hidden="true">
                     <span className="home-event-month">
                       {event.displayDateDisplay?.split(" ")[1] || event.display_date?.split(" ")[1] || ""}
@@ -389,7 +392,7 @@ export default async function HomePage() {
                     )}
                     <span className="home-event-status-pill">{t("home.eventUpcoming")}</span>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
 

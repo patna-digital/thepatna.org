@@ -9,9 +9,11 @@ export function ArchiveSearchInput({
 }) {
   return (
     <div className="archive-search-shell">
-      <label className="archive-search-label" htmlFor="archive-search-input">
-        {label}
-      </label>
+      {label && (
+        <label className="archive-search-label" htmlFor="archive-search-input">
+          {label}
+        </label>
+      )}
       <div className="archive-search-control">
         <span aria-hidden="true" className="archive-search-icon">
           ⌕
