@@ -20,7 +20,7 @@ function SubmitButton({ isEdit }) {
   );
 }
 
-export default function PartnershipLeadForm({ action, deleteAction, cancelHref = "/admin/partnership-leads", lead, notice }) {
+export function PartnershipLeadForm({ action, deleteAction, cancelHref = "/admin/partnership-leads", lead, notice, adminUsers = [] }) {
   const t = useTranslations("admin.partnershipLeads.forms");
   const isEdit = Boolean(lead?.id);
   const [formData, setFormData] = useState({
@@ -222,6 +222,12 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
             <option value="">{t("labels.unassigned")}</option>
+            {adminUsers.map((u) => (
+              <option key={u.user_id} value={u.user_id}>
+                {[u.first_name, u.surname].filter(Boolean).join(" ") || u.email}
+                {u.role_title ? ` · ${u.role_title}` : ""}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -251,3 +257,5 @@ export default function PartnershipLeadForm({ action, deleteAction, cancelHref =
     </form>
   );
 }
+
+export default PartnershipLeadForm;

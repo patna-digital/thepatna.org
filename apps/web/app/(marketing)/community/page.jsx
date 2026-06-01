@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchActiveMemberDirectory } from "@/lib/member-profiles";
 
@@ -36,7 +37,7 @@ function getInitials(name) {
 }
 
 export default async function CommunityPage() {
-  const members = await getMemberSnapshot();
+  const [t, members] = await Promise.all([getTranslations(), getMemberSnapshot()]);
 
   return (
     <>
@@ -50,13 +51,12 @@ export default async function CommunityPage() {
         <div className="sub-page-hero-overlay" aria-hidden="true" />
         <div className="sub-page-hero-dot" aria-hidden="true" />
         <div className="sub-page-hero-inner">
-          <div className="sub-page-hero-eyebrow">Expert Network</div>
+          <div className="sub-page-hero-eyebrow">{t("community.heroEyebrow")}</div>
           <h1 className="sub-page-hero-title">
-            Africa&apos;s most connected <em>maritime climate</em> community
+            {t("community.heroH1")}
           </h1>
           <p className="sub-page-hero-sub">
-            100+ experts, policymakers, academics, and industry practitioners collaborating
-            across African member states to ensure the continent shapes global climate decisions.
+            {t("community.heroDesc")}
           </p>
         </div>
       </section>
@@ -64,9 +64,9 @@ export default async function CommunityPage() {
       <div className="feat-split-section" id="cohort-programme">
         <div className="feat-split-inner">
           <div className="feat-split-bar">
-            <span className="feat-split-label">Cohort Programme</span>
+            <span className="feat-split-label">{t("community.cohortProgrammeLabel")}</span>
             <Link className="feat-split-view-all" href="/community/join">
-              Apply to join →
+              {t("community.cohortApplyLink")}
             </Link>
           </div>
 
@@ -78,27 +78,22 @@ export default async function CommunityPage() {
                   alt="PATNA cohort members in a collaborative session"
                 />
                 <div className="feat-main-img-overlay" />
-                <span className="feat-main-status feat-status-active">Applications Open</span>
+                <span className="feat-main-status feat-status-active">{t("community.cohortStatusOpen")}</span>
               </div>
               <div className="feat-main-body">
-                <div className="feat-main-tag">Cohort 4 · 2026 · 12-Month Programme</div>
-                <h2 className="feat-main-title">
-                  Cohort 4 — Climate Finance, Technology &amp; Just Transition
-                </h2>
-                <p className="feat-main-desc">
-                  PATNA&apos;s fourth expert cohort brings together specialists in climate
-                  finance instruments, clean propulsion technology, and just transition policy.
-                </p>
+                <div className="feat-main-tag">{t("community.cohortTag")}</div>
+                <h2 className="feat-main-title">{t("community.cohortTitle")}</h2>
+                <p className="feat-main-desc">{t("community.cohortDesc")}</p>
                 <div className="cohort-features">
-                  <div className="cohort-feature">Full platform access and research library</div>
-                  <div className="cohort-feature">Monthly expert sessions and IMO simulations</div>
-                  <div className="cohort-feature">Direct engagement in PATNA evidence production</div>
-                  <div className="cohort-feature">Delegation support at MEPC and UNFCCC sessions</div>
+                  <div className="cohort-feature">{t("community.cohortFeature1")}</div>
+                  <div className="cohort-feature">{t("community.cohortFeature2")}</div>
+                  <div className="cohort-feature">{t("community.cohortFeature3")}</div>
+                  <div className="cohort-feature">{t("community.cohortFeature4")}</div>
                 </div>
                 <div className="feat-main-footer">
-                  <div className="feat-main-meta">25 members · Monthly sessions · Open disciplines</div>
+                  <div className="feat-main-meta">{t("community.cohortMeta")}</div>
                   <Link className="feat-main-cta" href="/community/join">
-                    Apply for Cohort 4 →
+                    {t("community.cohortCta")}
                   </Link>
                 </div>
               </div>
@@ -106,24 +101,15 @@ export default async function CommunityPage() {
 
             <div className="feat-side-list">
               {[
-                {
-                  title: "Academic & Research Network",
-                  meta: "Researchers from African universities and institutes working on maritime energy transition, climate policy, and trade economics.",
-                },
-                {
-                  title: "Policy & Government Track",
-                  meta: "Ministry officials, maritime authority staff, and government advisors engaged in international climate negotiations.",
-                },
-                {
-                  title: "Industry & Practitioners",
-                  meta: "Shipowners, port operators, maritime lawyers, and professionals with a stake in Africa's maritime transition.",
-                },
+                { titleKey: "community.track1Title", metaKey: "community.track1Meta" },
+                { titleKey: "community.track2Title", metaKey: "community.track2Meta" },
+                { titleKey: "community.track3Title", metaKey: "community.track3Meta" },
               ].map((track) => (
-                <Link className="feat-side-item" href="/community/join" key={track.title}>
+                <Link className="feat-side-item" href="/community/join" key={track.titleKey}>
                   <div className="feat-side-content">
-                    <div className="feat-side-tag">Track · Ongoing</div>
-                    <div className="feat-side-title">{track.title}</div>
-                    <div className="feat-side-meta">{track.meta}</div>
+                    <div className="feat-side-tag">{t("community.trackOngoing")}</div>
+                    <div className="feat-side-title">{t(track.titleKey)}</div>
+                    <div className="feat-side-meta">{t(track.metaKey)}</div>
                   </div>
                   <span className="feat-side-arrow">→</span>
                 </Link>
@@ -138,13 +124,13 @@ export default async function CommunityPage() {
           <div className="section-narrow">
             <div className="v3-members-header">
               <div>
-                <div className="v3-members-label">Network Snapshot</div>
+                <div className="v3-members-label">{t("community.networkLabel")}</div>
                 <h2 className="v3-members-title">
-                  Meet the <em>experts</em>
+                  {t("community.networkH2")}
                 </h2>
               </div>
               <Link className="v3-members-link" href="/auth/login">
-                Member directory →
+                {t("community.networkViewDir")}
               </Link>
             </div>
 
@@ -163,7 +149,7 @@ export default async function CommunityPage() {
                     </div>
                     <h3 className="v3-member-name">{name}</h3>
                     <p className="v3-member-role">
-                      {member.roleTitleDisplay || member.roleTitleLabel || member.organisationDisplay || "PATNA member"}
+                      {member.roleTitleDisplay || member.roleTitleLabel || member.organisationDisplay || t("community.memberFallback")}
                     </p>
                     <span className="v3-member-cohort">{cohort}</span>
                     {member.countryDisplay || member.country_of_residence ? (
@@ -180,17 +166,14 @@ export default async function CommunityPage() {
       )}
 
       <section className="join-band join-band-v4">
-        <h2>Your expertise belongs in these rooms.</h2>
-        <p>
-          Apply to join PATNA&apos;s next cohort or become a community member. Africa&apos;s
-          positions at the IMO and beyond are built by the people in this network.
-        </p>
+        <h2>{t("community.ctaTitle")}</h2>
+        <p>{t("community.ctaDesc")}</p>
         <div className="join-band-ctas">
           <Link className="cta-primary" href="/community/join">
-            Apply to Join →
+            {t("community.ctaPrimary")}
           </Link>
           <Link className="cta-secondary" href="/work-with-us">
-            Commission PATNA
+            {t("community.ctaSecondary")}
           </Link>
         </div>
       </section>

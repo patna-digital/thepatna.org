@@ -152,6 +152,11 @@ export default async function AdminPeoplePage({ searchParams }) {
       brandHref="/admin"
       brandLabel="PATNA Admin"
       eyebrow="Website"
+      breadcrumb={[
+        { label: "Admin", href: "/admin" },
+        { label: "Website", href: "/admin/website" },
+        { label: "People" },
+      ]}
       navItems={adminNav}
       spotlight={{
         label: "People profiles",

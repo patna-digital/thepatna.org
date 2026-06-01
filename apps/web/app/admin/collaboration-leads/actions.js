@@ -135,14 +135,14 @@ export async function deleteAdminCollaborationLeadAction(formData) {
   const leadId = String(formData.get("lead_id") || "");
 
   if (!leadId) {
-    return redirect("/admin/collaboration-leads?notice=error");
+    return redirect("/admin/leads?notice=error");
   }
 
   const { error } = await supabase.from("collaboration_leads").delete().eq("id", leadId);
 
   if (error) {
-    return redirect(`/admin/collaboration-leads?notice=error`);
+    return redirect(`/admin/leads?notice=error`);
   }
 
-  return redirect("/admin/collaboration-leads?notice=deleted");
+  return redirect("/admin/leads?notice=deleted");
 }

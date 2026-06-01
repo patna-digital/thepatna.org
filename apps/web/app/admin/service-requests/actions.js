@@ -138,14 +138,14 @@ export async function deleteAdminServiceRequestAction(formData) {
   const requestId = String(formData.get("request_id") || "");
 
   if (!requestId) {
-    return redirect("/admin/service-requests?notice=error");
+    return redirect("/admin/leads?notice=error");
   }
 
   const { error } = await supabase.from("service_requests").delete().eq("id", requestId);
 
   if (error) {
-    return redirect(`/admin/service-requests?notice=error`);
+    return redirect("/admin/leads?notice=error");
   }
 
-  return redirect("/admin/service-requests?notice=deleted");
+  return redirect("/admin/leads?notice=deleted");
 }

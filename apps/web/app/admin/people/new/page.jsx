@@ -22,6 +22,12 @@ export default async function AdminPersonNewPage({ searchParams }) {
       brandHref="/admin"
       brandLabel="PATNA Admin"
       eyebrow="Website"
+      breadcrumb={[
+        { label: "Admin", href: "/admin" },
+        { label: "Website", href: "/admin/website" },
+        { label: "People", href: "/admin/people" },
+        { label: "Add person" },
+      ]}
       headerActions={headerActions}
       navItems={adminNav}
       subtitle="Add a new profile to the Board, Secretariat, or Research Contributors."

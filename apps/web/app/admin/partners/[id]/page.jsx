@@ -11,6 +11,7 @@ import {
   savePartnerContactAction,
   deletePartnerContactAction,
 } from "../actions";
+import { DeletePartnerButton } from "./delete-partner-button";
 
 function getNoticeMessage(notice) {
   const messages = {
@@ -58,6 +59,11 @@ export default async function AdminPartnerDetailPage({ params, searchParams }) {
       brandHref="/admin"
       brandLabel="PATNA Admin"
       eyebrow="Partnerships"
+      breadcrumb={[
+        { label: "Admin", href: "/admin" },
+        { label: "Partners", href: "/admin/partners" },
+        { label: partner.name },
+      ]}
       headerActions={headerActions}
       navItems={adminNav}
       subtitle={partner.description || "Manage this partner's profile and contacts."}
@@ -92,20 +98,11 @@ export default async function AdminPartnerDetailPage({ params, searchParams }) {
       <article className="dashboard-card danger-zone-card">
         <h3>Danger zone</h3>
         <p>Deleting a partner is permanent. All contacts and logo assets will be removed.</p>
-        <form action={deletePartnerAction}>
-          <input name="partner_id" type="hidden" value={partner.id} />
-          <button
-            className="danger-button"
-            onClick={(e) => {
-              if (!window.confirm(`Delete ${partner.name}? This cannot be undone.`)) {
-                e.preventDefault();
-              }
-            }}
-            type="submit"
-          >
-            Delete partner
-          </button>
-        </form>
+        <DeletePartnerButton
+          deleteAction={deletePartnerAction}
+          partnerId={partner.id}
+          partnerName={partner.name}
+        />
       </article>
     </DashboardShell>
   );

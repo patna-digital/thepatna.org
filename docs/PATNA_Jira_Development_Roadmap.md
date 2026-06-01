@@ -430,6 +430,34 @@
 
 ---
 
+### Feature: F-08-8 — Partnership Leads Consolidation & UX
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-08-40 | As an admin, I want a consolidated Leads page that shows all service requests, partnership leads, and collaboration leads in one unified table so that I don't need to navigate three separate pipelines. | P1 | M | ✅ Done |
+| US-08-41 | As an admin, I want each lead row to prominently show the contact person (name + email from the website form submission) so that I immediately know who submitted the enquiry. | P1 | S | ✅ Done |
+| US-08-42 | As an admin, I want to filter the Leads list by source type (Service / Partnership / Collaboration), status, and free-text search so that I can quickly find specific leads. | P1 | M | ✅ Done |
+| US-08-43 | As an admin, I want to assign a lead to another admin staff member from the lead detail page, with a dropdown showing all admin users and their role titles, so that work is distributed and accountability is clear. | P1 | M | ✅ Done |
+| US-08-44 | As an admin, I want a sidebar contact card on every lead detail page showing the submitter's name, email (as a mailto link), organisation, and lead type so that I can act on the enquiry without scrolling through the edit form. | P2 | S | ✅ Done |
+| US-08-45 | As an admin, I want lead form pages (/new and /edit) to have proper page chrome (DashboardShell, breadcrumb, cancel → /admin/leads) so that they feel integrated rather than orphaned bare forms. | P1 | M | ✅ Done |
+| US-08-46 | As an admin, I want human-readable status labels in the Leads table (e.g. "In Discussion", "Won", "Closed") instead of raw database values so that status is immediately interpretable. | P2 | S | ✅ Done |
+| US-08-47 | As an admin, I want delete actions on leads and service requests to redirect to /admin/leads so that I land on the correct page after removal. | P1 | S | ✅ Done |
+
+---
+
+### Feature: F-08-9 — Admin Shell & Navigation Refresh
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-08-48 | As an admin, I want breadcrumb navigation (Admin › Section › Page) on all admin pages so that I always know where I am and can navigate back without using the browser back button. | P2 | M | ✅ Done |
+| US-08-49 | As an admin, I want the "Navigate across PATNA" cross-navigation footer and sidebar cross-nav removed from admin pages so that the interface is cleaner and less cluttered. | P2 | S | ✅ Done |
+| US-08-50 | As an admin, I want the admin nav Partnerships group to show only Partners and Leads (not three separate pipeline pages), and Website to appear under Tools, so that the nav is simpler and better organised. | P2 | M | ✅ Done |
+| US-08-51 | As an admin, I want the Website settings page to have collapsible sections for Community Snapshot, Featured Partners, and People — collapsed by default showing a summary — so that the page is scannable and I expand only what I need. | P2 | M | ✅ Done |
+| US-08-52 | As an admin, I want to manage People profiles inline on the Website settings page (section tabs, reorder buttons, edit links) without navigating to a separate People admin page. | P2 | M | ✅ Done |
+| US-08-53 | As an admin, I want to toggle which partners are featured on the home page from the Website settings page (with a checkbox list and single Save button) so that I can control homepage visibility without editing each partner record individually. | P2 | S | ✅ Done |
+
+---
+
 ### Feature: F-08-6 — Partner Registry
 
 | Story ID | User Story | Priority | Estimate | Status |
@@ -569,11 +597,11 @@
 
 | Status | Story Count |
 |---|---|
-| ✅ Done | 92 |
+| ✅ Done | 106 |
 | ⚙️ In Progress | 3 |
 | 📋 Planned | 14 |
 | 🔲 Backlog | 23 |
-| **Total** | **132** |
+| **Total** | **146** |
 
 ### Priority Backlog (Planned + Backlog, P0–P1 only)
 
@@ -628,3 +656,4 @@ Legend: ████ = Shipped  ⚙⚙ = In Progress  ░░░░ = Planned/Bac
 |---|---|---|---|
 | 1.0 | May 2026 | Product Team | Initial document generated from codebase and planning review |
 | 1.1 | May 2026 | Engineering | Completed F-08-3: delete, column sort, badge counts, i18n in pipeline tables; added detail/edit pages for partnership and collaboration leads; replaced mailto links with structured web forms on all three /work-with-us pages (F-01-2 improvement) |
+| 1.2 | Jun 2026 | Engineering | Added F-08-8 (Partnership Leads Consolidation): unified /admin/leads page replacing 3 separate pipelines; contact person column; source/status filters; real admin assignment dropdown (lib/admin-users.js); improved detail page sidebar with contact card; fixed /new pages missing DashboardShell and hardcoded notice bug; all delete/cancel redirects → /admin/leads. Added F-08-9 (Admin Shell & Nav Refresh): breadcrumb nav on all admin pages; removed "Navigate across PATNA" cross-nav footer; Partnerships nav = Partners + Leads; Website under Tools with collapsible sections (Community Snapshot, Featured Partners, People inline); featured partners toggle; ServiceRequestForm useFormStatus bug fixed. |

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { EventArchiveCard } from "@/components/public/event-archive-card";
 import { EventsArchiveClient } from "@/components/public/events-archive-client";
 import { fetchPublicEvents, isPatnaLedEvent } from "@/lib/events";
@@ -10,19 +11,19 @@ export const metadata = {
 };
 
 export default async function EventsPage() {
-  const events = await fetchPublicEvents();
+  const [t, events] = await Promise.all([getTranslations(), fetchPublicEvents()]);
   const upcomingEvents = events.filter((e) => e.schedule_status !== "past");
   const featuredEvent = upcomingEvents[0] || null;
   const remainingUpcoming = upcomingEvents.slice(1);
 
   const cardLabels = {
-    viewEvent: "View event",
-    officialPage: "Official page",
-    datePending: "Date pending",
-    locationPending: "Location pending",
-    upcoming: "Upcoming",
-    tbc: "TBC",
-    past: "Past",
+    viewEvent: t("events.viewEvent"),
+    officialPage: t("events.officialPage"),
+    datePending: t("events.datePending"),
+    locationPending: t("events.locationPending"),
+    upcoming: t("events.scheduleUpcoming"),
+    tbc: t("events.scheduleTbc"),
+    past: t("events.schedulePast"),
   };
 
   return (
@@ -38,13 +39,9 @@ export default async function EventsPage() {
         <div className="sub-page-hero-overlay" aria-hidden="true" />
         <div className="sub-page-hero-dot" aria-hidden="true" />
         <div className="sub-page-hero-inner">
-          <div className="sub-page-hero-eyebrow">Policy Calendar</div>
-          <h1 className="sub-page-hero-title">
-            Events &amp; <em>Convenings</em>
-          </h1>
-          <p className="sub-page-hero-sub">
-            Summits, IMO sessions, workshops, and member briefings — the moments where Africa's coordinated position is delivered and where the rules are made.
-          </p>
+          <div className="sub-page-hero-eyebrow">{t("events.heroEyebrow")}</div>
+          <h1 className="sub-page-hero-title">{t("events.heroH1")}</h1>
+          <p className="sub-page-hero-sub">{t("events.heroDesc")}</p>
         </div>
       </section>
 
@@ -53,9 +50,9 @@ export default async function EventsPage() {
         <div className="feat-split-section" id="events-featured">
           <div className="feat-split-inner">
             <div className="feat-split-bar">
-              <span className="feat-split-label">Next Major Event</span>
+              <span className="feat-split-label">{t("events.featuredLabel")}</span>
               <Link className="feat-split-view-all" href="#events-archive">
-                View all events →
+                {t("events.viewAllEvents")}
               </Link>
             </div>
 
@@ -70,7 +67,7 @@ export default async function EventsPage() {
                   <div className="feat-main-img-overlay" />
                   {featuredEvent.schedule_status && (
                     <span className="feat-main-status feat-status-active">
-                      {featuredEvent.schedule_status === "tbc" ? "Date TBC" : "Upcoming"}
+                      {featuredEvent.schedule_status === "tbc" ? t("events.dateTbc") : t("events.scheduleUpcoming")}
                     </span>
                   )}
                   <span style={{

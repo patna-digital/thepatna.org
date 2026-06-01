@@ -139,14 +139,14 @@ export async function deleteAdminPartnershipLeadAction(formData) {
   const leadId = String(formData.get("lead_id") || "");
 
   if (!leadId) {
-    return redirect("/admin/partnership-leads?notice=error");
+    return redirect("/admin/leads?notice=error");
   }
 
   const { error } = await supabase.from("partnership_leads").delete().eq("id", leadId);
 
   if (error) {
-    return redirect(`/admin/partnership-leads?notice=error`);
+    return redirect("/admin/leads?notice=error");
   }
 
-  return redirect("/admin/partnership-leads?notice=deleted");
+  return redirect("/admin/leads?notice=deleted");
 }

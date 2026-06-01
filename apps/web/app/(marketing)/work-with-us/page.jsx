@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = {
   title: "Work With Us",
@@ -24,47 +25,49 @@ const CollaborateIcon = () => (
   </svg>
 );
 
-const pathways = [
-  {
-    type: "partnership",
-    icon: <PartnershipIcon />,
-    tag: "Funding · Institutional",
-    title: "Explore Partnership",
-    audience: "For funders, institutions, and strategic partners",
-    desc: "Introduce your organisation and areas of shared interest. PATNA routes partnership conversations directly to the right programme or leadership contact.",
-    href: "/work-with-us/partner",
-    cta: "Start a partnership enquiry →",
-  },
-  {
-    type: "support",
-    icon: <SupportIcon />,
-    tag: "Technical · Advisory",
-    title: "Request Support",
-    audience: "For policymakers, negotiators, and public institutions",
-    desc: "Use this route if your institution needs a briefing, technical analysis, convening design, or coordination input ahead of a decision moment.",
-    href: "/work-with-us/request-support",
-    cta: "Submit a support request →",
-  },
-  {
-    type: "collaborate",
-    icon: <CollaborateIcon />,
-    tag: "Research · Co-creation",
-    title: "Collaborate",
-    audience: "For researchers, academics, and peer organisations",
-    desc: "Propose a joint initiative — a workshop, research partnership, pilot, or co-authored output. PATNA's team will review and respond to discuss fit and next steps.",
-    href: "/work-with-us/collaborate",
-    cta: "Send a collaboration proposal →",
-  },
-];
+export default async function WorkWithUsPage() {
+  const t = await getTranslations();
 
-const contactItems = [
-  "Media and press enquiries",
-  "Speaking invitations and event appearances",
-  "Academic citations and reprint permissions",
-  "Any other question or introduction",
-];
+  const pathways = [
+    {
+      type: "partnership",
+      icon: <PartnershipIcon />,
+      tag: t("workWithUs.pathway1Tag"),
+      title: t("workWithUs.pathway1Title"),
+      audience: t("workWithUs.pathway1Audience"),
+      desc: t("workWithUs.pathway1Desc"),
+      href: "/work-with-us/partner",
+      cta: t("workWithUs.pathway1Cta"),
+    },
+    {
+      type: "support",
+      icon: <SupportIcon />,
+      tag: t("workWithUs.pathway2Tag"),
+      title: t("workWithUs.pathway2Title"),
+      audience: t("workWithUs.pathway2Audience"),
+      desc: t("workWithUs.pathway2Desc"),
+      href: "/work-with-us/request-support",
+      cta: t("workWithUs.pathway2Cta"),
+    },
+    {
+      type: "collaborate",
+      icon: <CollaborateIcon />,
+      tag: t("workWithUs.pathway3Tag"),
+      title: t("workWithUs.pathway3Title"),
+      audience: t("workWithUs.pathway3Audience"),
+      desc: t("workWithUs.pathway3Desc"),
+      href: "/work-with-us/collaborate",
+      cta: t("workWithUs.pathway3Cta"),
+    },
+  ];
 
-export default function WorkWithUsPage() {
+  const contactItems = [
+    t("workWithUs.contactItem1"),
+    t("workWithUs.contactItem2"),
+    t("workWithUs.contactItem3"),
+    t("workWithUs.contactItem4"),
+  ];
+
   return (
     <>
       <section className="sub-page-hero" aria-label="Work with PATNA">
@@ -77,41 +80,38 @@ export default function WorkWithUsPage() {
         <div className="sub-page-hero-overlay" aria-hidden="true" />
         <div className="sub-page-hero-dot" aria-hidden="true" />
         <div className="sub-page-hero-inner">
-          <div className="sub-page-hero-eyebrow">Advisory &amp; Partnerships</div>
+          <div className="sub-page-hero-eyebrow">{t("workWithUs.heroEyebrow")}</div>
           <h1 className="sub-page-hero-title">
-            Four routes to <em>engage PATNA</em>
+            {t("workWithUs.heroH1")}
           </h1>
           <p className="sub-page-hero-sub">
-            Whether you want to fund, commission, collaborate, or simply ask a question —
-            choose the route that fits your context and we will get you to the right conversation quickly.
+            {t("workWithUs.heroDesc")}
           </p>
         </div>
       </section>
 
       <section className="pathway-section" aria-labelledby="pathways-heading">
         <div className="pathway-section-header">
-          <p className="pathway-section-label">How to engage</p>
+          <p className="pathway-section-label">{t("workWithUs.pathwaysSectionLabel")}</p>
           <h2 id="pathways-heading">
-            Choose the route that <em>fits your need</em>
+            {t("workWithUs.pathwaysH2")}
           </h2>
         </div>
 
         <div className="pathway-layout">
           {/* Left: General contact — always-relevant entry point */}
           <div className="pathway-featured-contact">
-            <div className="pathway-featured-contact-tag">General · Enquiry</div>
-            <h3 className="pathway-featured-contact-title">Get in Touch</h3>
-            <p className="pathway-featured-contact-audience">For everyone else</p>
-            <p className="pathway-featured-contact-desc">
-              Not sure which route fits? Send a general message to the PATNA team and we will point you in the right direction. We typically respond within two working days.
-            </p>
+            <div className="pathway-featured-contact-tag">{t("workWithUs.contactTag")}</div>
+            <h3 className="pathway-featured-contact-title">{t("workWithUs.contactTitle")}</h3>
+            <p className="pathway-featured-contact-audience">{t("workWithUs.contactAudience")}</p>
+            <p className="pathway-featured-contact-desc">{t("workWithUs.contactDesc")}</p>
             <ul className="pathway-featured-contact-items">
               {contactItems.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
             <Link className="pathway-featured-contact-cta" href="/contact">
-              Send a message
+              {t("workWithUs.contactCta")}
             </Link>
           </div>
 
@@ -138,17 +138,14 @@ export default function WorkWithUsPage() {
       </section>
 
       <section className="join-band join-band-v4" aria-label="Community invitation">
-        <h2>Want to join the PATNA community?</h2>
-        <p>
-          The community application route is separate — for African experts, policymakers,
-          and practitioners who want to participate in PATNA's network.
-        </p>
+        <h2>{t("workWithUs.ctaTitle")}</h2>
+        <p>{t("workWithUs.ctaDesc")}</p>
         <div className="join-band-ctas">
           <Link className="cta-primary" href="/community">
-            Apply to join →
+            {t("workWithUs.ctaPrimary")}
           </Link>
           <Link className="cta-secondary" href="/about">
-            Learn about PATNA
+            {t("workWithUs.ctaSecondary")}
           </Link>
         </div>
       </section>
