@@ -159,26 +159,19 @@ export default async function HomePage() {
       <section className="about-patna-section">
         <div className="section-inner">
           <div className="section-label">{t("home.aboutLabel")}</div>
-          <div className="about-patna-grid">
 
-            <div className="about-patna-text">
-              <div className="about-patna-vm">
-                <div className="about-patna-vm-row">
-                  <span className="about-patna-tag">{t("home.aboutVisionTag")}</span>
-                  <p>{t("home.aboutVision")}</p>
-                </div>
-                <div className="about-patna-vm-row">
-                  <span className="about-patna-tag">{t("home.aboutMissionTag")}</span>
-                  <p>{t("home.aboutMission")}</p>
-                </div>
+          {/* Vision + Mission alongside photo — top-aligned */}
+          <div className="about-vm-photo-grid">
+            <div className="about-patna-vm">
+              <div className="about-patna-vm-row">
+                <span className="about-patna-tag">{t("home.aboutVisionTag")}</span>
+                <p>{t("home.aboutVision")}</p>
               </div>
-              <h2 className="about-patna-story-heading">{t("home.aboutStoryHeading")}</h2>
-              <p className="about-patna-story-body">{t("home.aboutStoryBody")}</p>
-              <Link className="about-patna-cta" href="/about">
-                {t("home.aboutLearnMore")}
-              </Link>
+              <div className="about-patna-vm-row">
+                <span className="about-patna-tag">{t("home.aboutMissionTag")}</span>
+                <p>{t("home.aboutMission")}</p>
+              </div>
             </div>
-
             <div className="about-patna-image-wrap">
               <img
                 src="/images/Dakar.jpeg"
@@ -186,8 +179,17 @@ export default async function HomePage() {
                 className="about-patna-img"
               />
             </div>
-
           </div>
+
+          {/* Our Story — centred standalone block below */}
+          <div className="about-patna-story-block">
+            <h2 className="about-patna-story-heading">{t("home.aboutStoryHeading")}</h2>
+            <p className="about-patna-story-body">{t("home.aboutStoryBody")}</p>
+            <Link className="about-patna-cta" href="/about">
+              {t("home.aboutLearnMore")}
+            </Link>
+          </div>
+
         </div>
       </section>
 

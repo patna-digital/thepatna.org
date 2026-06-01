@@ -4344,6 +4344,184 @@ address.legal-address a {
   gap: 0.75rem;
 }
 
+/* ════════════════════════════════════════════════════════════
+   JOIN COMMUNITY PAGE — sidebar + form improvements
+   ════════════════════════════════════════════════════════════ */
+
+/* Form section dividers */
+.join-form .form-section {
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.join-form .form-section:first-of-type {
+  padding-top: 0;
+  border-top: none;
+}
+
+.form-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.25rem;
+}
+
+.form-section-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue-pale);
+  color: var(--blue-dark);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.form-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* Required field indicator */
+.field-required {
+  color: #b42318;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+/* Checked checkbox state */
+.checkbox-item--checked {
+  border-color: var(--blue-dark);
+  background: var(--blue-pale);
+  color: var(--blue-dark);
+}
+
+/* Consent checkboxes */
+.join-form-consent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.consent-item {
+  font-weight: 500;
+  font-size: var(--text-sm);
+}
+
+/* Submit button — full width in join form */
+.join-submit-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 0.95rem 1.5rem;
+  font-size: var(--text-md);
+  margin-top: 0.25rem;
+}
+
+/* Footer note */
+.join-form-footer-note {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+/* Textarea height for motivation */
+.join-form textarea {
+  min-height: 10rem;
+}
+
+/* Sidebar */
+.join-sidebar {
+  position: sticky;
+  top: 5rem;
+  align-self: start;
+}
+
+.join-sidebar h3 {
+  margin-bottom: 0.5rem;
+}
+
+.join-sidebar-intro {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  line-height: 1.7;
+  margin: 0 0 1.5rem;
+}
+
+.join-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.join-step {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.join-step:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.join-step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface-strong);
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.join-step strong {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.2rem;
+}
+
+.join-step p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.join-sidebar-note {
+  margin-top: 1.25rem;
+  padding: 0.875rem 1rem;
+  background: var(--blue-soft);
+  border: 1px solid var(--blue-pale);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.join-sidebar-note strong {
+  color: var(--blue-dark);
+}
+
 .app-list-card {
   padding: 0;
   overflow: hidden;
@@ -19010,19 +19188,26 @@ body.patna-assistant-body-locked {
   background: var(--white);
 }
 
-.about-patna-grid {
+.about-vm-photo-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 5rem;
-  align-items: center;
-  margin-top: 3rem;
+  gap: 4rem;
+  align-items: start;
+  margin-top: 2rem;
 }
 
 .about-patna-vm {
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-bottom: 2.5rem;
+}
+
+.about-patna-story-block {
+  max-width: 740px;
+  margin: 3.5rem auto 0;
+  padding-top: 3rem;
+  border-top: 1px solid var(--border);
+  text-align: left;
 }
 
 .about-patna-vm-row {
@@ -19247,9 +19432,9 @@ body.patna-assistant-body-locked {
 }
 
 @media (max-width: 900px) {
-  .about-patna-grid {
+  .about-vm-photo-grid {
     grid-template-columns: 1fr;
-    gap: 3rem;
+    gap: 2rem;
   }
 
   .about-patna-image-wrap {
@@ -19257,8 +19442,14 @@ body.patna-assistant-body-locked {
   }
 
   .about-patna-img {
-    max-height: 380px;
+    max-height: 340px;
     object-fit: cover;
+  }
+
+  .about-patna-story-block {
+    max-width: 100%;
+    margin-top: 2.5rem;
+    padding-top: 2.5rem;
   }
 
   .stats-grid {

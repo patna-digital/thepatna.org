@@ -18,9 +18,24 @@ function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <button className="primary-button" type="submit" disabled={pending}>
-      {pending ? "Submitting..." : "Submit application"}
+    <button className="primary-button join-submit-btn" type="submit" disabled={pending}>
+      {pending ? "Submitting…" : "Submit application"}
     </button>
+  );
+}
+
+function CheckboxOption({ name, option, checked, onChange }) {
+  return (
+    <label className={`checkbox-item${checked ? " checkbox-item--checked" : ""}`}>
+      <input
+        name={name}
+        onChange={onChange}
+        type="checkbox"
+        value={option.slug}
+        checked={checked}
+      />
+      <span>{option.label}</span>
+    </label>
   );
 }
 
@@ -28,27 +43,18 @@ export function CommunityApplicationForm() {
   const [state, formAction] = useActionState(submitCommunityApplicationAction, initialState);
   const [selectedExpertise, setSelectedExpertise] = useState([]);
   const [selectedEngagement, setSelectedEngagement] = useState([]);
-  const showOtherExpertise = useMemo(
-    () => selectedExpertise.includes("other"),
-    [selectedExpertise],
-  );
-  const showOtherEngagement = useMemo(
-    () => selectedEngagement.includes("other"),
-    [selectedEngagement],
-  );
+
+  const showOtherExpertise = useMemo(() => selectedExpertise.includes("other"), [selectedExpertise]);
+  const showOtherEngagement = useMemo(() => selectedEngagement.includes("other"), [selectedEngagement]);
 
   function handleExpertiseChange(event) {
     const { value, checked } = event.target;
-    setSelectedExpertise((current) =>
-      checked ? [...current, value] : current.filter((item) => item !== value),
-    );
+    setSelectedExpertise((cur) => checked ? [...cur, value] : cur.filter((v) => v !== value));
   }
 
   function handleEngagementChange(event) {
     const { value, checked } = event.target;
-    setSelectedEngagement((current) =>
-      checked ? [...current, value] : current.filter((item) => item !== value),
-    );
+    setSelectedEngagement((cur) => checked ? [...cur, value] : cur.filter((v) => v !== value));
   }
 
   if (state.status === "success") {
@@ -66,135 +72,155 @@ export function CommunityApplicationForm() {
   }
 
   return (
-    <form action={formAction} className="form-card">
-      <h3>Community application</h3>
-      <div className="two-column-grid">
-        <label>
-          First name
-          <input name="first_name" placeholder="Amara" />
-        </label>
-        <label>
-          Surname
-          <input name="surname" placeholder="Diallo" />
-        </label>
-      </div>
-      <div className="two-column-grid">
-        <label>
-          Email
-          <input name="email" placeholder="name@example.org" type="email" />
-        </label>
-        <label>
-          Phone number
-          <input name="phone_number" placeholder="+234..." />
-        </label>
-      </div>
-      <div className="two-column-grid">
-        <label>
-          Country
-          <input name="country" placeholder="Senegal" />
-        </label>
-        <label>
-          Organisation / institution
-          <input name="organisation" placeholder="Institution or organisation" />
-        </label>
-      </div>
-      <label>
-        Role / title
-        <input name="role_title" placeholder="Policy adviser" />
-      </label>
+    <form action={formAction} className="form-card join-form">
 
-      <fieldset className="checkbox-group">
-        <legend>Area(s) of expertise</legend>
-        <div className="checkbox-grid">
-          {applicationExpertiseOptions.map((option) => (
-            <label className="checkbox-item" key={option.slug}>
-              <input
+      {/* ── Section 1: About you ── */}
+      <div className="form-section">
+        <div className="form-section-label">
+          <span className="form-section-num">1</span>
+          <span className="form-section-title">About you</span>
+        </div>
+        <div className="two-column-grid">
+          <label>
+            First name <span className="field-required">*</span>
+            <input name="first_name" placeholder="Amara" required />
+          </label>
+          <label>
+            Surname <span className="field-required">*</span>
+            <input name="surname" placeholder="Diallo" required />
+          </label>
+        </div>
+        <div className="two-column-grid">
+          <label>
+            Email <span className="field-required">*</span>
+            <input name="email" placeholder="name@example.org" type="email" required />
+          </label>
+          <label>
+            Phone number
+            <input name="phone_number" placeholder="+[country code] …" />
+          </label>
+        </div>
+        <div className="two-column-grid">
+          <label>
+            Country
+            <input name="country" placeholder="Your country" />
+          </label>
+          <label>
+            Organisation / institution
+            <input name="organisation" placeholder="Institution or organisation" />
+          </label>
+        </div>
+        <label>
+          Role / title
+          <input name="role_title" placeholder="e.g. Policy adviser, Researcher, Legal counsel" />
+        </label>
+      </div>
+
+      {/* ── Section 2: Your expertise ── */}
+      <div className="form-section">
+        <div className="form-section-label">
+          <span className="form-section-num">2</span>
+          <span className="form-section-title">Your expertise</span>
+        </div>
+
+        <fieldset className="checkbox-group">
+          <legend>Area(s) of expertise</legend>
+          <div className="checkbox-grid">
+            {applicationExpertiseOptions.map((option) => (
+              <CheckboxOption
+                key={option.slug}
                 name="expertise_slugs"
+                option={option}
+                checked={selectedExpertise.includes(option.slug)}
                 onChange={handleExpertiseChange}
-                type="checkbox"
-                value={option.slug}
               />
-              <span>{option.label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+            ))}
+          </div>
+        </fieldset>
 
-      {showOtherExpertise ? (
-        <label>
-          Other expertise
-          <input name="expertise_other_text" placeholder="Enter additional expertise areas" />
-        </label>
-      ) : null}
+        {showOtherExpertise && (
+          <label style={{ marginTop: "0.75rem" }}>
+            Other expertise
+            <input name="expertise_other_text" placeholder="Enter additional expertise areas" />
+          </label>
+        )}
 
-      <fieldset className="checkbox-group">
-        <legend>How would you like to engage with PATNA?</legend>
-        <div className="checkbox-grid">
-          {applicationEngagementOptions.map((option) => (
-            <label className="checkbox-item" key={option.slug}>
-              <input
+        <fieldset className="checkbox-group" style={{ marginTop: "1.5rem" }}>
+          <legend>How would you like to engage with PATNA?</legend>
+          <div className="checkbox-grid">
+            {applicationEngagementOptions.map((option) => (
+              <CheckboxOption
+                key={option.slug}
                 name="engagement_slugs"
+                option={option}
+                checked={selectedEngagement.includes(option.slug)}
                 onChange={handleEngagementChange}
-                type="checkbox"
-                value={option.slug}
               />
-              <span>{option.label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+            ))}
+          </div>
+        </fieldset>
 
-      {showOtherEngagement ? (
+        {showOtherEngagement && (
+          <label style={{ marginTop: "0.75rem" }}>
+            Other engagement
+            <input
+              name="engagement_other_text"
+              placeholder="Enter another way you would like to engage"
+            />
+          </label>
+        )}
+      </div>
+
+      {/* ── Section 3: Motivation ── */}
+      <div className="form-section">
+        <div className="form-section-label">
+          <span className="form-section-num">3</span>
+          <span className="form-section-title">Motivation</span>
+        </div>
+
         <label>
-          Other engagement
-          <input
-            name="engagement_other_text"
-            placeholder="Enter another way you would like to engage"
+          Why do you want to join PATNA? <span className="field-required">*</span>
+          <textarea
+            name="motivation_text"
+            placeholder="Tell us about your interest in African maritime decarbonisation, energy transition, or climate governance, and what you hope to contribute or gain through PATNA."
+            required
           />
         </label>
-      ) : null}
+      </div>
 
-      <label>
-        Motivation
-        <textarea
-          name="motivation_text"
-          placeholder="Why do you want to join the PATNA community?"
-        />
-      </label>
-
-      <div className="stack">
-        <label className="checkbox-item">
+      {/* ── Consent & submit ── */}
+      <div className="join-form-consent">
+        <label className="checkbox-item consent-item">
           <input name="consent_data_storage" required type="checkbox" value="yes" />
           <span>
-            I consent to PATNA storing my information for community engagement in accordance
-            with the{" "}
-            <a href="/legal/privacy" rel="noopener noreferrer" target="_blank">
-              Privacy Policy
-            </a>
-            .
+            I consent to PATNA storing my information for community engagement in accordance with the{" "}
+            <a href="/legal/privacy" rel="noopener noreferrer" target="_blank">Privacy Policy</a>.
           </span>
         </label>
-        <label className="checkbox-item">
+        <label className="checkbox-item consent-item">
           <input name="consent_updates" type="checkbox" value="yes" />
           <span>I would like to receive updates, newsletters, and invitations from PATNA.</span>
         </label>
-        <p className="muted-note" style={{ marginTop: "0.25rem" }}>
-          By submitting this application you agree to our{" "}
-          <a href="/legal/terms" rel="noopener noreferrer" target="_blank">Terms of Service</a>
-          {" "}and{" "}
-          <a href="/legal/privacy" rel="noopener noreferrer" target="_blank">Privacy Policy</a>.
-        </p>
       </div>
 
       <SubmitButton />
 
-      {state.message ? (
-        <p className={state.status === "error" ? "form-error" : "form-success"}>{state.message}</p>
-      ) : (
-        <p className="muted-note">
-          PATNA reviews applications first, then assigns cohort fit and interview routing internally.
-        </p>
-      )}
+      <p className="muted-note join-form-footer-note">
+        {state.message ? (
+          <span className={state.status === "error" ? "form-error" : "form-success"}>
+            {state.message}
+          </span>
+        ) : (
+          <>
+            By submitting you agree to our{" "}
+            <a href="/legal/terms" rel="noopener noreferrer" target="_blank">Terms of Service</a>
+            {" "}and{" "}
+            <a href="/legal/privacy" rel="noopener noreferrer" target="_blank">Privacy Policy</a>.
+            {" "}PATNA reviews all applications and assigns cohort fit internally.
+          </>
+        )}
+      </p>
+
     </form>
   );
 }
