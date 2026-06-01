@@ -254,7 +254,7 @@
 ## EP-05: Content & Publications
 
 **Goal:** Provide a structured content library — insights, reports, briefings, and publications — that members and the public can discover and download.
-**Shipped:** April–May 2026
+**Shipped:** April–June 2026
 **Overall Status:** ✅ Done
 
 ---
@@ -289,6 +289,17 @@
 | US-05-10 | As a member, I want to view a visual knowledge graph of how projects, events, and content relate to each other so that I can understand PATNA's interconnected body of work. | P1 | XL | ✅ Done |
 | US-05-11 | As a member, I want to navigate the knowledge graph interactively so that I can explore relationships between projects and publications. | P2 | L | ✅ Done |
 | US-05-12 | As an admin, I want to link a project to related events and insights so that the knowledge graph is accurate and comprehensive. | P1 | M | ✅ Done |
+
+---
+
+### Feature: F-05-4 — Legacy Publications Migration & Admin Controls
+
+| Story ID | User Story | Priority | Estimate | Status |
+|---|---|---|---|---|
+| US-05-13 | As a developer, I want 14 legacy publications from the decommissioned PATNA website seeded into the database with canonical dates, real summaries, SEO meta descriptions, cover images, and PDF attachment links so that the content library is complete from day one without manual re-entry. | P0 | M | ✅ Done |
+| US-05-14 | As an admin, I want to edit the publication date (published_at) directly from the admin insight form so that backdated or migrated publications display the correct original date on the site. | P1 | S | ✅ Done |
+| US-05-15 | As an admin, I want to flag a publication as "needs review" so that I can track which migrated or draft publications still require content fixes, and be alerted via a badge on the Publications nav item. | P1 | S | ✅ Done |
+| US-05-16 | As a visitor or member, I want breadcrumb navigation (Home › Publications › Title) and prev/next publication links on every publication detail page so that I can navigate the publications library seamlessly without returning to the index. | P1 | M | ✅ Done |
 
 ---
 
@@ -597,11 +608,11 @@
 
 | Status | Story Count |
 |---|---|
-| ✅ Done | 106 |
+| ✅ Done | 110 |
 | ⚙️ In Progress | 3 |
 | 📋 Planned | 14 |
 | 🔲 Backlog | 23 |
-| **Total** | **146** |
+| **Total** | **150** |
 
 ### Priority Backlog (Planned + Backlog, P0–P1 only)
 
@@ -613,17 +624,11 @@
 | US-04-12 | Booking confirmation emails | EP-04 | P1 |
 | US-08-06 | Bulk action confirmation modal | EP-08 | P1 |
 | US-08-07 | Server-side admin member search | EP-08 | P1 |
-| US-08-19 | Loading states on form submissions | EP-08 | P1 |
 | US-09-05 | Assistant access scope visualisation | EP-09 | P2 |
 | US-09-12 | Assistant query audit logs | EP-09 | P1 |
 | US-09-13 | Assistant source citations | EP-09 | P2 |
-| US-10-01 | Email digest notifications | EP-10 | P1 |
-| US-10-02 | In-app @mention notifications | EP-10 | P1 |
-| US-10-03 | Member notification preferences | EP-10 | P1 |
-| US-10-04 | Admin broadcast notifications | EP-10 | P1 |
 | US-10-05 | Two-factor authentication | EP-10 | P1 |
 | US-10-07 | Assistant query audit trail | EP-10 | P1 |
-| US-10-10 | i18n parity for pipeline admin | EP-10 | P2 |
 | US-10-11 | Screen-reader labels for form inputs | EP-10 | P1 |
 | US-10-12 | Keyboard navigation for filter tabs | EP-10 | P1 |
 
@@ -657,3 +662,4 @@ Legend: ████ = Shipped  ⚙⚙ = In Progress  ░░░░ = Planned/Bac
 | 1.0 | May 2026 | Product Team | Initial document generated from codebase and planning review |
 | 1.1 | May 2026 | Engineering | Completed F-08-3: delete, column sort, badge counts, i18n in pipeline tables; added detail/edit pages for partnership and collaboration leads; replaced mailto links with structured web forms on all three /work-with-us pages (F-01-2 improvement) |
 | 1.2 | Jun 2026 | Engineering | Added F-08-8 (Partnership Leads Consolidation): unified /admin/leads page replacing 3 separate pipelines; contact person column; source/status filters; real admin assignment dropdown (lib/admin-users.js); improved detail page sidebar with contact card; fixed /new pages missing DashboardShell and hardcoded notice bug; all delete/cancel redirects → /admin/leads. Added F-08-9 (Admin Shell & Nav Refresh): breadcrumb nav on all admin pages; removed "Navigate across PATNA" cross-nav footer; Partnerships nav = Partners + Leads; Website under Tools with collapsible sections (Community Snapshot, Featured Partners, People inline); featured partners toggle; ServiceRequestForm useFormStatus bug fixed. |
+| 1.3 | Jun 2026 | Engineering | Added F-05-4 (Legacy Publications Migration & Admin Controls — US-05-13–16): migration 0057 seeds 14 legacy publications from decommissioned thepatna.org/resources with canonical published_at dates, real summaries, SEO meta descriptions, external cover images, and PDF attachment links; ON CONFLICT strategy preserves manually edited data while filling empty fields; needs_review boolean column added — all seeded records flagged for admin follow-up; admin nav badge counts flagged publications; insight-form exposes editable published_at (datetime-local) and needs_review checkbox with warning styling. Added breadcrumb trail (Home › Publications › Title) and prev/next navigation on both the marketing and community app publication detail pages. Updated homepage hero video to latest version from Supabase storage. Cleaned up priority backlog table — removed stale Done entries (US-10-01–04, US-10-10, US-08-19). Story count: 110 Done (+4), 150 total (+4). |
