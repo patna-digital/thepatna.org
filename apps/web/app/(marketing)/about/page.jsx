@@ -251,6 +251,43 @@ export default async function AboutPage() {
             ))}
           </div>
 
+          <div className="gov-subsection-title-v3 research-title-v3">Research Leadership</div>
+          <div className="research-leadership-v3">
+            <p>
+              The PATNA Initiative's research programme is anchored by a partnership with the UCL Energy Institute, London — one of the world's leading institutions for shipping decarbonisation research. The LEAP series was developed with UCL as the principal research partner. UCL's Shipping and Oceans Research Group provides the technical modelling, data analysis, and academic rigour that underpins PATNA's evidence outputs.
+            </p>
+            <div className="research-leadership-grid-v3">
+              {research.map((leader) => (
+                <article className="research-card-v3" key={leader.id}>
+                  {leader.photo_url && (
+                    <div className="research-card-avatar-v3">
+                      <img alt={leader.full_name} src={leader.photo_url} />
+                    </div>
+                  )}
+                  <h3>
+                    {leader.full_name}
+                    {leader.linkedin_url && (
+                      <a
+                        aria-label={`${leader.full_name} on LinkedIn`}
+                        className="people-linkedin-badge"
+                        href={leader.linkedin_url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        in
+                      </a>
+                    )}
+                  </h3>
+                  <span>{leader.title}</span>
+                  {leader.organisation && (
+                    <span className="research-card-org-v3">{leader.organisation}</span>
+                  )}
+                  {leader.bio && <p>{leader.bio}</p>}
+                </article>
+              ))}
+            </div>
+          </div>
+
         </div>
       </section>
 
