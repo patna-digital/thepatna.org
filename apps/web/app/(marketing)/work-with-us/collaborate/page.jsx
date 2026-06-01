@@ -1,4 +1,11 @@
 import { MarketingPageHero } from "@/components/marketing-page-hero";
+import { CollaborationProposalForm } from "./collaboration-proposal-form";
+
+export const metadata = {
+  title: "Collaborate",
+  description:
+    "Propose a workshop, pilot, research collaboration, or co-created initiative with PATNA.",
+};
 
 export default function CollaboratePage() {
   return (
@@ -11,28 +18,25 @@ export default function CollaboratePage() {
 
       <section className="section">
         <div className="section-inner">
-          <form className="form-card">
-            <h3>Propose a collaboration</h3>
-            <label>
-              Name
-              <input placeholder="Your full name" />
-            </label>
-            <label>
-              Organisation
-              <input placeholder="Organisation" />
-            </label>
-            <label>
-              Collaboration type
-              <input placeholder="Workshop, pilot, co-authored research, other" />
-            </label>
-            <label>
-              Proposal
-              <textarea placeholder="Describe the collaboration idea and expected contribution." />
-            </label>
-            <button className="primary-button" type="button">
-              Submit collaboration enquiry
-            </button>
-          </form>
+          <div className="page-grid">
+            <article className="content-card">
+              <h3>Useful collaboration starting points</h3>
+              <ul className="check-list">
+                <li>Joint workshops, roundtables, or technical dialogues</li>
+                <li>Research partnerships and co-authored public outputs</li>
+                <li>Pilot initiatives linked to maritime or climate transition</li>
+                <li>Cross-institutional knowledge exchange or training activities</li>
+              </ul>
+            </article>
+
+            <article className="content-card">
+              <h3>Send your collaboration proposal</h3>
+              <p className="muted-note">
+                Outline the idea, your contribution, and the public value or outcome the initiative should create.
+              </p>
+              <CollaborationProposalForm />
+            </article>
+          </div>
         </div>
       </section>
     </>

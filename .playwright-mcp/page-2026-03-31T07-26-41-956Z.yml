@@ -1,0 +1,28 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - article [ref=e4]:
+      - link "The PATNA Initiative" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "The PATNA Initiative" [ref=e6]
+      - generic [ref=e7]: Member Access
+      - heading "Secure login for the PATNA community workspace" [level=1] [ref=e8]
+      - paragraph [ref=e9]: Sign in to access spaces, insights, members, onboarding, and PATNA review workflows. New members should begin with the community application form.
+      - link "Need an invite?" [ref=e11] [cursor=pointer]:
+        - /url: /community/join
+    - generic [ref=e13]:
+      - heading "Sign in" [level=3] [ref=e14]
+      - generic [ref=e15]:
+        - text: Email
+        - textbox "Email" [ref=e16]:
+          - /placeholder: member@thepatna.org
+      - generic [ref=e17]:
+        - text: Password
+        - textbox "Password" [ref=e18]:
+          - /placeholder: Your password
+      - link "Forgot password?" [ref=e20] [cursor=pointer]:
+        - /url: /auth/forgot-password
+      - button "Sign in" [ref=e21]
+      - paragraph [ref=e22]: Use an invited PATNA account. Cohort migration members will receive a set-password email and be routed into profile completion on first access.
+  - button "Open Next.js Dev Tools" [ref=e28] [cursor=pointer]:
+    - img [ref=e29]
+  - alert [ref=e32]: Secure login for the PATNA community workspace

@@ -1,5 +1,3 @@
-import crypto from "node:crypto";
-
 export function normaliseStoredValue(value) {
   return String(value || "").trim();
 }
@@ -108,7 +106,7 @@ export async function uploadMemberStorageFile({
 
   const safeName =
     sanitiseStoredFilename(file.name || `file.${extension}`) || `file.${extension}`;
-  const objectPath = `${userId}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+  const objectPath = `${userId}/${Date.now()}-${globalThis.crypto.randomUUID()}-${safeName}`;
   const buffer = Buffer.from(await file.arrayBuffer());
   const { error: uploadError } = await adminSupabase.storage.from(bucket).upload(objectPath, buffer, {
     contentType: mimeType || "application/octet-stream",

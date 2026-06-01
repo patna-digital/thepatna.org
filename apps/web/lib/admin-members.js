@@ -123,7 +123,7 @@ export async function fetchAdminMembersDirectory({ supabase, adminClient }) {
       memberIds.length
         ? supabase
             .from("cohort_member_profiles")
-            .select("user_id, completed_at, source_submitted_at, headshot_url, raw_responses")
+            .select("user_id, completed_at, source_submitted_at, headshot_url, cv_url, nda_url, code_of_conduct_url, raw_responses")
             .in("user_id", memberIds)
         : Promise.resolve({ data: [], error: null }),
     ]);

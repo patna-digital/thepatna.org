@@ -5,6 +5,8 @@ import { adminNav } from "@/lib/patna-data";
 import { fetchAdminEventById } from "@/lib/events";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { saveAdminEventAction } from "../actions";
+import { addEventGalleryImageAction, removeEventGalleryImageAction } from "../gallery-actions";
+import { GalleryManager } from "@/components/admin/gallery-manager";
 
 function getNoticeMessage(notice) {
   if (notice === "saved") {
@@ -28,7 +30,16 @@ export default async function AdminEventDetailPage({ params, searchParams }) {
   const resolvedSearchParams = await searchParams;
   const notice =
     typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
-  const { event, error } = await fetchAdminEventById({ eventId, supabase });
+  const [{ event, error }, galleryResult] = await Promise.all([
+    fetchAdminEventById({ eventId, supabase }),
+    supabase
+      .from("event_gallery")
+      .select("id, image_url, alt_text, caption, sort_order")
+      .eq("event_id", eventId)
+      .order("sort_order"),
+  ]);
+
+  const galleryImages = galleryResult.data || [];
 
   if (error || !event) {
     redirect("/admin/events");
@@ -50,6 +61,16 @@ export default async function AdminEventDetailPage({ params, searchParams }) {
     >
       {notice ? <p className={notice === "saved" ? "form-success" : "form-error"}>{getNoticeMessage(notice)}</p> : null}
       <AdminEventForm action={saveAdminEventAction} event={event} submitLabel="Save event" />
+
+      <div className="form-card" style={{ marginTop: "1rem" }}>
+        <GalleryManager
+          addAction={addEventGalleryImageAction}
+          contentId={event.id}
+          contentIdFieldName="event_id"
+          galleryImages={galleryImages}
+          removeAction={removeEventGalleryImageAction}
+        />
+      </div>
     </DashboardShell>
   );
 }

@@ -118,6 +118,20 @@ export default async function SettingsPage({ searchParams }) {
               name="visibility_setting"
               options={PROFILE_VISIBILITY_OPTIONS}
             />
+            {(() => {
+              const currentVisibility = member.visibility_setting || "members_only";
+              const option = PROFILE_VISIBILITY_OPTIONS.find((o) => o.value === currentVisibility);
+              return option?.details ? (
+                <div className="settings-visibility-details">
+                  <span className="settings-visibility-details-label">What&apos;s visible:</span>
+                  <ul className="settings-visibility-list">
+                    {option.details.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null;
+            })()}
             <div className="settings-card-footer">
               <span className={`status-chip ${member.visibility_setting === "hidden" ? "chip-muted" : "chip-neutral"}`}>
                 {formatProfileVisibilitySetting(member.visibility_setting)}

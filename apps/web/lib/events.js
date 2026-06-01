@@ -4,7 +4,9 @@ import {
   getSupabaseUrl,
   isSupabaseConfigured,
 } from "@/lib/env";
+import { ensureAdminEventRsvps } from "@/lib/calendar/data";
 import { publicEvents as seededPublicEvents } from "@/lib/patna-data";
+import { getRequestLocale, translateContentItems } from "@/lib/translation";
 
 const ADMIN_EVENT_SELECT = `
   *,
@@ -17,6 +19,12 @@ const SCHEDULE_RANK = {
   tbc: 1,
   past: 2,
 };
+
+const PATNA_EVENT_SLUGS = new Set([
+  "african-strategic-summit-on-shipping-decarbonisation",
+  "dakar-maritime-decarbonisation-workshop",
+  "african-climate-summit-ii-acs2",
+]);
 
 function createPublicSupabaseClient() {
   return createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
@@ -57,28 +65,113 @@ export function splitEventList(value) {
     .filter(Boolean);
 }
 
-function parseApproximateDisplayDate(displayDate) {
-  const raw = String(displayDate || "").trim();
+function endOfUtcDay(date) {
+  const next = new Date(date);
+  next.setUTCHours(23, 59, 59, 999);
+  return next;
+}
+
+function parseDateLabel(value, { endOfDay = false } = {}) {
+  const raw = String(value || "").trim();
 
   if (!raw) {
     return null;
+  }
+
+  const isoDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (isoDateMatch) {
+    const parsed = new Date(`${isoDateMatch[1]}-${isoDateMatch[2]}-${isoDateMatch[3]}T00:00:00.000Z`);
+    return Number.isNaN(parsed.getTime()) ? null : endOfDay ? endOfUtcDay(parsed) : parsed;
   }
 
   const exactMatch = raw.match(/^(\d{1,2}) ([A-Za-z]+) (\d{4})$/);
 
   if (exactMatch) {
     const parsed = new Date(`${exactMatch[1]} ${exactMatch[2]} ${exactMatch[3]} UTC`);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+    return Number.isNaN(parsed.getTime()) ? null : endOfDay ? endOfUtcDay(parsed) : parsed;
+  }
+
+  return null;
+}
+
+function parseDisplayDateRange(displayDate) {
+  const raw = String(displayDate || "").trim();
+
+  if (!raw) {
+    return null;
+  }
+
+  const rangeParts = raw.split(/\s+(?:to|–|—)\s+/i);
+
+  if (rangeParts.length === 2) {
+    const start = parseDateLabel(rangeParts[0]);
+    const end = parseDateLabel(rangeParts[1], { endOfDay: true });
+
+    if (start && end) {
+      return { start, end, approximate: false };
+    }
+  }
+
+  const exact = parseDateLabel(raw, { endOfDay: true });
+
+  if (exact) {
+    return { start: parseDateLabel(raw), end: exact, approximate: false };
   }
 
   const monthOnlyMatch = raw.match(/^([A-Za-z]+) (\d{4})(?: \(TBC\))?$/i);
 
   if (monthOnlyMatch) {
     const parsed = new Date(`1 ${monthOnlyMatch[1]} ${monthOnlyMatch[2]} UTC`);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    const end = new Date(parsed);
+    end.setUTCMonth(end.getUTCMonth() + 1, 0);
+    end.setUTCHours(23, 59, 59, 999);
+
+    return { start: parsed, end, approximate: true };
   }
 
   return null;
+}
+
+function parseApproximateDisplayDate(displayDate) {
+  return parseDisplayDateRange(displayDate)?.start || null;
+}
+
+function getEventDateRange(event) {
+  const start = event.starts_at ? new Date(event.starts_at) : null;
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+  const validStart = start && !Number.isNaN(start.getTime()) ? start : null;
+  const validEnd = end && !Number.isNaN(end.getTime()) ? end : null;
+
+  if (validStart || validEnd) {
+    return {
+      start: validStart || validEnd,
+      end: validEnd || endOfUtcDay(validStart),
+      approximate: false,
+    };
+  }
+
+  return parseDisplayDateRange(event.display_date);
+}
+
+function deriveScheduleStatus(event, now = new Date()) {
+  const storedStatus = normaliseScheduleStatus(event.schedule_status);
+  const range = getEventDateRange(event);
+
+  if (!range?.end) {
+    return storedStatus === "past" ? "past" : "tbc";
+  }
+
+  if (range.end.getTime() < now.getTime()) {
+    return "past";
+  }
+
+  return storedStatus === "tbc" || range.approximate ? "tbc" : "upcoming";
 }
 
 function getEventSortDate(event) {
@@ -171,21 +264,92 @@ function normaliseScheduleStatus(value) {
 }
 
 function normaliseEventRow(row) {
-  return {
+  const event = {
     ...row,
     visibility: normaliseVisibility(row.visibility),
     status: normalisePublishStatus(row.status),
-    schedule_status: normaliseScheduleStatus(row.schedule_status),
     organising_institutions: splitEventList(row.organising_institutions),
     themes: splitEventList(row.themes),
     display_date: getDisplayDate(row),
     creatorName: formatProfileName(row.created_by_profile),
     updatedByName: formatProfileName(row.updated_by_profile),
   };
+
+  return {
+    ...event,
+    schedule_status: deriveScheduleStatus(event),
+  };
+}
+
+async function translateEventsForDisplay(events, locale) {
+  if (!events.length) {
+    return events;
+  }
+
+  const items = [];
+  const pushItem = (cacheKey, fieldName, text) => {
+    if (typeof text !== "string" || !text.trim()) {
+      return;
+    }
+
+    items.push({
+      cacheKey,
+      contentType: "event",
+      fieldName,
+      text,
+      format: "text",
+    });
+  };
+
+  for (const event of events) {
+    pushItem(`event:${event.id}:title`, "title", event.title || "");
+    pushItem(`event:${event.id}:summary`, "summary", event.summary || "");
+    pushItem(`event:${event.id}:body`, "body", event.body || "");
+    pushItem(`event:${event.id}:location`, "location", event.location || "");
+    pushItem(`event:${event.id}:event_type`, "event_type", event.event_type || "");
+    pushItem(`event:${event.id}:display_date`, "display_date", event.display_date || "");
+    pushItem(`event:${event.id}:patna_involvement`, "patna_involvement", event.patna_involvement || "");
+
+    for (const [index, institution] of (event.organising_institutions || []).entries()) {
+      pushItem(`event:${event.id}:organising_institution:${index}`, "organising_institution", institution);
+    }
+
+    for (const [index, theme] of (event.themes || []).entries()) {
+      pushItem(`event:${event.id}:theme:${index}`, "theme", theme);
+    }
+  }
+
+  const translated = await translateContentItems(locale, items);
+  const translatedByKey = new Map(translated.map((item) => [item.cacheKey, item.displayText]));
+
+  return events.map((event) => ({
+    ...event,
+    sourceTitle: event.title,
+    sourceSummary: event.summary,
+    sourceBody: event.body,
+    sourceLocation: event.location,
+    sourcePatnaInvolvement: event.patna_involvement,
+    sourceOrganisingInstitutions: event.organising_institutions || [],
+    sourceThemes: event.themes || [],
+    title: translatedByKey.get(`event:${event.id}:title`) || event.title,
+    summary: translatedByKey.get(`event:${event.id}:summary`) || event.summary,
+    body: translatedByKey.get(`event:${event.id}:body`) || event.body,
+    location: translatedByKey.get(`event:${event.id}:location`) || event.location,
+    eventTypeDisplay: translatedByKey.get(`event:${event.id}:event_type`) || event.event_type,
+    displayDateDisplay: translatedByKey.get(`event:${event.id}:display_date`) || event.display_date,
+    patna_involvement:
+      translatedByKey.get(`event:${event.id}:patna_involvement`) || event.patna_involvement,
+    organising_institutions: (event.organising_institutions || []).map((institution, index) =>
+      translatedByKey.get(`event:${event.id}:organising_institution:${index}`) || institution
+    ),
+    themes: (event.themes || []).map((theme, index) =>
+      translatedByKey.get(`event:${event.id}:theme:${index}`) || theme
+    ),
+  }));
 }
 
 function createSeedFallbackEvents() {
-  return seededPublicEvents.map((event) => ({
+  return seededPublicEvents.map((event) => normaliseEventRow({
     id: event.slug,
     slug: event.slug,
     title: event.title,
@@ -209,6 +373,7 @@ function createSeedFallbackEvents() {
     updated_by_profile: null,
     creatorName: "",
     updatedByName: "",
+    is_rsvped: false,
   }));
 }
 
@@ -216,7 +381,8 @@ export async function fetchPublicEvents({ limit = 0 } = {}) {
   const fallback = createSeedFallbackEvents();
 
   if (!isSupabaseConfigured()) {
-    return limit > 0 ? fallback.slice(0, limit) : fallback;
+    const events = limit > 0 ? fallback.slice(0, limit) : fallback;
+    return translateEventsForDisplay(events, await getRequestLocale());
   }
 
   const supabase = createPublicSupabaseClient();
@@ -227,19 +393,43 @@ export async function fetchPublicEvents({ limit = 0 } = {}) {
     .eq("visibility", "public");
 
   if (error || !data) {
-    return limit > 0 ? fallback.slice(0, limit) : fallback;
+    const events = limit > 0 ? fallback.slice(0, limit) : fallback;
+    return translateEventsForDisplay(events, await getRequestLocale());
   }
 
   const events = data.map(normaliseEventRow).sort(compareEvents);
-  return limit > 0 ? events.slice(0, limit) : events;
+  return translateEventsForDisplay(
+    limit > 0 ? events.slice(0, limit) : events,
+    await getRequestLocale(),
+  );
 }
 
-export async function fetchMemberEvents({ supabase, limit = 0 } = {}) {
+export function isPatnaLedEvent(event) {
+  return PATNA_EVENT_SLUGS.has(event?.slug);
+}
+
+export function splitPublicEventCollections(events) {
+  return events.reduce(
+    (collections, event) => {
+      if (isPatnaLedEvent(event)) {
+        collections.patnaEvents.push(event);
+      } else {
+        collections.externalEvents.push(event);
+      }
+
+      return collections;
+    },
+    { patnaEvents: [], externalEvents: [] },
+  );
+}
+
+export async function fetchMemberEvents({ supabase, memberId = "", isAdmin = false, limit = 0 } = {}) {
   const fallback = createSeedFallbackEvents();
 
   if (!supabase) {
+    const events = limit > 0 ? fallback.slice(0, limit) : fallback;
     return {
-      events: limit > 0 ? fallback.slice(0, limit) : fallback,
+      events: await translateEventsForDisplay(events, await getRequestLocale()),
       error: null,
     };
   }
@@ -250,16 +440,43 @@ export async function fetchMemberEvents({ supabase, limit = 0 } = {}) {
     .eq("status", "published");
 
   if (error || !data) {
+    const events = limit > 0 ? fallback.slice(0, limit) : fallback;
     return {
-      events: limit > 0 ? fallback.slice(0, limit) : fallback,
+      events: await translateEventsForDisplay(events, await getRequestLocale()),
       error,
     };
   }
 
   const events = data.map(normaliseEventRow).sort(compareEvents);
+  const scopedEvents = limit > 0 ? events.slice(0, limit) : events;
+  let rsvpedEventIds = new Set();
+
+  if (memberId && scopedEvents.length > 0) {
+    await ensureAdminEventRsvps({
+      communityEvents: scopedEvents,
+      isAdmin,
+      memberId,
+      supabase,
+    });
+
+    const { data: memberRsvps, error: memberRsvpError } = await supabase
+      .from("event_rsvps")
+      .select("event_id")
+      .eq("user_id", memberId)
+      .in("event_id", scopedEvents.map((event) => event.id));
+
+    if (!memberRsvpError) {
+      rsvpedEventIds = new Set((memberRsvps || []).map((row) => row.event_id));
+    }
+  }
+
+  const memberAwareEvents = scopedEvents.map((event) => ({
+    ...event,
+    is_rsvped: rsvpedEventIds.has(event.id),
+  }));
 
   return {
-    events: limit > 0 ? events.slice(0, limit) : events,
+    events: await translateEventsForDisplay(memberAwareEvents, await getRequestLocale()),
     error: null,
   };
 }
@@ -271,7 +488,10 @@ export async function fetchAdminEvents({ supabase }) {
     .order("created_at", { ascending: false });
 
   return {
-    events: (data || []).map(normaliseEventRow).sort(compareEvents),
+    events: await translateEventsForDisplay(
+      (data || []).map(normaliseEventRow).sort(compareEvents),
+      await getRequestLocale(),
+    ),
     error,
   };
 }
@@ -301,9 +521,7 @@ export function buildAdminEventSummary(events) {
   };
 }
 
-export function filterAdminEvents(events, { publishStatus = "all", scheduleStatus = "all", search = "", visibility = "all" }) {
-  const normalisedSearch = String(search || "").trim().toLowerCase();
-
+export function filterAdminEvents(events, { publishStatus = "all", scheduleStatus = "all", visibility = "all" }) {
   return events.filter((event) => {
     if (publishStatus !== "all" && event.status !== publishStatus) {
       return false;
@@ -317,24 +535,7 @@ export function filterAdminEvents(events, { publishStatus = "all", scheduleStatu
       return false;
     }
 
-    if (!normalisedSearch) {
-      return true;
-    }
-
-    const haystack = [
-      event.title,
-      event.location,
-      event.summary,
-      event.event_type,
-      event.patna_involvement,
-      ...(event.organising_institutions || []),
-      ...(event.themes || []),
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return haystack.includes(normalisedSearch);
+    return true;
   });
 }
 
@@ -358,11 +559,13 @@ export function buildEventFormValues(event) {
       status: "draft",
       schedule_status: "upcoming",
       slug: "",
+      cover_image_url: "",
+      cover_image_alt: "",
     };
   }
 
   return {
-    id: event.id,
+    id: event.id || "",
     title: event.title || "",
     event_type: event.event_type || "",
     organising_institutions: (event.organising_institutions || []).join(";\n"),
@@ -379,5 +582,31 @@ export function buildEventFormValues(event) {
     status: event.status || "draft",
     schedule_status: event.schedule_status || "upcoming",
     slug: event.slug || "",
+    cover_image_url: event.cover_image_url || "",
+    cover_image_alt: event.cover_image_alt || "",
+  };
+}
+
+export async function fetchEventGallery({ supabase, eventId }) {
+  const { data, error } = await supabase
+    .from("event_gallery")
+    .select("id, image_url, alt_text, caption, sort_order")
+    .eq("event_id", eventId)
+    .order("sort_order");
+
+  return { images: data || [], error };
+}
+
+export async function fetchPublicEventBySlug({ supabase, slug }) {
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  return {
+    event: data ? normaliseEventRow(data) : null,
+    error,
   };
 }

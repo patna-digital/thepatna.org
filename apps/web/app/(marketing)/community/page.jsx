@@ -1,129 +1,180 @@
 import Link from "next/link";
-import { FeaturedStoryRail } from "@/components/public/featured-story-rail";
-import { SectionIntro } from "@/components/section-intro";
-import { cohortSummary, communityJourney, memberSpaces } from "@/lib/patna-data";
-import { publicPageMedia } from "@/lib/public-media";
+import { getTranslations } from "next-intl/server";
+import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchActiveMemberDirectory } from "@/lib/member-profiles";
 
-export default function CommunityPage() {
+export const metadata = {
+  title: "Community",
+  description:
+    "Discover PATNA's expert community, cohorts, and pathways for African specialists and institutions to contribute.",
+};
+
+async function getMemberSnapshot() {
+  if (!canUseSupabaseAdmin()) {
+    return [];
+  }
+
+  try {
+    const adminClient = createSupabaseAdminClient();
+    const { members } = await fetchActiveMemberDirectory({ adminClient });
+
+    return members
+      .filter((member) => member.visibility_setting !== "private")
+      .slice(0, 8);
+  } catch (error) {
+    console.error("Unable to load public member snapshot", error);
+    return [];
+  }
+}
+
+function getInitials(name) {
+  return String(name || "PATNA Member")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "PM";
+}
+
+export default async function CommunityPage() {
+  const [t, members] = await Promise.all([getTranslations(), getMemberSnapshot()]);
+
   return (
     <>
-      <section className="community-hero">
-        <div className="community-hero-inner">
-          <div className="community-hero-eyebrow">PATNA Community</div>
-          <h1>
-            A professional coordination space for <em>African expertise</em>
+      <section className="sub-page-hero" aria-label="Community">
+        <div className="sub-page-hero-bg" aria-hidden="true">
+          <img
+            src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&h=700&fit=crop&q=80"
+            alt=""
+          />
+        </div>
+        <div className="sub-page-hero-overlay" aria-hidden="true" />
+        <div className="sub-page-hero-dot" aria-hidden="true" />
+        <div className="sub-page-hero-inner">
+          <div className="sub-page-hero-eyebrow">{t("community.heroEyebrow")}</div>
+          <h1 className="sub-page-hero-title">
+            {t("community.heroH1")}
           </h1>
-          <p>
-            The PATNA community brings together experts, policymakers, practitioners, and civil
-            society contributors through cohort spaces, working groups, events, and structured
-            applications.
+          <p className="sub-page-hero-sub">
+            {t("community.heroDesc")}
           </p>
-          <div className="hero-actions">
-            <Link className="secondary-button" href="/community/join">
-              Apply to Join
-            </Link>
-            <Link className="pill-link" href="/auth/login">
-              Member Login
-            </Link>
-          </div>
         </div>
       </section>
 
-      <section className="section cohorts-section">
-        <div className="section-inner">
-          <div className="cohorts-intro">
-            <SectionIntro
-              label="Four cohorts"
-              title="A community model built around how PATNA actually organises expertise"
-              subtitle="The community is organised around the real working structure of PATNA’s policy, academic, industry, and civil-society expertise."
-            />
-
-            <article className="content-card">
-              <h3>How the community works</h3>
-              <ul className="check-list">
-                <li>Expressions of interest are captured through a structured PATNA application.</li>
-                <li>Admins review applications, record notes, and manage status changes in-platform.</li>
-                <li>Approved members join spaces, discussions, events, and knowledge-sharing surfaces.</li>
-                <li>Each cohort can branch into working groups, constituencies, and thematic collaboration.</li>
-              </ul>
-            </article>
+      <div className="feat-split-section" id="cohort-programme">
+        <div className="feat-split-inner">
+          <div className="feat-split-bar">
+            <span className="feat-split-label">{t("community.cohortProgrammeLabel")}</span>
+            <Link className="feat-split-view-all" href="/community/join">
+              {t("community.cohortApplyLink")}
+            </Link>
           </div>
 
-          <div className="cohorts-grid">
-            {cohortSummary.map((cohort) => (
-              <article className="cohort-card" key={cohort.slug}>
-                <div className="cohort-icon">{cohort.icon}</div>
-                <h3>{cohort.title}</h3>
-                <p>{cohort.summary}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <FeaturedStoryRail section={publicPageMedia.community.stories} />
-
-      <section className="section">
-        <div className="section-inner">
-          <SectionIntro
-            label="How joining works"
-            title="From application to participation"
-            subtitle="A clear path from application review to active participation in spaces, cohorts, and working groups."
-          />
-
-          <div className="steps-row">
-            {communityJourney.map((item) => (
-              <div className="step" key={item.step}>
-                <div className="step-num">{item.step}</div>
-                <div className="step-title">{item.title}</div>
-                <div className="step-body">{item.body}</div>
+          <div className="feat-split-grid">
+            <article className="feat-main-card">
+              <div className="feat-main-img">
+                <img
+                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=900&h=680&fit=crop&q=80"
+                  alt="PATNA cohort members in a collaborative session"
+                />
+                <div className="feat-main-img-overlay" />
+                <span className="feat-main-status feat-status-active">{t("community.cohortStatusOpen")}</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-inner">
-          <SectionIntro
-            label="Community spaces"
-            title="Cohort rooms, constituencies, and working groups"
-            subtitle="PATNA’s spaces reflect how coordination happens in practice: by cohort, constituency, and focused collaboration."
-          />
-
-          <div className="spaces-grid">
-            {memberSpaces.map((space) => (
-              <article className="space-card" key={space.slug}>
-                <div className="tag">{space.type}</div>
-                <strong>{space.name}</strong>
-                <p>{space.role} access inside the PATNA community platform.</p>
-                <div className="content-meta">
-                  <span>{space.members} members</span>
-                  <span>{space.threads} threads</span>
-                  <span>{space.unread} unread</span>
+              <div className="feat-main-body">
+                <div className="feat-main-tag">{t("community.cohortTag")}</div>
+                <h2 className="feat-main-title">{t("community.cohortTitle")}</h2>
+                <p className="feat-main-desc">{t("community.cohortDesc")}</p>
+                <div className="cohort-features">
+                  <div className="cohort-feature">{t("community.cohortFeature1")}</div>
+                  <div className="cohort-feature">{t("community.cohortFeature2")}</div>
+                  <div className="cohort-feature">{t("community.cohortFeature3")}</div>
+                  <div className="cohort-feature">{t("community.cohortFeature4")}</div>
                 </div>
-              </article>
-            ))}
+                <div className="feat-main-footer">
+                  <div className="feat-main-meta">{t("community.cohortMeta")}</div>
+                  <Link className="feat-main-cta" href="/community/join">
+                    {t("community.cohortCta")}
+                  </Link>
+                </div>
+              </div>
+            </article>
+
+            <div className="feat-side-list">
+              {[
+                { titleKey: "community.track1Title", metaKey: "community.track1Meta" },
+                { titleKey: "community.track2Title", metaKey: "community.track2Meta" },
+                { titleKey: "community.track3Title", metaKey: "community.track3Meta" },
+              ].map((track) => (
+                <Link className="feat-side-item" href="/community/join" key={track.titleKey}>
+                  <div className="feat-side-content">
+                    <div className="feat-side-tag">{t("community.trackOngoing")}</div>
+                    <div className="feat-side-title">{t(track.titleKey)}</div>
+                    <div className="feat-side-meta">{t(track.metaKey)}</div>
+                  </div>
+                  <span className="feat-side-arrow">→</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="join-band">
-        <div className="section-inner">
-          <div className="section-label">Applications open</div>
-          <h2>Join a network designed for evidence, coordination, and impact.</h2>
-          <p>
-            Start the PATNA application process and enter a network built for evidence,
-            coordination, and shared African positioning.
-          </p>
-          <div className="join-band-btns">
-            <Link className="secondary-button" href="/community/join">
-              Start application
-            </Link>
-            <Link className="pill-link" href="/auth/login">
-              Existing member login
-            </Link>
+      {members.length > 0 && (
+        <section className="v3-members-section">
+          <div className="section-narrow">
+            <div className="v3-members-header">
+              <div>
+                <div className="v3-members-label">{t("community.networkLabel")}</div>
+                <h2 className="v3-members-title">
+                  {t("community.networkH2")}
+                </h2>
+              </div>
+              <Link className="v3-members-link" href="/auth/login">
+                {t("community.networkViewDir")}
+              </Link>
+            </div>
+
+            <div className="v3-members-grid">
+              {members.map((member) => {
+                const name = member.displayNameLabel || member.displayName;
+                const cohort = member.primaryCohort?.nameDisplay || member.primaryCohort?.name || "PATNA";
+                return (
+                  <article className="v3-member-card" key={member.id}>
+                    <div className="v3-member-avatar">
+                      {member.headshotSrc ? (
+                        <img src={member.headshotSrc} alt={name} />
+                      ) : (
+                        <span className="v3-member-avatar-fallback">{getInitials(name)}</span>
+                      )}
+                    </div>
+                    <h3 className="v3-member-name">{name}</h3>
+                    <p className="v3-member-role">
+                      {member.roleTitleDisplay || member.roleTitleLabel || member.organisationDisplay || t("community.memberFallback")}
+                    </p>
+                    <span className="v3-member-cohort">{cohort}</span>
+                    {member.countryDisplay || member.country_of_residence ? (
+                      <div className="v3-member-country">
+                        {member.countryDisplay || member.country_of_residence}
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
           </div>
+        </section>
+      )}
+
+      <section className="join-band join-band-v4">
+        <h2>{t("community.ctaTitle")}</h2>
+        <p>{t("community.ctaDesc")}</p>
+        <div className="join-band-ctas">
+          <Link className="cta-primary" href="/community/join">
+            {t("community.ctaPrimary")}
+          </Link>
+          <Link className="cta-secondary" href="/work-with-us">
+            {t("community.ctaSecondary")}
+          </Link>
         </div>
       </section>
     </>

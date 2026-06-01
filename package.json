@@ -5,11 +5,20 @@
   "engines": {
     "node": ">=22 <25"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@swc/core",
+      "sharp"
+    ]
+  },
   "scripts": {
     "dev": "pnpm --filter @patna/web dev",
     "build": "pnpm --filter @patna/web build",
     "start": "pnpm --filter @patna/web start",
     "lint": "pnpm --filter @patna/web lint",
+    "assistant:reindex": "pnpm --filter @patna/web assistant:reindex",
+    "test:calendar-dates": "TZ=Africa/Lagos node --test apps/web/lib/calendar/date-helpers.test.mjs",
     "applications:import": "pnpm --filter @patna/web exec node ./scripts/import-community-applications.mjs",
     "cohorts:import": "pnpm --filter @patna/web exec node ./scripts/import-cohort-members.mjs",
     "events:import": "pnpm --filter @patna/web exec node ./scripts/import-events-register.mjs",
