@@ -10,21 +10,21 @@ export function SettingsSelect({ action, currentValue, name, options }) {
   const [error, setError] = useState(null);
   const router = useRouter();
 
-  const currentOption = options.find(opt => opt.value === currentValue);
+  const currentOption = options.find((opt) => opt.value === currentValue);
+  const selectedOption = options.find((opt) => opt.value === selectedValue);
 
   async function handleSave() {
     setError(null);
-    
+
     const formData = new FormData();
     formData.set(name, selectedValue);
 
     startTransition(async () => {
       try {
         const result = await action(formData);
-        
+
         if (result.ok) {
           setIsEditing(false);
-          // Refresh the page to show updated data
           router.refresh();
         } else {
           setError(result.error || "Failed to save");
@@ -44,7 +44,7 @@ export function SettingsSelect({ action, currentValue, name, options }) {
   if (!isEditing) {
     return (
       <div className="settings-select-display">
-        <button 
+        <button
           className="settings-select-button"
           onClick={() => setIsEditing(true)}
           type="button"
@@ -79,9 +79,24 @@ export function SettingsSelect({ action, currentValue, name, options }) {
             </option>
           ))}
         </select>
-        <span className="settings-select-arrow" aria-hidden="true">▼</span>
+        <span aria-hidden="true" className="settings-select-arrow">▼</span>
       </div>
-      
+
+      {selectedOption?.description && (
+        <p className="settings-select-description">{selectedOption.description}</p>
+      )}
+
+      {selectedOption?.details && selectedOption.details.length > 0 && (
+        <div className="settings-visibility-details">
+          <span className="settings-visibility-details-label">What&apos;s visible:</span>
+          <ul className="settings-visibility-list">
+            {selectedOption.details.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {error && (
         <p className="settings-select-error">{error}</p>
       )}
