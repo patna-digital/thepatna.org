@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BrandLogo } from "@/components/brand-logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { memberNav } from "@/lib/patna-data";
@@ -18,6 +19,7 @@ export function DashboardShell({
   spotlight,
 }) {
   const pathname = usePathname();
+  const t = useTranslations();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const footerLinks = [
@@ -76,15 +78,17 @@ export function DashboardShell({
         </div>
 
         <div className="sidebar-cross-nav">
-          <div className="sidebar-cross-nav-label">Navigate to</div>
+          <div className="sidebar-cross-nav-label">{t("nav_cross.navigateTo")}</div>
           <Link className="sidebar-cross-nav-link" href="/">
-            <span>Website</span>
+            <span>{t("nav_cross.website")}</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
           <Link className="sidebar-cross-nav-link" href="/app">
-            <span>Community app</span>
+            <span>{t("nav_cross.communityApp")}</span>
             <span className="sidebar-cross-nav-arrow">↗</span>
           </Link>
+        </div>
+        <div className="sidebar-utility-nav">
           <SignOutButton />
         </div>
       </aside>
