@@ -181,8 +181,8 @@ export default async function HomePage() {
 
             <div className="about-patna-image-wrap">
               <img
-                src="/images/patna-group-2026.jpg"
-                alt="PATNA network members at the 2026 AU STC-T&amp;E session"
+                src="/images/Dakar.jpeg"
+                alt="PATNA network delegates at the Dakar conference"
                 className="about-patna-img"
               />
             </div>
@@ -193,22 +193,24 @@ export default async function HomePage() {
 
       {/* ── STATS BAND ── */}
       <section className="stats-band" aria-label="PATNA by the numbers">
-        <div className="stats-grid">
-          <div className="stats-item">
-            <span className="stats-num">100<sup>+</sup></span>
-            <span className="stats-lbl">{t("home.statExperts")}</span>
-          </div>
-          <div className="stats-item">
-            <span className="stats-num">25</span>
-            <span className="stats-lbl">{t("home.statStates")}</span>
-          </div>
-          <div className="stats-item">
-            <span className="stats-num">4</span>
-            <span className="stats-lbl">{t("home.statCohorts")}</span>
-          </div>
-          <div className="stats-item">
-            <span className="stats-num">3</span>
-            <span className="stats-lbl">{t("home.statLeap")}</span>
+        <div className="section-inner stats-band-inner">
+          <div className="stats-grid">
+            <div className="stats-item">
+              <span className="stats-num">100<sup>+</sup></span>
+              <span className="stats-lbl">{t("home.statExperts")}</span>
+            </div>
+            <div className="stats-item">
+              <span className="stats-num">25</span>
+              <span className="stats-lbl">{t("home.statStates")}</span>
+            </div>
+            <div className="stats-item">
+              <span className="stats-num">4</span>
+              <span className="stats-lbl">{t("home.statCohorts")}</span>
+            </div>
+            <div className="stats-item">
+              <span className="stats-num">3</span>
+              <span className="stats-lbl">{t("home.statLeap")}</span>
+            </div>
           </div>
         </div>
       </section>
