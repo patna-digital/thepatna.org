@@ -2,11 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MarketingPageHero } from "@/components/marketing-page-hero";
+import { PublicationBreadcrumb } from "@/components/publication-breadcrumb";
 import {
   findPrimaryPublicationAttachment,
   getPublicationAttachmentFileUrl,
 } from "@/lib/publication-attachments";
-import { fetchPublicPublicationBySlug } from "@/lib/publications";
+import {
+  fetchPublicPublicationBySlug,
+  fetchAdjacentPublications,
+} from "@/lib/publications";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -28,12 +32,28 @@ export default async function PublicationDetailPage({ params }) {
 
   if (!pub) notFound();
 
+  const adjacent = pub.published_at
+    ? await fetchAdjacentPublications({ publishedAt: pub.published_at, slug: pub.slug })
+    : { prev: null, next: null };
+
   const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
   const readHref = getPublicationAttachmentFileUrl(pdfAttachment, { disposition: "inline" });
   const typeLabel = pub.contentTypeLabel || CONTENT_TYPE_LABELS[pub.content_type] || pub.content_type;
 
   return (
     <>
+      <div className="publication-detail-shell">
+        <div className="publication-detail-inner">
+          <PublicationBreadcrumb
+            crumbs={[
+              { label: "Home", href: "/" },
+              { label: "Publications", href: "/publications" },
+              { label: pub.title },
+            ]}
+          />
+        </div>
+      </div>
+
       <MarketingPageHero
         label={typeLabel}
         title={pub.title}
@@ -133,6 +153,29 @@ export default async function PublicationDetailPage({ params }) {
               >
                 {t("publicationUi.openPdf")}
               </a>
+            )}
+
+            {(adjacent.prev || adjacent.next) && (
+              <div className="publication-prev-next">
+                {adjacent.prev && (
+                  <Link
+                    className="publication-prev-link"
+                    href={`/publications/${adjacent.prev.slug}`}
+                  >
+                    <span className="publication-prev-next-label">← Previous</span>
+                    <span className="publication-prev-next-title">{adjacent.prev.title}</span>
+                  </Link>
+                )}
+                {adjacent.next && (
+                  <Link
+                    className="publication-next-link"
+                    href={`/publications/${adjacent.next.slug}`}
+                  >
+                    <span className="publication-prev-next-label">Next →</span>
+                    <span className="publication-prev-next-title">{adjacent.next.title}</span>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </div>

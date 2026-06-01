@@ -260,6 +260,7 @@ export async function createInsight({ adminSupabase, data, userId }) {
     published_at,
     tag_ids = [],
     featured = false,
+    needs_review = false,
     cover_image_url = null,
     cover_image_alt = null,
     meta_description = null,
@@ -277,6 +278,7 @@ export async function createInsight({ adminSupabase, data, userId }) {
       visibility,
       slug,
       featured,
+      needs_review,
       cover_image_url,
       cover_image_alt,
       meta_description,
@@ -323,6 +325,7 @@ export async function updateInsight({ adminSupabase, id, data, userId }) {
     published_at,
     tag_ids,
     featured,
+    needs_review,
     cover_image_url,
     cover_image_alt,
     meta_description,
@@ -339,6 +342,7 @@ export async function updateInsight({ adminSupabase, id, data, userId }) {
     updated_by_user_id: userId,
     updated_at: new Date().toISOString(),
     ...(featured !== undefined && { featured }),
+    ...(needs_review !== undefined && { needs_review }),
     ...(cover_image_url !== undefined && { cover_image_url }),
     ...(cover_image_alt !== undefined && { cover_image_alt }),
     ...(meta_description !== undefined && { meta_description }),
@@ -658,4 +662,34 @@ export function filterInsights(insights, filters) {
 
     return true;
   });
+}
+
+export async function fetchAdjacentInsights({ supabase, publishedAt, slug }) {
+  const [prevResult, nextResult] = await Promise.all([
+    supabase
+      .from("content_items")
+      .select("title, slug")
+      .eq("publish_status", "published")
+      .in("visibility", ["public", "members"])
+      .lt("published_at", publishedAt)
+      .neq("slug", slug)
+      .order("published_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("content_items")
+      .select("title, slug")
+      .eq("publish_status", "published")
+      .in("visibility", ["public", "members"])
+      .gt("published_at", publishedAt)
+      .neq("slug", slug)
+      .order("published_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  return {
+    prev: prevResult.data || null,
+    next: nextResult.data || null,
+  };
 }

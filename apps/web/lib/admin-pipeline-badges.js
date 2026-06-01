@@ -2,16 +2,21 @@ import { adminNav } from "@/lib/patna-data";
 
 export async function getAdminNavWithPipelineBadges(supabase) {
   try {
-    const [serviceResult, partnershipResult, collaborationResult] = await Promise.all([
+    const [serviceResult, partnershipResult, collaborationResult, needsReviewResult] = await Promise.all([
       supabase.from("service_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
       supabase.from("partnership_leads").select("id", { count: "exact", head: true }).eq("status", "new"),
       supabase.from("collaboration_leads").select("id", { count: "exact", head: true }).eq("status", "new"),
+      supabase.from("content_items").select("id", { count: "exact", head: true }).eq("needs_review", true),
     ]);
 
+    const newLeadsCount =
+      (serviceResult.count || 0) +
+      (partnershipResult.count || 0) +
+      (collaborationResult.count || 0);
+
     const counts = {
-      "/admin/service-requests": serviceResult.count || 0,
-      "/admin/partnership-leads": partnershipResult.count || 0,
-      "/admin/collaboration-leads": collaborationResult.count || 0,
+      "/admin/leads": newLeadsCount,
+      "/admin/insights": needsReviewResult.count || 0,
     };
 
     return adminNav.map((group) => ({

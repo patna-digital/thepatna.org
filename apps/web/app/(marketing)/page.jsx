@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Fragment } from "react";
+import { getTranslations } from "next-intl/server";
 import { SectionIntro } from "@/components/section-intro";
 import {
   homePillars,
@@ -94,7 +95,8 @@ function getInitials(name) {
 }
 
 export default async function HomePage() {
-  const [events, communityMembers] = await Promise.all([
+  const [t, events, communityMembers] = await Promise.all([
+    getTranslations(),
     fetchPublicEvents({ limit: 3 }),
     fetchCommunitySnapshot(),
   ]);
@@ -106,7 +108,7 @@ export default async function HomePage() {
         <div className="hero-video-wrap" aria-hidden="true">
           <video
             className="hero-video-iframe"
-            src="https://idupqjzvkpsscyjetmll.supabase.co/storage/v1/object/sign/videos/PATNA%20Website%20Hero%20Video.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2JlYThjMS04YjhmLTRkOTEtOTgxYy1hNmIzYjZhMmNhMmYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ2aWRlb3MvUEFUTkEgV2Vic2l0ZSBIZXJvIFZpZGVvLm1wNCIsImlhdCI6MTc3OTMwMDQwNiwiZXhwIjoyMDk0NjYwNDA2fQ.0_OVRMLqKN_8bmn8pjy4ISPT5haH1kNcXTiB4s0ekg4"
+            src="https://idupqjzvkpsscyjetmll.supabase.co/storage/v1/object/sign/videos/PATNA%20Website%20Hero%20Video%20(latest).mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2JlYThjMS04YjhmLTRkOTEtOTgxYy1hNmIzYjZhMmNhMmYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ2aWRlb3MvUEFUTkEgV2Vic2l0ZSBIZXJvIFZpZGVvIChsYXRlc3QpLm1wNCIsImlhdCI6MTc4MDMwMzIxOCwiZXhwIjoyMDk1NjYzMjE4fQ.OsemGAmN6z6LZ8HKOIHquCbpj6tFviPi2a_B148Kn6k"
             autoPlay
             muted
             loop
@@ -118,19 +120,19 @@ export default async function HomePage() {
 
         <div className="hero-video-content">
           <div className="hero-video-inner">
-            <p className="eyebrow hero-eyebrow">The PATNA Initiative</p>
+            <p className="eyebrow hero-eyebrow">{t("home.heroEyebrow")}</p>
             <h1 className="hero-video-h1">
-              Where African expertise meets the world's most consequential climate &amp; energy transition decisions.
+              {t("home.heroH1")}
             </h1>
             <p className="hero-video-sub">
-              The PATNA Initiative is a non-profit network of 100+ experts across academia, policymaking, legal specialities, and technical professions working at the intersection of maritime governance, energy transition, and African development.
+              {t("home.heroDesc")}
             </p>
             <div className="hero-actions">
               <Link className="primary-button hero-video-primary" href="/community/join">
-                Join the Community →
+                {t("home.heroCtaPrimary")}
               </Link>
-              <Link className="secondary-button hero-video-secondary" href="/projects">
-                Explore Our Work
+              <Link className="secondary-button hero-video-secondary" href="/work-with-us">
+                {t("home.heroCtaSecondary")}
               </Link>
             </div>
           </div>
@@ -141,7 +143,7 @@ export default async function HomePage() {
       {/* ── PARTNERS ── */}
       <section className="section partners-marquee-section" aria-label="Partners and institutional affiliations">
         <div className="partners-marquee-inner">
-          <p className="partners-marquee-label">Trusted by leading institutions across Africa and globally</p>
+          <p className="partners-marquee-label">{t("home.partnersMarqueeLabel")}</p>
           <div className="partners-marquee-track-wrap" aria-hidden="true">
             <ul className="partners-marquee-track">
               {partnerNames.map((n, i) => (
@@ -160,13 +162,13 @@ export default async function HomePage() {
         <div className="value-prop-inner">
           <div className="value-prop-header">
             <div>
-              <div className="value-prop-label">Why PATNA Exists</div>
+              <div className="value-prop-label">{t("home.valuePropLabel")}</div>
               <h2 className="value-prop-title" id="value-prop-heading">
-                Three pillars.<br /><em>One purpose.</em>
+                {t("home.valuePropTitle")}<br /><em>{t("home.valuePropTitleEm")}</em>
               </h2>
             </div>
             <p className="value-prop-subtitle">
-              Africa's maritime climate future is decided in rooms where the continent has long been absent. PATNA was built to change that — permanently — through evidence, coordination, and expert advisory presence at every critical juncture.
+              {t("home.valuePropSubtitle")}
             </p>
           </div>
 
@@ -176,9 +178,9 @@ export default async function HomePage() {
                 {i > 0 && <div className="value-prop-divider" aria-hidden="true" />}
                 <article className="value-prop-pillar">
                   <div className="value-prop-pillar-num">{pillar.number}</div>
-                  <h3 className="value-prop-pillar-title">{pillar.title}</h3>
-                  <p className="value-prop-pillar-body">{pillar.body}</p>
-                  <div className="value-prop-proof">{pillar.proof}</div>
+                  <h3 className="value-prop-pillar-title">{t(`home.pillar${i + 1}Title`)}</h3>
+                  <p className="value-prop-pillar-body">{t(`home.pillar${i + 1}Body`)}</p>
+                  <div className="value-prop-proof">{t(`home.pillar${i + 1}Proof`)}</div>
                 </article>
               </Fragment>
             ))}
@@ -189,40 +191,36 @@ export default async function HomePage() {
       {/* ── ABOUT INTRO ── */}
       <section className="about-intro-section-v3">
         <div className="section-inner">
-          <div className="section-label">About PATNA</div>
+          <div className="section-label">{t("home.aboutLabel")}</div>
           <h2 className="section-title" style={{ marginBottom: 0 }}>
-            Africa must shape the energy transition it is uniquely <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>positioned to supply.</em>
+            {t("home.aboutH2Start")} <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>{t("home.aboutH2Em")}</em>
           </h2>
 
           <div className="about-intro-grid-v3">
             <div className="about-intro-text-v3">
-              <p>
-                The global push for net-zero emissions is more than a compliance mandate; it is a historic market opportunity for Africa's abundant renewable resources. While Africa handles over 90% of its trade by sea and faces significant economic risks from rising shipping costs, it also holds 60% of the world's best solar potential.
-              </p>
-              <p>
-                This positioning allows the continent to supply the green hydrogen and ammonia the global fleet needs to meet International Maritime Organization (IMO) targets. Without strategic engagement, a net-zero framework could increase African shipping costs by 20% by 2035; with it, Africa can unlock a green export market worth hundreds of billions of dollars.
-              </p>
+              <p>{t("home.aboutPara1")}</p>
+              <p>{t("home.aboutPara2")}</p>
               <Link className="about-intro-link-v3" href="/about">
-                Read our full story →
+                {t("home.aboutReadStory")}
               </Link>
             </div>
 
             <div className="about-intro-stats" aria-label="PATNA by the numbers">
               <div className="about-intro-stat">
                 <span className="about-intro-stat-num">100<sup>+</sup></span>
-                <span className="about-intro-stat-lbl">African experts in the network</span>
+                <span className="about-intro-stat-lbl">{t("home.statExperts")}</span>
               </div>
               <div className="about-intro-stat">
                 <span className="about-intro-stat-num">54</span>
-                <span className="about-intro-stat-lbl">AU member states engaged</span>
+                <span className="about-intro-stat-lbl">{t("home.statStates")}</span>
               </div>
               <div className="about-intro-stat">
                 <span className="about-intro-stat-num">4</span>
-                <span className="about-intro-stat-lbl">Expert cohorts deployed</span>
+                <span className="about-intro-stat-lbl">{t("home.statCohorts")}</span>
               </div>
               <div className="about-intro-stat">
                 <span className="about-intro-stat-num">3</span>
-                <span className="about-intro-stat-lbl">LEAP project phases since 2024</span>
+                <span className="about-intro-stat-lbl">{t("home.statLeap")}</span>
               </div>
             </div>
           </div>
@@ -234,36 +232,36 @@ export default async function HomePage() {
         <div className="section-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 5rem" }}>
           <div className="v3-members-header">
             <div>
-              <div className="v3-members-label">Our Community</div>
+              <div className="v3-members-label">{t("home.communityLabel")}</div>
               <h2 className="v3-members-title">
-                Experts shaping Africa's <em>energy future.</em>
+                {t("home.communityH2")} <em>{t("home.communityH2Em")}</em>
               </h2>
             </div>
             <Link className="v3-members-link" href="/community">
-              View all members →
+              {t("home.communityViewAll")}
             </Link>
           </div>
 
           <p className="v3-members-subtext">
-            The PATNA community is structured around four professional cohorts, each bringing distinct expertise to the organisation's core mission. Members may hold dual cohort affiliations but identify one as primary.
+            {t("home.communityDesc")}
           </p>
 
           <div className="v3-cohort-pillars">
             <div className="v3-cohort-pill">
-              <strong>Academics &amp; Researchers</strong>
-              <span>Generating the evidence base that grounds African positions in rigorous, Africa-specific data and analysis.</span>
+              <strong>{t("home.cohort1Title")}</strong>
+              <span>{t("home.cohort1Desc")}</span>
             </div>
             <div className="v3-cohort-pill">
-              <strong>Policy &amp; Government</strong>
-              <span>Negotiators and advisers engaging IMO, AU, and national processes on behalf of African states.</span>
+              <strong>{t("home.cohort2Title")}</strong>
+              <span>{t("home.cohort2Desc")}</span>
             </div>
             <div className="v3-cohort-pill">
-              <strong>Legal &amp; Regulatory</strong>
-              <span>Maritime law specialists navigating MARPOL, LCA frameworks, UNCLOS, and international trade law.</span>
+              <strong>{t("home.cohort3Title")}</strong>
+              <span>{t("home.cohort3Desc")}</span>
             </div>
             <div className="v3-cohort-pill">
-              <strong>Industry &amp; Private Sector</strong>
-              <span>Shipowners, port operators, financiers, and energy companies implementing the maritime transition.</span>
+              <strong>{t("home.cohort4Title")}</strong>
+              <span>{t("home.cohort4Desc")}</span>
             </div>
           </div>
 
@@ -290,12 +288,12 @@ export default async function HomePage() {
       {/* ── LEAP PROJECTS ── */}
       <section className="section projects-section-bg">
         <div className="section-inner">
-          <div className="section-label">Flagship Programme</div>
+          <div className="section-label">{t("home.leapLabel")}</div>
           <h2 className="section-title">
-            The LEAP Project <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>Series</em>
+            {t("home.leapH2")} <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>{t("home.leapH2Em")}</em>
           </h2>
           <p style={{ fontSize: "16px", color: "var(--ink-soft)", maxWidth: "640px", marginTop: "0.875rem", lineHeight: "1.7" }}>
-            Leading Effective Afrocentric Participation. Three phases. Over two years. One goal: ensuring Africa shapes the IMO's Net-Zero Framework rather than inheriting it.
+            {t("home.leapDesc")}
           </p>
 
           <div className="leap-grid" style={{ marginTop: "3.25rem" }}>
@@ -303,7 +301,7 @@ export default async function HomePage() {
               <article className="leap-card" key={phase.slug} data-status={phase.status}>
                 <div className="leap-card-head">
                   <span className={`leap-status-pill leap-status-${phase.status}`}>
-                    {phase.status === "active" ? "Active 2026" : "Complete"}
+                    {phase.status === "active" ? t("home.leapStatusActive") : t("home.leapStatusComplete")}
                   </span>
                 </div>
                 <div className="leap-card-body">
@@ -315,7 +313,7 @@ export default async function HomePage() {
                   </div>
                   <p className="leap-card-desc">{phase.body}</p>
                   <Link className="text-link" href={phase.sourceUrl}>
-                    Read the full project →
+                    {t("home.leapReadFullProject")}
                   </Link>
                 </div>
               </article>
@@ -327,9 +325,9 @@ export default async function HomePage() {
       {/* ── PUBLICATIONS ── */}
       <section className="section home-publications-section">
         <div className="section-inner">
-          <div className="section-label">Latest Insights</div>
+          <div className="section-label">{t("home.pubsLabel")}</div>
           <h2 className="section-title">
-            Africa-grounded evidence for <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>global decisions.</em>
+            {t("home.pubsH2")} <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>{t("home.pubsH2Em")}</em>
           </h2>
 
           <div className="home-pub-grid" style={{ marginTop: "3.25rem" }}>
@@ -343,7 +341,7 @@ export default async function HomePage() {
               <p className="home-pub-featured-sub">{homePublications.featured.subtitle}</p>
               <p className="home-pub-featured-body">{homePublications.featured.body}</p>
               <Link className="text-link home-pub-link" href={homePublications.featured.href}>
-                Download Report →
+                {t("home.pubsDownload")}
               </Link>
             </article>
 
@@ -362,7 +360,7 @@ export default async function HomePage() {
 
           <div className="section-cta-row">
             <Link className="secondary-button" href="/insights">
-              Browse all publications
+              {t("home.pubsBrowseAll")}
             </Link>
           </div>
         </div>
@@ -373,8 +371,8 @@ export default async function HomePage() {
         <section className="section home-events-section">
           <div className="section-inner">
             <SectionIntro
-              label="Calendar"
-              title="Upcoming events &amp; convenings."
+              label={t("home.eventsLabel")}
+              title={t("home.eventsH2")}
             />
 
             <div className="home-events-grid">
@@ -396,7 +394,7 @@ export default async function HomePage() {
                     {event.location && (
                       <span className="home-event-location">{event.location}</span>
                     )}
-                    <span className="home-event-status-pill">Upcoming</span>
+                    <span className="home-event-status-pill">{t("home.eventUpcoming")}</span>
                   </div>
                 </article>
               ))}
@@ -404,7 +402,7 @@ export default async function HomePage() {
 
             <div className="section-cta-row">
               <Link className="secondary-button" href="/events">
-                View all events
+                {t("home.eventsViewAll")}
               </Link>
             </div>
           </div>
@@ -414,13 +412,11 @@ export default async function HomePage() {
       {/* ── JOIN CTA BAND ── */}
       <section className="join-band join-band-v4 home-cta-band">
         <div>
-          <h2>Ready to shape Africa's energy future?</h2>
-          <p>
-            Join a growing community of specialists, policymakers, researchers, and industry practitioners – collaborating across PATNA's four expert cohorts.
-          </p>
+          <h2>{t("home.ctaTitle")}</h2>
+          <p>{t("home.ctaDesc")}</p>
           <div className="join-band-ctas">
-            <Link className="cta-primary" href="/community/join">Join Our Community →</Link>
-            <Link className="cta-secondary" href="/work-with-us">Work With Us</Link>
+            <Link className="cta-primary" href="/community/join">{t("home.ctaPrimary")}</Link>
+            <Link className="cta-secondary" href="/work-with-us">{t("home.ctaSecondary")}</Link>
           </div>
         </div>
       </section>

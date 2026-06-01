@@ -184,3 +184,39 @@ export async function fetchPublicPublicationBySlug(slug) {
 
   return publication;
 }
+
+export async function fetchAdjacentPublications({ publishedAt, slug }) {
+  if (!canUseSupabaseAdmin()) {
+    return { prev: null, next: null };
+  }
+
+  const supabase = createSupabaseAdminClient();
+
+  const [prevResult, nextResult] = await Promise.all([
+    supabase
+      .from("content_items")
+      .select("title, slug")
+      .eq("publish_status", "published")
+      .eq("visibility", "public")
+      .lt("published_at", publishedAt)
+      .neq("slug", slug)
+      .order("published_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("content_items")
+      .select("title, slug")
+      .eq("publish_status", "published")
+      .eq("visibility", "public")
+      .gt("published_at", publishedAt)
+      .neq("slug", slug)
+      .order("published_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  return {
+    prev: prevResult.data || null,
+    next: nextResult.data || null,
+  };
+}
