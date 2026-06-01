@@ -59,6 +59,7 @@ export default async function SpacesPage() {
   return (
     <MemberWorkspaceShell
       eyebrow={t("spaces.eyebrow")}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={t("spaces.subtitle")}
       title={t("spaces.title")}

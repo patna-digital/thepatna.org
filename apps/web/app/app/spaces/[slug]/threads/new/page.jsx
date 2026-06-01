@@ -41,6 +41,7 @@ export default async function NewThreadPage({ params }) {
           ← {space.name}
         </Link>
       }
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle="Share a question, update, or topic with this space."
       title="New Thread"

@@ -499,6 +499,324 @@
     "pipelinesTitle": "Pipelines",
     "pipelinesComingSoon": "(À venir)",
     "pipelinesText": "Suivez les demandes de service, les pistes de partenariat et les propositions de collaboration à partir du site public.",
-    "pipelinesNotAvailable": "Pas disponible"
+    "pipelinesNotAvailable": "Pas disponible",
+    "serviceRequests": {
+      "title": "Demandes de service",
+      "subtitle": "Gérez les demandes de service avec suivi de statut, attribution et gestion des priorités.",
+      "spotlightLabel": "Demandes de service",
+      "spotlightTitle": "Suivre et gérer les demandes de service",
+      "spotlightBody": "Surveillez les demandes de service entrantes, attribuez-les aux membres de l'équipe et suivez leur progression jusqu'à leur achèvement.",
+      "summary": {
+        "total": "Total des demandes",
+        "new": "Nouveau",
+        "inProgress": "En cours",
+        "completed": "Terminé"
+      },
+      "filters": {
+        "status": {
+          "all": "Tout",
+          "new": "Nouveau",
+          "inProgress": "En cours",
+          "review": "En révision",
+          "completed": "Terminé",
+          "cancelled": "Annulé"
+        },
+        "type": {
+          "all": "Tous les types",
+          "technical": "Technique",
+          "research": "Recherche",
+          "content": "Contenu",
+          "events": "Événements",
+          "partnership": "Partenariat",
+          "training": "Formation"
+        }
+      },
+      "actions": {
+        "addRequest": "+ Ajouter une demande",
+        "viewDetails": "Voir les détails",
+        "editRequest": "Modifier la demande",
+        "deleteRequest": "Supprimer la demande",
+        "search": "Rechercher",
+        "clearFilters": "Effacer les filtres",
+        "showingFiltered": "Affichage de {count} sur {total} demandes de service"
+      },
+      "table": {
+        "headers": {
+          "requester": "Demandeur",
+          "organisation": "Organisation",
+          "type": "Type",
+          "details": "Détails",
+          "status": "Statut",
+          "assigned": "Attribué",
+          "created": "Créé",
+          "actions": "Actions"
+        }
+      },
+      "messages": {
+        "saved": "Demande de service enregistrée.",
+        "deleted": "Demande de service supprimée.",
+        "error": "Opération échouée. Veuillez réessayer.",
+        "emptyState": "Aucune demande de service trouvée. Ajoutez-en une pour commencer.",
+        "deleteConfirm": "Supprimer cette demande de service ? Cette action est irréversible."
+      }
+    },
+    "partnershipLeads": {
+      "title": "Prospects de partenariat",
+      "subtitle": "Gérez les prospects de partenariat avec suivi de statut, attribution et prévision de revenus.",
+      "spotlightLabel": "Prospects de partenariat",
+      "spotlightTitle": "Gérer le pipeline de développement des partenariats",
+      "spotlightBody": "Suivez les opportunités de partenariat potentielles, gérez la sensibilisation et surveillez la progression dans l'entonnoir.",
+      "summary": {
+        "total": "Total des prospects",
+        "new": "Nouveau",
+        "inDiscussion": "En discussion",
+        "closedWon": "Conclu"
+      },
+      "filters": {
+        "status": {
+          "all": "Tout",
+          "new": "Nouveau",
+          "contacted": "Contacté",
+          "inDiscussion": "En discussion",
+          "proposalSent": "Proposition envoyée",
+          "negotiation": "Négociation",
+          "closedWon": "Conclu",
+          "closedLost": "Perdu"
+        },
+        "orgType": {
+          "all": "Tous les types",
+          "ngo": "ONG/À but non lucratif",
+          "government": "Gouvernement",
+          "academic": "Académique/Recherche",
+          "private": "Secteur privé",
+          "foundation": "Fondation",
+          "multilateral": "Multilatéral"
+        }
+      },
+      "actions": {
+        "addLead": "+ Ajouter un prospect",
+        "viewDetails": "Voir les détails",
+        "editLead": "Modifier le prospect",
+        "deleteLead": "Supprimer le prospect",
+        "search": "Rechercher",
+        "clearFilters": "Effacer les filtres",
+        "showingFiltered": "Affichage de {count} sur {total} prospects de partenariat"
+      },
+      "table": {
+        "headers": {
+          "organisation": "Organisation",
+          "contact": "Contact",
+          "type": "Type",
+          "focusAreas": "Domaines d'intérêt",
+          "status": "Statut",
+          "assigned": "Attribué",
+          "value": "Valeur",
+          "created": "Créé",
+          "actions": "Actions"
+        }
+      },
+      "messages": {
+        "saved": "Prospect de partenariat enregistré.",
+        "deleted": "Prospect de partenariat supprimé.",
+        "error": "Opération échouée. Veuillez réessayer.",
+        "emptyState": "Aucun prospect de partenariat trouvé. Ajoutez-en un pour commencer.",
+        "deleteConfirm": "Supprimer ce prospect de partenariat ? Cette action est irréversible."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "Nom de l'organisation",
+          "contactPerson": "Personne de contact",
+          "contactEmail": "E-mail de contact",
+          "orgType": "Type d'organisation",
+          "selectOrgType": "Sélectionner le type d'organisation",
+          "focusAreas": "Domaines d'intérêt",
+          "budgetRange": "Fourchette budgétaire (facultatif)",
+          "successDefinition": "Définition du succès (facultatif)",
+          "supportType": "Type de soutien (facultatif)",
+          "selectSupportType": "Sélectionner le type de soutien",
+          "status": "Statut",
+          "assignedTo": "Attribué à (facultatif)",
+          "unassigned": "Non attribué"
+        },
+        "orgTypes": {
+          "ngo": "ONG/À but non lucratif",
+          "government": "Gouvernement",
+          "academic": "Académique/Recherche",
+          "private": "Secteur privé",
+          "foundation": "Fondation",
+          "multilateral": "Multilatéral"
+        },
+        "statusOptions": {
+          "new": "Nouveau",
+          "contacted": "Contacté",
+          "in_discussion": "En discussion",
+          "proposal_sent": "Proposition envoyée",
+          "negotiation": "Négociation",
+          "closed_won": "Conclu",
+          "closed_lost": "Perdu"
+        },
+        "supportTypes": {
+          "financial": "Financier",
+          "technical": "Assistance technique",
+          "capacity_building": "Renforcement des capacités",
+          "advocacy": "Plaidoyer",
+          "research": "Collaboration de recherche"
+        },
+        "submit": {
+          "saving": "Enregistrement…",
+          "creating": "Création…",
+          "save": "Enregistrer les modifications",
+          "create": "Enregistrer le prospect",
+          "cancel": "Annuler",
+          "delete": "Supprimer"
+        },
+        "feedback": {
+          "saved": "Prospect de partenariat enregistré avec succès.",
+          "error": "Quelque chose s'est mal passé — veuillez réessayer.",
+          "deleteConfirm": "Supprimer ce prospect de partenariat ? Cette action est irréversible."
+        }
+      }
+    },
+    "collaborationLeads": {
+      "title": "Prospects de collaboration",
+      "subtitle": "Gérez les prospects de collaboration avec suivi de statut, attribution et suivi des résultats.",
+      "spotlightLabel": "Prospects de collaboration",
+      "spotlightTitle": "Gérer les opportunités de collaboration",
+      "spotlightBody": "Suivez les opportunités de collaboration potentielles avec des partenaires, gérez les discussions et surveillez la progression.",
+      "summary": {
+        "total": "Total des prospects",
+        "new": "Nouveau",
+        "inDiscussion": "En discussion",
+        "agreed": "Convenu"
+      },
+      "filters": {
+        "status": {
+          "all": "Tout",
+          "new": "Nouveau",
+          "contacted": "Contacté",
+          "inDiscussion": "En discussion",
+          "proposalSent": "Proposition envoyée",
+          "negotiation": "Négociation",
+          "agreed": "Convenu",
+          "declined": "Refusé"
+        },
+        "collabType": {
+          "all": "Tous les types",
+          "research": "Recherche",
+          "content": "Contenu",
+          "events": "Événements",
+          "training": "Formation",
+          "advocacy": "Plaidoyer",
+          "technical": "Assistance technique"
+        }
+      },
+      "actions": {
+        "addLead": "+ Ajouter un prospect",
+        "viewDetails": "Voir les détails",
+        "editLead": "Modifier le prospect",
+        "deleteLead": "Supprimer le prospect",
+        "search": "Rechercher",
+        "clearFilters": "Effacer les filtres",
+        "showingFiltered": "Affichage de {count} sur {total} prospects de collaboration"
+      },
+      "table": {
+        "headers": {
+          "organisation": "Organisation",
+          "contact": "Contact",
+          "type": "Type",
+          "proposal": "Proposition",
+          "status": "Statut",
+          "assigned": "Attribué",
+          "created": "Créé",
+          "actions": "Actions"
+        }
+      },
+      "messages": {
+        "saved": "Prospect de collaboration enregistré.",
+        "deleted": "Prospect de collaboration supprimé.",
+        "error": "Opération échouée. Veuillez réessayer.",
+        "emptyState": "Aucun prospect de collaboration trouvé. Ajoutez-en un pour commencer.",
+        "deleteConfirm": "Supprimer ce prospect de collaboration ? Cette action est irréversible."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "Nom de l'organisation",
+          "contactPerson": "Personne de contact",
+          "contactEmail": "E-mail de contact",
+          "collaborationType": "Type de collaboration",
+          "selectCollabType": "Sélectionner le type de collaboration",
+          "status": "Statut",
+          "proposalSummary": "Résumé de la proposition",
+          "assignedTo": "Attribué à (facultatif)",
+          "unassigned": "Non attribué"
+        },
+        "collabTypes": {
+          "research": "Recherche",
+          "content": "Contenu",
+          "events": "Événements",
+          "training": "Formation",
+          "advocacy": "Plaidoyer",
+          "technical": "Assistance technique"
+        },
+        "statusOptions": {
+          "new": "Nouveau",
+          "contacted": "Contacté",
+          "in_discussion": "En discussion",
+          "proposal_sent": "Proposition envoyée",
+          "negotiation": "Négociation",
+          "agreed": "Convenu",
+          "declined": "Refusé"
+        },
+        "submit": {
+          "saving": "Enregistrement…",
+          "creating": "Création…",
+          "save": "Enregistrer les modifications",
+          "create": "Enregistrer le prospect",
+          "cancel": "Annuler",
+          "delete": "Supprimer"
+        },
+        "feedback": {
+          "saved": "Prospect de collaboration enregistré avec succès.",
+          "error": "Quelque chose s'est mal passé — veuillez réessayer.",
+          "deleteConfirm": "Supprimer ce prospect de collaboration ? Cette action est irréversible."
+        }
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Rédigez et envoyez des annonces aux membres de la communauté.",
+      "newBroadcast": "Nouvelle annonce",
+      "history": "Historique des annonces",
+      "empty": "Aucune annonce envoyée.",
+      "sent": "Annonce envoyée avec succès.",
+      "error": "Échec de l'envoi. Veuillez réessayer.",
+      "missingFields": "L'objet et le message sont requis."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Vous êtes à jour",
+    "markAllRead": "Tout marquer comme lu",
+    "preferences": {
+      "title": "Préférences de notification",
+      "description": "Choisissez comment et quand PATNA vous notifie.",
+      "emailMentions": "M'envoyer un email lors d'une mention",
+      "emailMentionsHint": "Recevez un email quand quelqu'un vous @mentionne.",
+      "emailBroadcasts": "Annonces de la plateforme",
+      "emailBroadcastsHint": "Annonces importantes de l'équipe PATNA.",
+      "inappMentions": "Alertes de mention en app",
+      "inappMentionsHint": "Afficher un badge dans la cloche de notification.",
+      "activityDigest": "Résumé d'activité",
+      "activityDigestHint": "Résumé par email de l'activité dans vos espaces.",
+      "digestFrequency": "Fréquence du résumé",
+      "daily": "Quotidien",
+      "weekly": "Hebdomadaire",
+      "never": "Désactivé"
+    },
+    "types": {
+      "mention": "vous a mentionné dans",
+      "admin_broadcast": "Annonce",
+      "space_activity": "Nouvelle activité dans"
+    }
   }
 }

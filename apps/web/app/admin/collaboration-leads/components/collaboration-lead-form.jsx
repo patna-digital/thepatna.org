@@ -2,36 +2,60 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { parseOptionalText } from "@/lib/collaboration-leads";
 
-export default function CollaborationLeadForm({ action, redirectTo, notice }) {
+function SubmitButton({ isEdit }) {
   const { pending } = useFormStatus();
+  const t = useTranslations("admin.collaborationLeads.forms.submit");
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50 form-submit-btn"
+    >
+      {pending && <span className="form-submit-spinner" aria-hidden="true" />}
+      {pending ? (isEdit ? t("saving") : t("creating")) : isEdit ? t("save") : t("create")}
+    </button>
+  );
+}
+
+export function CollaborationLeadForm({ action, deleteAction, cancelHref = "/admin/collaboration-leads", lead, notice, adminUsers = [] }) {
+  const t = useTranslations("admin.collaborationLeads.forms");
+  const isEdit = Boolean(lead?.id);
   const [formData, setFormData] = useState({
-    organisation: "",
-    name: "",
-    email: "",
-    collaboration_type: "",
-    proposal: "",
-    status: "new",
-    assigned_to_user_id: "",
+    organisation: lead?.organisation || "",
+    name: lead?.name || "",
+    email: lead?.email || "",
+    collaboration_type: lead?.collaboration_type || "",
+    proposal: lead?.proposal || "",
+    status: lead?.status || "new",
+    assigned_to_user_id: lead?.assigned_to_user_id || "",
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
-
 
   return (
     <form action={action} className="space-y-6">
+      {isEdit && <input type="hidden" name="lead_id" value={lead.id} />}
+
+      {notice === "saved" && (
+        <div className="form-feedback-banner success" role="status">
+          ✓ {t("feedback.saved")}
+        </div>
+      )}
+      {notice === "error" && (
+        <div className="form-feedback-banner error" role="alert">
+          ✕ {t("feedback.error")}
+        </div>
+      )}
+
       <div>
         <label htmlFor="organisation" className="block text-sm font-medium mb-1">
-          Organisation Name
+          {t("labels.organisation")}
         </label>
         <input
           id="organisation"
@@ -46,7 +70,7 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
 
       <div>
         <label htmlFor="name" className="block text-sm font-medium mb-1">
-          Contact Person
+          {t("labels.contactPerson")}
         </label>
         <input
           id="name"
@@ -61,7 +85,7 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
 
       <div>
         <label htmlFor="email" className="block text-sm font-medium mb-1">
-          Contact Email
+          {t("labels.contactEmail")}
         </label>
         <input
           id="email"
@@ -77,7 +101,7 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="collaboration_type" className="block text-sm font-medium mb-1">
-            Collaboration Type
+            {t("labels.collaborationType")}
           </label>
           <select
             id="collaboration_type"
@@ -86,19 +110,19 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
             onChange={handleChange}
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
-            <option value="">Select collaboration type</option>
-            <option value="research">Research</option>
-            <option value="content">Content</option>
-            <option value="events">Events</option>
-            <option value="training">Training</option>
-            <option value="advocacy">Advocacy</option>
-            <option value="technical">Technical Assistance</option>
+            <option value="">{t("labels.selectCollabType")}</option>
+            <option value="research">{t("collabTypes.research")}</option>
+            <option value="content">{t("collabTypes.content")}</option>
+            <option value="events">{t("collabTypes.events")}</option>
+            <option value="training">{t("collabTypes.training")}</option>
+            <option value="advocacy">{t("collabTypes.advocacy")}</option>
+            <option value="technical">{t("collabTypes.technical")}</option>
           </select>
         </div>
 
         <div>
           <label htmlFor="status" className="block text-sm font-medium mb-1">
-            Status
+            {t("labels.status")}
           </label>
           <select
             id="status"
@@ -107,20 +131,20 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
             onChange={handleChange}
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="in_discussion">In Discussion</option>
-            <option value="proposal_sent">Proposal Sent</option>
-            <option value="negotiation">Negotiation</option>
-            <option value="agreed">Agreed</option>
-            <option value="declined">Declined</option>
+            <option value="new">{t("statusOptions.new")}</option>
+            <option value="contacted">{t("statusOptions.contacted")}</option>
+            <option value="in_discussion">{t("statusOptions.in_discussion")}</option>
+            <option value="proposal_sent">{t("statusOptions.proposal_sent")}</option>
+            <option value="negotiation">{t("statusOptions.negotiation")}</option>
+            <option value="agreed">{t("statusOptions.agreed")}</option>
+            <option value="declined">{t("statusOptions.declined")}</option>
           </select>
         </div>
       </div>
 
       <div>
         <label htmlFor="proposal" className="block text-sm font-medium mb-1">
-          Proposal Summary
+          {t("labels.proposalSummary")}
         </label>
         <textarea
           id="proposal"
@@ -135,7 +159,7 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="assigned_to_user_id" className="block text-sm font-medium mb-1">
-            Assigned To (Optional)
+            {t("labels.assignedTo")}
           </label>
           <select
             id="assigned_to_user_id"
@@ -144,33 +168,42 @@ export default function CollaborationLeadForm({ action, redirectTo, notice }) {
             onChange={handleChange}
             className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
           >
-            <option value="">Unassigned</option>
-            {/* Member options would be populated here */}
+            <option value="">{t("labels.unassigned")}</option>
+            {adminUsers.map((u) => (
+              <option key={u.user_id} value={u.user_id}>
+                {[u.first_name, u.surname].filter(Boolean).join(" ") || u.email}
+                {u.role_title ? ` · ${u.role_title}` : ""}
+              </option>
+            ))}
           </select>
         </div>
-
-        <div>
-          {/* Empty div for layout alignment */}
-        </div>
+        <div />
       </div>
 
       <div className="flex justify-end space-x-3">
-        <button
-          type="button"
-          onClick={() => window.history.back()}
-          disabled={pending}
-          className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50"
-        >
-          {pending ? "Saving..." : "Save Lead"}
-        </button>
+        <Link href={cancelHref} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+          {t("submit.cancel")}
+        </Link>
+        {isEdit && deleteAction && (
+          <form action={deleteAction} style={{ display: "inline" }}>
+            <input type="hidden" name="lead_id" value={lead.id} />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
+              onClick={(e) => {
+                if (!window.confirm(t("feedback.deleteConfirm"))) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              {t("submit.delete")}
+            </button>
+          </form>
+        )}
+        <SubmitButton isEdit={isEdit} />
       </div>
     </form>
   );
 }
+
+export default CollaborationLeadForm;

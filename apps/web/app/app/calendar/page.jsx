@@ -73,6 +73,7 @@ export default async function CalendarPage() {
     <MemberWorkspaceShell
       eyebrow={t("calendar.eyebrow")}
       headerActions={headerActions}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={t("calendar.subtitle")}
       title={t("calendar.title")}

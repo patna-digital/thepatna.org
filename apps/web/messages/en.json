@@ -8,7 +8,9 @@
     "publications": "Publications",
     "insights": "Insights",
     "workWithUs": "Work With Us",
-    "contact": "Contact"
+    "contact": "Contact",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu"
   },
   "auth": {
     "login": "Member Login",
@@ -30,7 +32,30 @@
   },
   "footer": {
     "privacy": "Privacy",
-    "terms": "Terms"
+    "terms": "Terms",
+    "brandFull": "Professional African Technical Network Advisory Initiative",
+    "tagline": "PATNA is Africa's technical and diplomatic institution building the evidence, capacity, and coalition strength for African countries to lead in global climate governance.",
+    "contactLine": "www.thepatna.org · contact@thepatna.org",
+    "copyright": "© {year} PATNA Initiative. All rights reserved. · contact@thepatna.org",
+    "colPlatform": "Platform",
+    "colCommunity": "Community",
+    "colEngage": "Engage",
+    "linkHome": "Home",
+    "linkAbout": "About PATNA",
+    "linkProjects": "Projects",
+    "linkInsights": "Insights",
+    "linkEvents": "Events",
+    "linkJoinPatna": "Join PATNA",
+    "linkMemberLogin": "Member Login",
+    "linkCohorts": "Cohorts",
+    "linkSpaces": "Community Spaces",
+    "linkWorkWithUs": "Work With Us",
+    "linkContact": "Contact",
+    "linkXTwitter": "X / Twitter",
+    "linkLinkedIn": "LinkedIn",
+    "linkInstagram": "Instagram",
+    "linkAdminLogin": "Admin Login",
+    "linkLegal": "Legal"
   },
   "nav_cross": {
     "navigateTo": "Navigate to",
@@ -47,7 +72,12 @@
   },
   "settings": {
     "languageTitle": "Language",
-    "languageDescription": "Choose the language for your PATNA workspace."
+    "languageDescription": "Choose the language for your PATNA workspace.",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "whatsVisible": "What's visible:"
   },
   "home": {
     "eyebrow": "African coordination for maritime decarbonisation and climate governance",
@@ -72,7 +102,7 @@
     "capabilityEvidenceTitle": "Evidence for negotiation and policy",
     "capabilityEvidenceBody": "PATNA translates complex technical questions into analysis, briefs, and decision-ready material grounded in African realities.",
     "capabilityConveningTitle": "Regional convening and alignment",
-    "capabilityConveningBody": "The network brings together policymakers, researchers, and practitioners to build stronger coordinated African positions.",
+    "capabilityConveningBody": "The network brings together policymakers, researchers, and practitioners for a Just energy transition and climate action.",
     "capabilityImplementationTitle": "Strategy linked to implementation",
     "capabilityImplementationBody": "PATNA connects global maritime decisions to port readiness, institutional planning, and long-term implementation pathways.",
     "metricExperts": "Specialists already collaborating through PATNA",
@@ -102,7 +132,76 @@
     "btnExploreCommunity": "Explore community",
     "btnStartApplication": "Start application",
     "btnPartner": "Explore partnership",
-    "btnContact": "Contact PATNA"
+    "btnContact": "Contact PATNA",
+    "heroEyebrow": "The PATNA Initiative",
+    "heroH1": "Where African expertise meets the world's most consequential climate & energy transition decisions.",
+    "heroDesc": "The PATNA Initiative is a non-profit network of 100+ experts across academia, policymaking, legal specialities, and technical professions working at the intersection of maritime governance, energy transition, and African development.",
+    "heroCtaPrimary": "Join Community →",
+    "heroCtaSecondary": "Work with Us",
+    "partnersMarqueeLabel": "Trusted by leading institutions across Africa and globally",
+    "valuePropLabel": "Why PATNA Exists",
+    "valuePropTitle": "Three pillars.",
+    "valuePropTitleEm": "One purpose.",
+    "valuePropSubtitle": "Africa's maritime climate future is decided in rooms where the continent has long been absent. PATNA was built to change that — permanently — through evidence, coordination, and expert advisory presence at every critical juncture.",
+    "pillar1Title": "Evidence",
+    "pillar1Body": "African positions must be grounded in African data, not extrapolated from models built for other economies. We produce technically rigorous, Africa-specific research: emissions inventories, economic impact modelling, port readiness studies, and policy briefs timed to the IMO and UNFCCC calendar.",
+    "pillar1Proof": "Research grounded in African data.",
+    "pillar2Title": "Coordination",
+    "pillar2Body": "Africa's 54 member states share common interests in equitable transition outcomes but historically arrive at international forums without aligned positions. PATNA convenes delegations, negotiators, and experts to build shared understanding and coordinated negotiating positions before sessions.",
+    "pillar2Proof": "Aligned positions, one voice.",
+    "pillar3Title": "Advisory",
+    "pillar3Body": "Regulatory complexity is a form of exclusion. PATNA translates the technical detail of frameworks like the NZF into actionable guidance for governments, industry, and civil society, closing the capacity gap between African delegations and their well-resourced counterparts.",
+    "pillar3Proof": "Complexity translated into action.",
+    "aboutLabel": "About PATNA",
+    "aboutH2": "One institution.",
+    "aboutH2Em": "One voice.",
+    "aboutVisionTag": "Vision",
+    "aboutVision": "To be Africa's renowned technical and diplomatic institution for maritime decarbonisation, energy transition, and climate governance through which the continent speaks with one voice, on its own terms, in every room where global rules are made.",
+    "aboutMissionTag": "Mission",
+    "aboutMission": "To generate, coordinate, and apply Africa-owned evidence and technical expertise, ensuring that African countries enter global maritime, energy transition, and climate negotiations with the research, capacity, and coalition strength to shape outcomes.",
+    "aboutStoryHeading": "Our Story",
+    "aboutStoryBody": "PATNA was built on a single, urgent conviction: that Africa must shape the global climate and energy rules that govern its economies, coastlines, and communities. Founded by African experts who recognised how little the continent's realities were reflected in IMO negotiations, PATNA has grown from a focused research initiative into a pan-African network of over 100 specialists bridging disciplines, languages, and regions of the continent. In April 2026, that work reached a landmark: the adoption of Africa's first Continental Strategy for the Decarbonisation of Maritime Transport, endorsed by ministers of African Union member states.",
+    "aboutLearnMore": "Learn more about PATNA →",
+    "statExperts": "member network",
+    "statStates": "countries",
+    "statCohorts": "expert cohorts",
+    "statLeap": "flagship programmes",
+    "cohortsLabel": "Expert Cohorts",
+    "cohortsH2": "Four professional cohorts.",
+    "cohortsH2Em": "One mission.",
+    "communityLabel": "Our Community",
+    "communityH2": "Experts shaping Africa's",
+    "communityH2Em": "energy future.",
+    "communityViewAll": "View all members →",
+    "communityDesc": "The PATNA community is structured around four professional cohorts, each bringing distinct expertise to the organisation's core mission. Members may hold dual cohort affiliations but identify one as primary.",
+    "cohort1Title": "Academics & Researchers",
+    "cohort1Desc": "Generating the evidence base that grounds African positions in rigorous, Africa-specific data and analysis.",
+    "cohort2Title": "Policy & Government",
+    "cohort2Desc": "Negotiators and advisers engaging IMO, AU, and national processes on behalf of African states.",
+    "cohort3Title": "Legal & Regulatory",
+    "cohort3Desc": "Maritime law specialists navigating MARPOL, LCA frameworks, UNCLOS, and international trade law.",
+    "cohort4Title": "Industry & Private Sector",
+    "cohort4Desc": "Shipowners, port operators, financiers, and energy companies implementing the maritime transition.",
+    "leapLabel": "Flagship Programme",
+    "leapH2": "The LEAP Project",
+    "leapH2Em": "Series",
+    "leapDesc": "Leading Effective Afrocentric Participation. Three phases. Over two years. One goal: ensuring Africa shapes the IMO's Net-Zero Framework rather than inheriting it.",
+    "leapStatusActive": "Active 2026",
+    "leapStatusComplete": "Complete",
+    "leapReadFullProject": "Read the full project →",
+    "pubsLabel": "Latest Insights",
+    "pubsH2": "Africa-grounded evidence for",
+    "pubsH2Em": "global decisions.",
+    "pubsDownload": "Download Report →",
+    "pubsBrowseAll": "Browse all publications",
+    "eventsLabel": "Calendar",
+    "eventsH2": "Upcoming events & convenings.",
+    "eventUpcoming": "Upcoming",
+    "eventsViewAll": "View all events",
+    "ctaTitle": "Ready to shape Africa's energy future?",
+    "ctaDesc": "Join a growing community of specialists, policymakers, researchers, and industry practitioners – collaborating across PATNA's four expert cohorts.",
+    "ctaPrimary": "Join Our Community →",
+    "ctaSecondary": "Work With Us"
   },
   "about": {
     "btnViewProjects": "View projects",
@@ -116,9 +215,9 @@
     "whoPara2": "Operating through a structured cohort model across academic, policy, industry, and civil society streams, PATNA serves as a trusted intermediary between world-class research institutions and African delegations — translating complex regulatory proposals into decision-ready briefings for national capitals and IMO negotiators.",
     "visionMission": "Vision and mission",
     "visionLabel": "Vision:",
-    "visionText": "To be the leading coalition of African technical experts advancing innovative, inclusive, and Africa-centred solutions for climate action and energy transition across interconnected systems.",
+    "visionText": "To be Africa's renowned technical and diplomatic institution for maritime decarbonisation, energy transition, and climate governance through which the continent speaks with one voice, on its own terms, in every room where global rules are made.",
     "missionLabel": "Mission:",
-    "missionText": "To amplify Africa's voice in global maritime decarbonisation through coordinated, evidence-based engagement — ensuring that international frameworks reflect Africa's realities, constraints, and aspirations.",
+    "missionText": "To generate, coordinate, and apply Africa-owned evidence and technical expertise, ensuring that African countries enter global maritime, energy transition, and climate negotiations with the research, capacity, and coalition strength to shape outcomes.",
     "coreValues": "Core values",
     "orgLabel": "How the network is organised",
     "orgTitle": "Four core constituencies shape PATNA's public community",
@@ -146,7 +245,38 @@
     "stratImperative3Body": "PATNA's Port Readiness and Implementation Pathway workstreams ensure African nations are active architects of projects and pipelines — from green port infrastructure to ZNZ fuel supply chains to workforce transition programmes.",
     "dataVisionLabel": "PATNA data vision",
     "dataVisionQuote": "We aim to make PATNA's three-pillar impact promise measurable and improvable — by building a governed community platform and knowledge system that makes our coordination visible, our evidence findable, and our policy influence traceable — so that Africa's participation in global energy transition and climate governance decisions demonstrably strengthens over successive process cycles.",
-    "dataVisionTagline": "Africa's energy transition, governed by evidence, improved by data, powered by human expertise."
+    "dataVisionTagline": "Africa's energy transition, governed by evidence, improved by data, powered by human expertise.",
+    "heroEyebrow": "About PATNA",
+    "heroH1": "Leading Africa's Just energy transition and inclusive climate governance",
+    "heroDesc": "The Professional African Technical Network Advisory (PATNA) Initiative is a non-profit organisation of more than 100 African technical experts, policymakers, researchers, and maritime professionals — enabling Africa to shape the rules of the global energy transition.",
+    "purposeLabel": "Purpose",
+    "mvH2": "Mission & Vision",
+    "missionItemLabel": "Mission",
+    "missionItemTitle": "Our mission",
+    "missionText1": "To strengthen Africa's agency in global energy transition and climate governance — by building the coordinated, evidence-based positions, the institutional networks, and the technical capacity that allow African states to participate as architects of international frameworks, not inheritors of them.",
+    "missionText2": "The PATNA Initiative exists because the gap between Africa's exposure to global climate rules and Africa's influence over them is not a natural condition. It is the consequence of under-investment in coordination, evidence, and advisory capacity. The PATNA Initiative closes that gap.",
+    "visionItemLabel": "Vision",
+    "visionItemTitle": "Our vision",
+    "visionText2": "A world in which Africa's participation in global energy transition and climate governance decisions demonstrably strengthens successively — where the technical capacity, coordinated positions, and institutional credibility that The PATNA Initiative builds are reflected in the language, mechanisms, and equity provisions of the frameworks that govern Africa's maritime and energy future.",
+    "storyLabel": "Our Story",
+    "storyH2": "From a bold intervention to a continental institution",
+    "storyNarrative1": "The PATNA Initiative was founded on a documented gap and a deliberate decision to close it.",
+    "storyNarrative2": "Africa faces a structural contradiction. It carries over 90% of its trade by sea and bears the first economic consequences of rising shipping costs. It also holds 60% of the world's prime solar resources and the technical potential to produce the zero-emission fuels that the global shipping fleet will need by 2050.",
+    "storyNarrative3": "The Net-Zero Framework being finalised at the IMO could impose an estimated 20% increase in African shipping costs by 2035 on nations from a continent that contributes less than 5% of global emissions. It could also unlock a green hydrogen and green ammonia export market worth hundreds of billions of dollars — if Africa's engagement is organised, evidence-backed, and diplomatically coordinated.",
+    "storyNarrative4": "PATNA was established because organised engagement does not happen by default. Without a convening of expertise, African data-driven evidence, and coordinated positions, Africa's 44 IMO member states remain individually present but collectively absent from the rooms where decisions are made.",
+    "storyNarrative5": "Across the LEAP series, PATNA has produced the continent's first national shipping emissions inventories; convened the first Africa Strategic Maritime Summit on Shipping Decarbonisation; co-organised the Dakar Workshop that produced the 15 Dakar Declarations; contributed to Africa's first continental maritime decarbonisation strategy; and contributed — through sustained technical advocacy — to the IMO's decisions on the NZF to allow informed guidelines that reflect Africa's realities, including just transition provisions.",
+    "govLabel": "Governance",
+    "govH2": "Leadership & Structure",
+    "govIntro": "The PATNA Initiative is a non-profit organisation registered in Monrovia, Liberia, with a presence in Seychelles and Mauritius. The organisation operates under a governance framework that provides strategic oversight, financial accountability, and institutional stewardship. It is governed by a Board of Directors and supported by a Secretariat and a research partnership with the UCL Energy Institute.",
+    "govBoard": "Board of Directors",
+    "govSecretariat": "Secretariat",
+    "partnersLabel": "Partners",
+    "partnersH2": "Institutional Partners",
+    "partnersDesc": "The PATNA Initiative works alongside leading international, regional, governmental, and academic institutions to advance Africa's position in global maritime governance and the energy transition.",
+    "ctaTitle": "Join the institutions shaping Africa's energy future.",
+    "ctaDesc": "The PATNA Initiative welcomes four kinds of engagement: funders and development partners with an interest in African maritime decarbonisation or just transition advocacy; governments and national delegations that need technical support, position preparation, or advisory capacity ahead of IMO or UNFCCC sessions; research and academic partners working on shipping decarbonisation, climate economics, or African development finance; and technical experts and practitioners ready to contribute to Africa's most active technical network on maritime governance.",
+    "ctaPrimary": "Work With Us →",
+    "ctaSecondary": "Join the Community"
   },
   "community": {
     "eyebrow": "PATNA Community",
@@ -169,10 +299,40 @@
     "structureTitle": "Board, secretariat, cohorts, and collaborative pathways",
     "structureSubtitle": "The PATNA community is more than a login surface. It is the public structure through which governance, coordination, and contribution happen.",
     "joinLabel": "Applications open",
-    "joinTitle": "Ready to shape Africa's maritime future?",
-    "joinPara": "Join more than 100 specialists already collaborating through PATNA's cohorts, convenings, and shared evidence work.",
+    "joinTitle": "Ready to contribute to Africa's maritime transition?",
+    "joinPara": "Join a network of over 100 experts, policymakers, and practitioners already shaping the continent's position in global climate governance.",
     "btnStartApplication": "Start application",
-    "btnMemberLogin": "Existing member login"
+    "btnMemberLogin": "Existing member login",
+    "heroEyebrow": "Expert Network",
+    "heroH1": "Africa's most connected maritime climate community",
+    "heroDesc": "100+ experts, policymakers, academics, and industry practitioners collaborating across African member states to ensure the continent shapes global climate decisions.",
+    "cohortProgrammeLabel": "Cohort Programme",
+    "cohortApplyLink": "Apply to join →",
+    "cohortStatusOpen": "Applications Open",
+    "cohortTag": "Cohort 4 · 2026 · 12-Month Programme",
+    "cohortTitle": "Cohort 4 — Climate Finance, Technology & Just Transition",
+    "cohortDesc": "PATNA's fourth expert cohort brings together specialists in climate finance instruments, clean propulsion technology, and just transition policy.",
+    "cohortFeature1": "Full platform access and research library",
+    "cohortFeature2": "Monthly expert sessions and IMO simulations",
+    "cohortFeature3": "Direct engagement in PATNA evidence production",
+    "cohortFeature4": "Delegation support at MEPC and UNFCCC sessions",
+    "cohortMeta": "25 members · Monthly sessions · Open disciplines",
+    "cohortCta": "Apply for Cohort 4 →",
+    "trackOngoing": "Track · Ongoing",
+    "track1Title": "Academic & Research Network",
+    "track1Meta": "Researchers from African universities and institutes working on maritime energy transition, climate policy, and trade economics.",
+    "track2Title": "Policy & Government Track",
+    "track2Meta": "Ministry officials, maritime authority staff, and government advisors engaged in international climate negotiations.",
+    "track3Title": "Industry & Practitioners",
+    "track3Meta": "Shipowners, port operators, maritime lawyers, and professionals with a stake in Africa's maritime transition.",
+    "networkLabel": "Network Snapshot",
+    "networkH2": "Meet the experts",
+    "networkViewDir": "Member directory →",
+    "memberFallback": "PATNA member",
+    "ctaTitle": "Your expertise belongs in these rooms.",
+    "ctaDesc": "Apply to join PATNA's next cohort or become a community member. Africa's positions at the IMO and beyond are built by the people in this network.",
+    "ctaPrimary": "Apply to Join →",
+    "ctaSecondary": "Commission PATNA"
   },
   "workWithUs": {
     "label": "Work With Us",
@@ -182,7 +342,40 @@
     "pathwaysTitle": "Choose the route that best matches the work you want to advance",
     "pathwaysSubtitle": "Whether you need technical support, want to explore a partnership, or have an idea for joint work, PATNA starts with a focused conversation grounded in clear public priorities.",
     "btnOpenPathway": "Open pathway",
-    "note": "First-contact enquiries are currently handled directly by email so the PATNA team can respond quickly and route each conversation appropriately."
+    "note": "First-contact enquiries are currently handled directly by email so the PATNA team can respond quickly and route each conversation appropriately.",
+    "heroEyebrow": "Advisory & Partnerships",
+    "heroH1": "Four routes to engage PATNA",
+    "heroDesc": "Whether you want to fund, commission, collaborate, or simply ask a question — choose the route that fits your context and we will get you to the right conversation quickly.",
+    "pathwaysSectionLabel": "How to engage",
+    "pathwaysH2": "Choose the route that fits your need",
+    "contactTag": "General · Enquiry",
+    "contactTitle": "Get in Touch",
+    "contactAudience": "For everyone else",
+    "contactDesc": "Not sure which route fits? Send a general message to the PATNA team and we will point you in the right direction. We typically respond within two working days.",
+    "contactItem1": "Media and press enquiries",
+    "contactItem2": "Speaking invitations and event appearances",
+    "contactItem3": "Academic citations and reprint permissions",
+    "contactItem4": "Any other question or introduction",
+    "contactCta": "Send a message",
+    "pathway1Tag": "Funding · Institutional",
+    "pathway1Title": "Explore Partnership",
+    "pathway1Audience": "For funders, institutions, and strategic partners",
+    "pathway1Desc": "Introduce your organisation and areas of shared interest. PATNA routes partnership conversations directly to the right programme or leadership contact.",
+    "pathway1Cta": "Start a partnership enquiry →",
+    "pathway2Tag": "Technical · Advisory",
+    "pathway2Title": "Request Support",
+    "pathway2Audience": "For policymakers, negotiators, and public institutions",
+    "pathway2Desc": "Use this route if your institution needs a briefing, technical analysis, convening design, or coordination input ahead of a decision moment.",
+    "pathway2Cta": "Submit a support request →",
+    "pathway3Tag": "Research · Co-creation",
+    "pathway3Title": "Collaborate",
+    "pathway3Audience": "For researchers, academics, and peer organisations",
+    "pathway3Desc": "Propose a joint initiative — a workshop, research partnership, pilot, or co-authored output. PATNA's team will review and respond to discuss fit and next steps.",
+    "pathway3Cta": "Send a collaboration proposal →",
+    "ctaTitle": "Want to join the PATNA community?",
+    "ctaDesc": "The community application route is separate — for African experts, policymakers, and practitioners who want to participate in PATNA's network.",
+    "ctaPrimary": "Apply to join →",
+    "ctaSecondary": "Learn about PATNA"
   },
   "contact": {
     "label": "Contact",
@@ -196,7 +389,11 @@
     "bestWaysTitle": "Best ways to connect",
     "bestWaysIntro": "The fastest route is direct contact by email or phone.",
     "btnEmail": "Email PATNA",
-    "btnCall": "Call PATNA"
+    "btnCall": "Call PATNA",
+    "formTitle": "Send a message",
+    "formSubtitle": "Not sure which route to use? Send a general message and the PATNA team will direct you to the right conversation. For partnership, support, or collaboration enquiries, use the",
+    "formSubtitleLink": "Work With Us",
+    "formSubtitleSuffix": "pathways."
   },
   "projects": {
     "label": "Project Archive · 2023 – 2026",
@@ -208,7 +405,7 @@
     "readProjectPage": "Read project page",
     "flagshipLabel": "Flagship Programmes",
     "flagshipTitle": "The LEAP project series",
-    "flagshipSubtitle": "Foundational multi-phase programmes that built the evidence base, negotiation capacity, and institutional architecture underpinning African engagement at the IMO.",
+    "flagshipSubtitle": "PATNA's flagship programme builds Africa's technical and diplomatic capacity to shape the global rules governing shipping and energy transition, from IMO Net-Zero negotiations to international climate finance mechanisms. Now in its third phase.",
     "conveningLabel": "Regional Convenings",
     "conveningTitle": "Summits, workshops, and diplomatic forums",
     "conveningSubtitle": "High-level gatherings that translate technical evidence into coordinated African positions — and build the relationships that make collective action possible.",
@@ -217,7 +414,30 @@
     "ctaTitle": "Engage with PATNA's project work",
     "ctaSubtitle": "Collaborate, contribute evidence, or support the next phase of Africa-centred maritime climate research.",
     "ctaJoin": "Join the community",
-    "ctaPartner": "Explore partnership"
+    "ctaPartner": "Explore partnership",
+    "heroEyebrow": "Flagship Programme",
+    "heroH1": "The LEAP Project Series",
+    "heroDesc": "Leading Effective Afrocentric Participation — Africa's most sustained, evidence-driven effort to shape the IMO's Net-Zero Framework, spanning three phases from 2024 to 2026.",
+    "featuredActiveLabel": "Active Project",
+    "featuredFlagshipLabel": "Flagship Project",
+    "viewAllWork": "View all work →",
+    "readMore": "Read more →",
+    "aucStudyTag": "AUC Study · March 2026",
+    "aucStudyTitle": "Africa's Continental Maritime Decarbonisation Strategy",
+    "aucStudyMeta": "Commissioned by the African Union Commission · PATNA Lead Technical Consultant",
+    "conveningsLabel": "Regional Convenings",
+    "conveningsH2": "Workshops, summits & delegations",
+    "conveningsDesc": "High-impact events that build African coordination capacity and deliver unified positions at international forums.",
+    "timelineLabel": "Journey",
+    "timelineH2": "Programme timeline",
+    "timelineDesc": "A three-phase journey from foundational country analysis to a permanent African coordination platform.",
+    "footprintLabel": "Reach",
+    "footprintH2": "Continental footprint across the LEAP series",
+    "footprintDesc": "Evidence production, diplomatic alignment, and programme delivery now touch a widening set of African maritime states.",
+    "ctaBandTitle": "Work with Africa's leading maritime climate network.",
+    "ctaBandDesc": "Commission a study, sponsor a cohort, or commission PATNA as your technical consultant for IMO and AU fora engagement.",
+    "ctaBandPrimary": "Partner with PATNA →",
+    "ctaBandSecondary": "Explore Our Research"
   },
   "events": {
     "label": "Events",
@@ -248,7 +468,25 @@
     "emptyTitle": "No PATNA convenings published yet",
     "emptyText": "The PATNA event archive will appear here as soon as public records are available.",
     "coverageLabel": "Open PATNA coverage",
-    "officialPage": "Official event page"
+    "officialPage": "Official event page",
+    "heroEyebrow": "Policy Calendar",
+    "heroH1": "Events & Convenings",
+    "heroDesc": "Summits, IMO sessions, workshops, and member briefings — the moments where Africa's coordinated position is delivered and where the rules are made.",
+    "featuredLabel": "Next Major Event",
+    "viewAllEvents": "View all events →",
+    "dateTbc": "Date TBC",
+    "officialPageShort": "Official page →",
+    "upcomingEventsLabel": "On the Calendar",
+    "upcomingEventsH2": "Upcoming events",
+    "upcomingEventsDesc": "IMO negotiating sessions, continental summits, capacity-building workshops, and regional convenings.",
+    "archiveEventsLabel": "Archive",
+    "archiveEventsH2": "All events & past sessions",
+    "archiveEventsDesc": "A full record of PATNA's participation across international forums, regional workshops, and policy convenings.",
+    "searchResultsCount": "{count} results",
+    "ctaTitle": "Never miss a critical negotiation.",
+    "ctaDesc": "PATNA members receive pre-session briefings, delegation access, and post-session analysis for every major IMO, UNFCCC, and AU meeting.",
+    "ctaPrimary": "Join the Community →",
+    "ctaSecondary": "Work With Us"
   },
   "publications": {
     "label": "Publications",
@@ -275,13 +513,28 @@
   },
   "insights": {
     "label": "Insights",
-    "subtitle": "Reports, commentary, and technical outputs from PATNA's public archive.",
-    "title": "Insights and evidence from PATNA's work",
+    "subtitle": "Research reports, policy briefs, session analyses, and technical publications — PATNA's full knowledge output from across Africa's maritime decarbonisation journey.",
+    "title": "Research reports, policy briefs, session analyses, and technical outputs from PATNA",
     "latestLabel": "Latest from PATNA",
     "latestTitle": "Reports, articles, and event outputs",
     "latestSubtitle": "Browse recent PATNA publications, commentary, and technical outputs from the live archive.",
     "emptyTitle": "No insights published yet",
-    "emptyText": "Public reports and articles will appear here as soon as published records are available."
+    "emptyText": "Public reports and articles will appear here as soon as published records are available.",
+    "heroEyebrow": "Knowledge & Research",
+    "heroH1": "Africa-grounded intelligence",
+    "heroDesc": "Meeting reports, policy briefs, and technical analyses timed to every major IMO and UNFCCC session — ensuring African delegations are never without the evidence they need.",
+    "featuredLabel": "Latest Publication",
+    "viewAllPubs": "View all publications →",
+    "readMore": "Read more →",
+    "pubsGridLabel": "All Publications",
+    "pubsGridH2": "Reports, briefs & analyses",
+    "pubsGridDesc": "Evidence produced by PATNA's expert network and partners — freely available to researchers, policymakers, and practitioners.",
+    "emptyH3": "No publications yet",
+    "emptyDesc": "Check back soon — PATNA's latest research is being prepared for release.",
+    "ctaTitle": "Get PATNA intelligence in your inbox.",
+    "ctaDesc": "Member briefings, rapid-response analyses, and session reports — delivered before every major IMO and UNFCCC meeting.",
+    "ctaPrimary": "Join the Community →",
+    "ctaSecondary": "Work With Us"
   },
   "dashboard": {
     "eyebrow": "Community workspace",
@@ -640,7 +893,8 @@
         "saved": "Service request saved.",
         "deleted": "Service request deleted.",
         "error": "Operation failed. Please retry.",
-        "emptyState": "No service requests found. Add one to get started."
+        "emptyState": "No service requests found. Add one to get started.",
+        "deleteConfirm": "Delete this service request? This cannot be undone."
       }
     },
     "partnershipLeads": {
@@ -694,6 +948,7 @@
           "status": "Status",
           "assigned": "Assigned",
           "value": "Value",
+          "created": "Created",
           "actions": "Actions"
         }
       },
@@ -701,7 +956,62 @@
         "saved": "Partnership lead saved.",
         "deleted": "Partnership lead deleted.",
         "error": "Operation failed. Please retry.",
-        "emptyState": "No partnership leads found. Add one to get started."
+        "emptyState": "No partnership leads found. Add one to get started.",
+        "deleteConfirm": "Delete this partnership lead? This cannot be undone."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "Organisation Name",
+          "contactPerson": "Contact Person",
+          "contactEmail": "Contact Email",
+          "orgType": "Organisation Type",
+          "selectOrgType": "Select organisation type",
+          "focusAreas": "Focus Areas",
+          "budgetRange": "Budget Range (Optional)",
+          "successDefinition": "Success Definition (Optional)",
+          "supportType": "Support Type (Optional)",
+          "selectSupportType": "Select support type",
+          "status": "Status",
+          "assignedTo": "Assigned To (Optional)",
+          "unassigned": "Unassigned"
+        },
+        "orgTypes": {
+          "ngo": "NGO/Non-profit",
+          "government": "Government",
+          "academic": "Academic/Research",
+          "private": "Private Sector",
+          "foundation": "Foundation",
+          "multilateral": "Multilateral"
+        },
+        "statusOptions": {
+          "new": "New",
+          "contacted": "Contacted",
+          "in_discussion": "In Discussion",
+          "proposal_sent": "Proposal Sent",
+          "negotiation": "Negotiation",
+          "closed_won": "Closed Won",
+          "closed_lost": "Closed Lost"
+        },
+        "supportTypes": {
+          "financial": "Financial",
+          "technical": "Technical Assistance",
+          "capacity_building": "Capacity Building",
+          "advocacy": "Advocacy Support",
+          "research": "Research Collaboration"
+        },
+        "submit": {
+          "saving": "Saving…",
+          "creating": "Creating…",
+          "save": "Save Changes",
+          "create": "Save Lead",
+          "cancel": "Cancel",
+          "delete": "Delete"
+        },
+        "feedback": {
+          "saved": "Partnership lead saved successfully.",
+          "error": "Something went wrong — please try again.",
+          "deleteConfirm": "Delete this partnership lead? This cannot be undone."
+        }
       }
     },
     "collaborationLeads": {
@@ -754,6 +1064,7 @@
           "proposal": "Proposal",
           "status": "Status",
           "assigned": "Assigned",
+          "created": "Created",
           "actions": "Actions"
         }
       },
@@ -761,8 +1072,259 @@
         "saved": "Collaboration lead saved.",
         "deleted": "Collaboration lead deleted.",
         "error": "Operation failed. Please retry.",
-        "emptyState": "No collaboration leads found. Add one to get started."
+        "emptyState": "No collaboration leads found. Add one to get started.",
+        "deleteConfirm": "Delete this collaboration lead? This cannot be undone."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "Organisation Name",
+          "contactPerson": "Contact Person",
+          "contactEmail": "Contact Email",
+          "collaborationType": "Collaboration Type",
+          "selectCollabType": "Select collaboration type",
+          "status": "Status",
+          "proposalSummary": "Proposal Summary",
+          "assignedTo": "Assigned To (Optional)",
+          "unassigned": "Unassigned"
+        },
+        "collabTypes": {
+          "research": "Research",
+          "content": "Content",
+          "events": "Events",
+          "training": "Training",
+          "advocacy": "Advocacy",
+          "technical": "Technical Assistance"
+        },
+        "statusOptions": {
+          "new": "New",
+          "contacted": "Contacted",
+          "in_discussion": "In Discussion",
+          "proposal_sent": "Proposal Sent",
+          "negotiation": "Negotiation",
+          "agreed": "Agreed",
+          "declined": "Declined"
+        },
+        "submit": {
+          "saving": "Saving…",
+          "creating": "Creating…",
+          "save": "Save Changes",
+          "create": "Save Lead",
+          "cancel": "Cancel",
+          "delete": "Delete"
+        },
+        "feedback": {
+          "saved": "Collaboration lead saved successfully.",
+          "error": "Something went wrong — please try again.",
+          "deleteConfirm": "Delete this collaboration lead? This cannot be undone."
+        }
       }
+    },
+    "leads": {
+      "title": "Leads",
+      "subtitle": "All inbound service requests, partnership enquiries, and collaboration proposals.",
+      "eyebrow": "Partnerships",
+      "breadcrumb": {
+        "parent": "Partnerships",
+        "self": "Leads"
+      },
+      "stats": {
+        "total": "Total",
+        "new": "New",
+        "awaitingReview": "Awaiting review",
+        "service": "Service",
+        "partnershipCollab": "Partnership / Collab"
+      },
+      "sources": {
+        "all": "All",
+        "service": "Service",
+        "partnership": "Partnership",
+        "collaboration": "Collaboration"
+      },
+      "statuses": {
+        "new": "New",
+        "in_review": "In Review",
+        "in_progress": "In Progress",
+        "review": "Under Review",
+        "active": "Active",
+        "closed": "Closed",
+        "contacted": "Contacted",
+        "in_discussion": "In Discussion",
+        "proposal_sent": "Proposal Sent",
+        "negotiation": "Negotiation",
+        "agreed": "Agreed",
+        "closed_won": "Won",
+        "completed": "Completed",
+        "declined": "Declined",
+        "closed_lost": "Lost",
+        "cancelled": "Cancelled"
+      },
+      "categories": {
+        "technical": "Technical",
+        "research": "Research",
+        "content": "Content",
+        "events": "Events",
+        "partnership": "Partnership",
+        "training": "Training",
+        "ngo": "NGO",
+        "government": "Government",
+        "academic": "Academic",
+        "private": "Private",
+        "foundation": "Foundation",
+        "multilateral": "Multilateral",
+        "advocacy": "Advocacy"
+      },
+      "toolbar": {
+        "searchPlaceholder": "Search by name, org, email…",
+        "searchButton": "Search",
+        "addService": "+ Service request",
+        "addPartnership": "+ Partnership",
+        "addCollaboration": "+ Collaboration"
+      },
+      "notices": {
+        "deleted": "Lead deleted successfully.",
+        "error": "Something went wrong. Please try again.",
+        "loadError": "Failed to load some leads. Please reload."
+      },
+      "showingFiltered": "Showing {filtered} of {total} leads.",
+      "clearFilters": "Clear filters",
+      "noResults": "No leads match the current filters.",
+      "tableHeaders": {
+        "type": "Type",
+        "contact": "Contact person",
+        "organisation": "Organisation",
+        "category": "Category",
+        "status": "Status",
+        "submitted": "Submitted"
+      },
+      "viewLink": "View →"
+    },
+    "partners": {
+      "title": "Partners",
+      "subtitle": "All confirmed partnerships. Use tabs to filter by pathway.",
+      "eyebrow": "Partnerships",
+      "breadcrumb": {
+        "parent": "Partnerships",
+        "self": "Partners"
+      },
+      "spotlight": {
+        "label": "Partner registry",
+        "title": "Institutional partners, collaborators & service clients",
+        "body": "Manage confirmed partnerships, track contacts, and update partnership profiles."
+      },
+      "stats": {
+        "active": "Active",
+        "prospect": "Prospect",
+        "inactive": "Inactive",
+        "featured": "Featured",
+        "shownOnHome": "Shown on home page"
+      },
+      "tabs": {
+        "all": "All partners",
+        "partnership": "Institutional",
+        "collaboration": "Research / Collaboration",
+        "service": "Service"
+      },
+      "pathwayLabels": {
+        "partnership": "Institutional",
+        "collaboration": "Research",
+        "service": "Service"
+      },
+      "addPartner": "+ Add partner",
+      "addPartnerAction": "Add partner",
+      "featured": "★ Featured",
+      "notices": {
+        "saved": "Partner saved successfully.",
+        "deleted": "Partner deleted.",
+        "error": "Something went wrong. Please try again.",
+        "contactSaved": "Contact saved.",
+        "contactDeleted": "Contact removed."
+      },
+      "emptyState": {
+        "title": "No partners found.",
+        "text": "Add your first partner or adjust the pathway filter."
+      }
+    },
+    "website": {
+      "title": "Website",
+      "subtitle": "Control how content appears on the public-facing website.",
+      "eyebrow": "Tools",
+      "breadcrumb": {
+        "parent": "Tools",
+        "self": "Website"
+      },
+      "dbMissing": {
+        "title": "Database setup required:",
+        "text": "the site_settings table is missing. Run migration 0052_site_settings.sql in Supabase, then reload."
+      },
+      "communitySnapshot": {
+        "title": "Community snapshot",
+        "description": "Choose which members appear in \"Our Community\" on the home page.",
+        "modeAuto": "Auto (most recent)",
+        "modeCustom": "{count} selected"
+      },
+      "featuredPartners": {
+        "title": "Featured partners",
+        "description": "Select which partners are highlighted on the home page.",
+        "summary": "{count} featured"
+      },
+      "people": {
+        "title": "People",
+        "description": "Board of Directors, Secretariat, and Research Contributors shown on the About page.",
+        "summary": "{visible} visible · {total} total"
+      },
+      "sectionLabels": {
+        "board": "Board of Directors",
+        "secretariat": "Secretariat",
+        "research": "Research Contributors"
+      }
+    },
+    "shell": {
+      "sidebarCopy": "Secure coordination spaces for cohort work, knowledge exchange, and review workflows.",
+      "spotlightFallbackLabel": "Workspace",
+      "spotlightFallbackTitle": "Community platform in motion",
+      "spotlightFallbackBody": "The workspace is organised for coordination, review, and evidence-led action across PATNA."
+    },
+    "navGroups": {
+      "core": "Core",
+      "community": "Community",
+      "partnerships": "Partnerships",
+      "tools": "Tools"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Compose and send announcements to community members.",
+      "newBroadcast": "New broadcast",
+      "history": "Broadcast history",
+      "empty": "No broadcasts sent yet.",
+      "sent": "Broadcast sent successfully.",
+      "error": "Failed to send broadcast. Please try again.",
+      "missingFields": "Subject and message are required."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "You're all caught up",
+    "markAllRead": "Mark all read",
+    "preferences": {
+      "title": "Notification preferences",
+      "description": "Choose how and when PATNA notifies you.",
+      "emailMentions": "Email me when mentioned",
+      "emailMentionsHint": "Receive an email when someone @mentions you in a thread.",
+      "emailBroadcasts": "Platform announcements",
+      "emailBroadcastsHint": "Important platform-wide announcements from the PATNA team.",
+      "inappMentions": "In-app mention alerts",
+      "inappMentionsHint": "Show a badge in the notification bell when you are mentioned.",
+      "activityDigest": "Activity digest",
+      "activityDigestHint": "Email summary of activity in your spaces.",
+      "digestFrequency": "Digest frequency",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "never": "Off"
+    },
+    "types": {
+      "mention": "mentioned you in",
+      "admin_broadcast": "Announcement",
+      "space_activity": "New activity in"
     }
   }
 }

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { LanguageSelector } from "@/components/language-selector";
 import { SignOutButton } from "@/components/sign-out-button";
+import { NotificationBell } from "@/components/notification-bell";
 import { memberNav } from "@/lib/patna-data";
 
 const MEMBER_ICON_MAP = {
@@ -43,6 +44,7 @@ export function MemberWorkspaceShell({
   headerActions = null,
   sidebarUser = null,
   rightRail = null,
+  notificationUserId = null,
   children,
   navItems = memberNav,
 }) {
@@ -88,6 +90,9 @@ export function MemberWorkspaceShell({
         <span className="mob-topbar-brand">PATNA Community</span>
         <div className="mob-topbar-controls">
           <LanguageSelector variant="compact" />
+          {notificationUserId && (
+            <NotificationBell userId={notificationUserId} />
+          )}
           <button
             aria-controls="member-sidebar"
             aria-expanded={sidebarOpen}
@@ -207,6 +212,11 @@ export function MemberWorkspaceShell({
       {/* ── Main content ────────────────────────────────────────────────── */}
       <main className="member-workspace-main">
         <div className="member-workspace-main-inner">
+          {notificationUserId && (
+            <div className="member-page-top-bell" aria-label="Notification controls">
+              <NotificationBell userId={notificationUserId} />
+            </div>
+          )}
           <header className="member-workspace-header">
             <div className="member-workspace-header-copy">
               {dateLabel ? <div className="member-workspace-date">{dateLabel}</div> : null}

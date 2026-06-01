@@ -1,28 +1,47 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 
-export function AdminPartnershipLeadsList({ partnershipLeads }) {
+export function AdminPartnershipLeadsList({ partnershipLeads, deleteAction, sortBy = "created_at", sortDir = "desc" }) {
+  const t = useTranslations("admin.partnershipLeads");
+  const locale = useLocale();
+
+  function formatDate(value) {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
+  }
+
   if (partnershipLeads.length === 0) {
-    return (
-      <p className="empty-state">
-        No partnership leads found.
-      </p>
-    );
+    return <p className="empty-state">{t("messages.emptyState")}</p>;
+  }
+
+  function sortLink(col) {
+    const newDir = sortBy === col && sortDir === "asc" ? "desc" : "asc";
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    params.set("sortBy", col);
+    params.set("sortDir", newDir);
+    return `?${params.toString()}`;
+  }
+
+  function sortIndicator(col) {
+    if (sortBy !== col) return null;
+    return sortDir === "asc" ? " ↑" : " ↓";
   }
 
   return (
     <table className="data-table">
       <thead>
         <tr>
-          <th>Organisation</th>
-          <th>Contact</th>
-          <th>Type</th>
-          <th>Focus Areas</th>
-          <th>Status</th>
-          <th>Assigned To</th>
-          <th>Value</th>
-          <th>Actions</th>
+          <th><Link href={sortLink("organisation")} className="sort-header">{t("table.headers.organisation")}{sortIndicator("organisation")}</Link></th>
+          <th>{t("table.headers.contact")}</th>
+          <th><Link href={sortLink("org_type")} className="sort-header">{t("table.headers.type")}{sortIndicator("org_type")}</Link></th>
+          <th>{t("table.headers.focusAreas")}</th>
+          <th><Link href={sortLink("status")} className="sort-header">{t("table.headers.status")}{sortIndicator("status")}</Link></th>
+          <th>{t("table.headers.assigned")}</th>
+          <th>{t("table.headers.value")}</th>
+          <th><Link href={sortLink("created_at")} className="sort-header">{t("table.headers.created")}{sortIndicator("created_at")}</Link></th>
+          <th>{t("table.headers.actions")}</th>
         </tr>
       </thead>
       <tbody>
@@ -58,42 +77,29 @@ export function AdminPartnershipLeadsList({ partnershipLeads }) {
                 "-"
               )}
             </td>
-            <td>
-              {lead.budget_range ? (
-                <span className="budget-range">{lead.budget_range}</span>
-              ) : (
-                "-"
-              )}
-            </td>
+            <td>{lead.budget_range ? <span className="budget-range">{lead.budget_range}</span> : "-"}</td>
+            <td>{formatDate(lead.created_at)}</td>
             <td className="actions-cell">
               <div className="action-buttons">
-                <Link
-                  href={`/admin/partnership-leads/${lead.id}`}
-                  className="icon-button"
-                  title="View details"
-                >
-                  👁️
-                </Link>
-                <Link
-                  href={`/admin/partnership-leads/${lead.id}/edit`}
-                  className="icon-button"
-                  title="Edit lead"
-                >
-                  ✏️
-                </Link>
-                <form
-                  action={"/admin/partnership-leads"}
-                  method="POST"
-                  style={{ display: "inline" }}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                  }}
-                >
-                  <input type="hidden" name="lead_id" value={lead.id} />
-                  <button type="submit" className="icon-button" title="Delete lead">
-                    🗑️
-                  </button>
-                </form>
+                <Link href={`/admin/partnership-leads/${lead.id}`} className="icon-button" title={t("actions.viewDetails")}>👁️</Link>
+                <Link href={`/admin/partnership-leads/${lead.id}/edit`} className="icon-button" title={t("actions.editLead")}>✏️</Link>
+                {deleteAction && (
+                  <form action={deleteAction} style={{ display: "inline" }}>
+                    <input type="hidden" name="lead_id" value={lead.id} />
+                    <button
+                      type="submit"
+                      className="icon-button"
+                      title={t("actions.deleteLead")}
+                      onClick={(e) => {
+                        if (!window.confirm(t("messages.deleteConfirm"))) {
+                          e.preventDefault();
+                        }
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </form>
+                )}
               </div>
             </td>
           </tr>

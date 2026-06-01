@@ -3,6 +3,9 @@
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireSuperAdminContext } from "@/lib/supabase/access";
+import { sendEmail } from "@/lib/email/resend";
+import { adminWelcomeEmailHtml } from "@/lib/email/templates/admin-welcome";
+import { getSiteUrl } from "@/lib/env";
 
 export async function grantAdminRoleAction(formData) {
   const { user } = await requireSuperAdminContext();
@@ -49,6 +52,33 @@ export async function grantAdminRoleAction(formData) {
 
   if (insertError) {
     redirect("/admin/admins?notice=error");
+  }
+
+  // Fetch granter profile for the welcome email
+  const { data: granter } = await adminClient
+    .from("profiles")
+    .select("first_name, surname")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const recipientName = [profile.first_name, profile.surname].filter(Boolean).join(" ") || profile.email;
+  const granterName = granter
+    ? [granter.first_name, granter.surname].filter(Boolean).join(" ") || "A super admin"
+    : "A super admin";
+
+  // Send welcome email (non-fatal)
+  try {
+    await sendEmail({
+      to: profile.email,
+      subject: "You have been granted admin access to PATNA",
+      html: adminWelcomeEmailHtml({
+        recipientName,
+        granterName,
+        adminLink: `${getSiteUrl()}/admin`,
+      }),
+    });
+  } catch (emailError) {
+    console.error("grantAdminRoleAction welcome email error:", emailError);
   }
 
   redirect("/admin/admins?notice=granted");

@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { Fragment } from "react";
+import { getTranslations } from "next-intl/server";
 import { SectionIntro } from "@/components/section-intro";
 import {
-  homeStats,
-  homePillars,
   leapPhases,
   homePublications,
   partnerNames,
@@ -23,16 +21,38 @@ async function fetchCommunitySnapshot() {
   try {
     const adminClient = createSupabaseAdminClient();
 
-    const { data: profiles, error } = await adminClient
+    // Check admin-configured featured members
+    const { data: settingRow } = await adminClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "home_featured_members")
+      .single();
+
+    const setting = settingRow?.value || { mode: "default", member_ids: [] };
+    const useCustom = setting.mode === "custom" && setting.member_ids?.length > 0;
+
+    let profilesQuery = adminClient
       .from("profiles")
       .select("id, first_name, surname, title, role_title, organisation_name, country_of_residence, country_code")
       .eq("onboarding_status", "active")
-      .eq("profile_status", "active")
-      .limit(12);
+      .eq("profile_status", "active");
+
+    if (useCustom) {
+      profilesQuery = profilesQuery.in("id", setting.member_ids);
+    } else {
+      profilesQuery = profilesQuery.limit(12);
+    }
+
+    const { data: profiles, error } = await profilesQuery;
 
     if (error || !profiles?.length) return [];
 
-    const userIds = profiles.map((p) => p.id);
+    // Preserve admin-specified order when in custom mode
+    const orderedProfiles = useCustom
+      ? setting.member_ids.map((id) => profiles.find((p) => p.id === id)).filter(Boolean)
+      : profiles;
+
+    const userIds = orderedProfiles.map((p) => p.id);
 
     const [cohortResult, headshotResult] = await Promise.all([
       adminClient
@@ -53,7 +73,7 @@ async function fetchCommunitySnapshot() {
       (headshotResult.data || []).map((row) => [row.user_id, row.headshot_url || ""])
     );
 
-    return profiles.slice(0, 8).map((p) => ({
+    return orderedProfiles.slice(0, 8).map((p) => ({
       id: p.id,
       name: [p.title, p.first_name, p.surname].filter(Boolean).join(" ") || "PATNA Member",
       role: p.role_title || "",
@@ -73,7 +93,8 @@ function getInitials(name) {
 }
 
 export default async function HomePage() {
-  const [events, communityMembers] = await Promise.all([
+  const [t, events, communityMembers] = await Promise.all([
+    getTranslations(),
     fetchPublicEvents({ limit: 3 }),
     fetchCommunitySnapshot(),
   ]);
@@ -85,7 +106,7 @@ export default async function HomePage() {
         <div className="hero-video-wrap" aria-hidden="true">
           <video
             className="hero-video-iframe"
-            src="https://idupqjzvkpsscyjetmll.supabase.co/storage/v1/object/sign/videos/PATNA%20Website%20Hero%20Video.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2JlYThjMS04YjhmLTRkOTEtOTgxYy1hNmIzYjZhMmNhMmYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ2aWRlb3MvUEFUTkEgV2Vic2l0ZSBIZXJvIFZpZGVvLm1wNCIsImlhdCI6MTc3OTMwMDQwNiwiZXhwIjoyMDk0NjYwNDA2fQ.0_OVRMLqKN_8bmn8pjy4ISPT5haH1kNcXTiB4s0ekg4"
+            src="https://idupqjzvkpsscyjetmll.supabase.co/storage/v1/object/sign/videos/PATNA%20Website%20Hero%20Video%20(latest).mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2JlYThjMS04YjhmLTRkOTEtOTgxYy1hNmIzYjZhMmNhMmYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ2aWRlb3MvUEFUTkEgV2Vic2l0ZSBIZXJvIFZpZGVvIChsYXRlc3QpLm1wNCIsImlhdCI6MTc4MDMwMzIxOCwiZXhwIjoyMDk1NjYzMjE4fQ.OsemGAmN6z6LZ8HKOIHquCbpj6tFviPi2a_B148Kn6k"
             autoPlay
             muted
             loop
@@ -97,49 +118,30 @@ export default async function HomePage() {
 
         <div className="hero-video-content">
           <div className="hero-video-inner">
-            <p className="eyebrow hero-eyebrow">The PATNA Initiative</p>
+            <p className="eyebrow hero-eyebrow">{t("home.heroEyebrow")}</p>
             <h1 className="hero-video-h1">
-              Where African expertise meets the world's most consequential climate &amp; energy transition decisions.
+              {t("home.heroH1")}
             </h1>
             <p className="hero-video-sub">
-              The PATNA Initiative is a non-profit network of 100+ experts across academia, policymaking, legal specialities, and technical professions working at the intersection of maritime governance, energy transition, and African development.
+              {t("home.heroDesc")}
             </p>
             <div className="hero-actions">
               <Link className="primary-button hero-video-primary" href="/community/join">
-                Join the Community →
+                {t("home.heroCtaPrimary")}
               </Link>
-              <Link className="secondary-button hero-video-secondary" href="/projects">
-                Explore Our Work
+              <Link className="secondary-button hero-video-secondary" href="/work-with-us">
+                {t("home.heroCtaSecondary")}
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="hero-stat-bar" aria-label="Key figures">
-          {homeStats.map((stat) => (
-            <div className="hero-stat-bar-cell" key={stat.label}>
-              <strong className="hero-stat-bar-num">{stat.value}</strong>
-              <span className="hero-stat-bar-lbl">{stat.label}</span>
-            </div>
-          ))}
-        </div>
       </section>
-
-      {/* ── MOMENT BAND ── */}
-      <div className="moment-band" role="note">
-        <span className="moment-band-pill">Historic Milestone</span>
-        <p className="moment-band-text">
-          <strong>April 2026 — Johannesburg:</strong> Africa's first-ever Continental Strategy for the Decarbonisation of Maritime Transport adopted at AU STC-T&amp;E 5th Session. PATNA served as lead technical consultant.
-        </p>
-        <Link className="moment-band-link" href="/insights">
-          Read the Report →
-        </Link>
-      </div>
 
       {/* ── PARTNERS ── */}
       <section className="section partners-marquee-section" aria-label="Partners and institutional affiliations">
         <div className="partners-marquee-inner">
-          <p className="partners-marquee-label">Trusted by leading institutions across Africa and globally</p>
+          <p className="partners-marquee-label">{t("home.partnersMarqueeLabel")}</p>
           <div className="partners-marquee-track-wrap" aria-hidden="true">
             <ul className="partners-marquee-track">
               {partnerNames.map((n, i) => (
@@ -153,116 +155,147 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── VALUE PROPOSITION (v3 divider grid) ── */}
-      <section className="value-prop-section" aria-labelledby="value-prop-heading">
-        <div className="value-prop-inner">
-          <div className="value-prop-header">
-            <div>
-              <div className="value-prop-label">Why PATNA Exists</div>
-              <h2 className="value-prop-title" id="value-prop-heading">
-                Three pillars.<br /><em>One purpose.</em>
-              </h2>
+      {/* ── ABOUT PATNA ── */}
+      <section className="about-patna-section">
+        <div className="section-inner">
+          <div className="section-label">{t("home.aboutLabel")}</div>
+          <h2 className="about-patna-h2">
+            {t("home.aboutH2")} <em>{t("home.aboutH2Em")}</em>
+          </h2>
+
+          <div className="about-patna-grid">
+            {/* Left text column — ~38% width on desktop */}
+            <div className="about-patna-text">
+              <div className="about-patna-vm">
+                <div className="about-patna-vm-row">
+                  <span className="about-patna-tag">{t("home.aboutVisionTag")}</span>
+                  <p>{t("home.aboutVision")}</p>
+                </div>
+                <div className="about-patna-vm-row">
+                  <span className="about-patna-tag">{t("home.aboutMissionTag")}</span>
+                  <p>{t("home.aboutMission")}</p>
+                </div>
+              </div>
+              <div className="about-patna-story-inline">
+                <h2 className="about-patna-story-heading">{t("home.aboutStoryHeading")}</h2>
+                <p className="about-patna-story-body">{t("home.aboutStoryBody")}</p>
+                <Link className="about-patna-cta" href="/about">
+                  {t("home.aboutLearnMore")}
+                </Link>
+              </div>
             </div>
-            <p className="value-prop-subtitle">
-              Africa's maritime climate future is decided in rooms where the continent has long been absent. PATNA was built to change that — permanently — through evidence, coordination, and expert advisory presence at every critical juncture.
-            </p>
+
+            {/* Right column — photo fills remaining space */}
+            <div className="about-patna-image-wrap">
+              <img
+                src="/images/Dakar.jpeg"
+                alt="PATNA network delegates at the Dakar conference"
+                className="about-patna-img"
+              />
+            </div>
           </div>
 
-          <div className="value-prop-pillars">
-            {homePillars.map((pillar, i) => (
-              <Fragment key={pillar.number}>
-                {i > 0 && <div className="value-prop-divider" aria-hidden="true" />}
-                <article className="value-prop-pillar">
-                  <div className="value-prop-pillar-num">{pillar.number}</div>
-                  <h3 className="value-prop-pillar-title">{pillar.title}</h3>
-                  <p className="value-prop-pillar-body">{pillar.body}</p>
-                  <div className="value-prop-proof">{pillar.proof}</div>
-                </article>
-              </Fragment>
+        </div>
+      </section>
+
+      {/* ── STATS BAND ── */}
+      <section className="stats-band" aria-label="PATNA by the numbers">
+        <div className="section-inner stats-band-inner">
+          <div className="stats-grid">
+            <div className="stats-item">
+              <span className="stats-num">100<sup>+</sup></span>
+              <span className="stats-lbl">{t("home.statExperts")}</span>
+            </div>
+            <div className="stats-item">
+              <span className="stats-num">25</span>
+              <span className="stats-lbl">{t("home.statStates")}</span>
+            </div>
+            <div className="stats-item">
+              <span className="stats-num">4</span>
+              <span className="stats-lbl">{t("home.statCohorts")}</span>
+            </div>
+            <div className="stats-item">
+              <span className="stats-num">3</span>
+              <span className="stats-lbl">{t("home.statLeap")}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── COHORTS ── */}
+      <section className="cohorts-section">
+        <div className="section-inner">
+          <div className="section-label">{t("home.cohortsLabel")}</div>
+          <h2 className="cohorts-heading">
+            {t("home.cohortsH2")} <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>{t("home.cohortsH2Em")}</em>
+          </h2>
+          <div className="cohorts-grid">
+            {[
+              { key: "1", icon: "academics" },
+              { key: "2", icon: "policy" },
+              { key: "3", icon: "legal" },
+              { key: "4", icon: "industry" },
+            ].map(({ key, icon }) => (
+              <div className="cohort-card" key={key}>
+                <div className={`cohort-icon cohort-icon--${icon}`} aria-hidden="true" />
+                <h3 className="cohort-card-title">{t(`home.cohort${key}Title`)}</h3>
+                <p className="cohort-card-desc">{t(`home.cohort${key}Desc`)}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── ABOUT INTRO ── */}
-      <section className="about-intro-section-v3">
+      {/* ── LEAP PROJECTS ── */}
+      <section className="section projects-section-bg">
         <div className="section-inner">
-          <div className="section-label">About PATNA</div>
-          <h2 className="section-title" style={{ marginBottom: 0 }}>
-            Africa must shape the energy transition it is uniquely <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>positioned to supply.</em>
+          <div className="section-label">{t("home.leapLabel")}</div>
+          <h2 className="section-title">
+            {t("home.leapH2")} <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>{t("home.leapH2Em")}</em>
           </h2>
+          <p style={{ fontSize: "16px", color: "var(--ink-soft)", maxWidth: "640px", marginTop: "0.875rem", lineHeight: "1.7" }}>
+            {t("home.leapDesc")}
+          </p>
 
-          <div className="about-intro-grid-v3">
-            <div className="about-intro-text-v3">
-              <p>
-                The global push for net-zero emissions is more than a compliance mandate; it is a historic market opportunity for Africa's abundant renewable resources. While Africa handles over 90% of its trade by sea and faces significant economic risks from rising shipping costs, it also holds 60% of the world's best solar potential.
-              </p>
-              <p>
-                This positioning allows the continent to supply the green hydrogen and ammonia the global fleet needs to meet International Maritime Organization (IMO) targets. Without strategic engagement, a net-zero framework could increase African shipping costs by 20% by 2035; with it, Africa can unlock a green export market worth hundreds of billions of dollars.
-              </p>
-              <Link className="about-intro-link-v3" href="/about">
-                Read our full story →
-              </Link>
-            </div>
-
-            <div className="about-intro-stats" aria-label="PATNA by the numbers">
-              <div className="about-intro-stat">
-                <span className="about-intro-stat-num">100<sup>+</sup></span>
-                <span className="about-intro-stat-lbl">African experts in the network</span>
-              </div>
-              <div className="about-intro-stat">
-                <span className="about-intro-stat-num">54</span>
-                <span className="about-intro-stat-lbl">AU member states engaged</span>
-              </div>
-              <div className="about-intro-stat">
-                <span className="about-intro-stat-num">4</span>
-                <span className="about-intro-stat-lbl">Expert cohorts deployed</span>
-              </div>
-              <div className="about-intro-stat">
-                <span className="about-intro-stat-num">3</span>
-                <span className="about-intro-stat-lbl">LEAP project phases since 2024</span>
-              </div>
-            </div>
+          <div className="leap-grid" style={{ marginTop: "3.25rem" }}>
+            {leapPhases.map((phase) => (
+              <article className="leap-card" key={phase.slug} data-status={phase.status}>
+                <div className="leap-card-head">
+                  <span className={`leap-status-pill leap-status-${phase.status}`}>
+                    {phase.status === "active" ? t("home.leapStatusActive") : t("home.leapStatusComplete")}
+                  </span>
+                </div>
+                <div className="leap-card-body">
+                  <div className="leap-card-phase">{phase.phase}</div>
+                  <h3 className="leap-card-title">{phase.title}</h3>
+                  <div className="leap-card-meta">
+                    <span>{phase.period}</span>
+                    {phase.countryCount && <span>{phase.countryCount} countries</span>}
+                  </div>
+                  <p className="leap-card-desc">{phase.body}</p>
+                  <Link className="text-link" href={phase.sourceUrl}>
+                    {t("home.leapReadFullProject")}
+                  </Link>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── COMMUNITY SNAPSHOT (v3 member cards) ── */}
       <section className="v3-members-section" aria-label="Community snapshot">
-        <div className="section-inner" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 5rem" }}>
+        <div className="v3-members-inner">
           <div className="v3-members-header">
             <div>
-              <div className="v3-members-label">Our Community</div>
+              <div className="v3-members-label">{t("home.communityLabel")}</div>
               <h2 className="v3-members-title">
-                Experts shaping Africa's <em>energy future.</em>
+                {t("home.communityH2")} <em>{t("home.communityH2Em")}</em>
               </h2>
             </div>
             <Link className="v3-members-link" href="/community">
-              View all members →
+              {t("home.communityViewAll")}
             </Link>
-          </div>
-
-          <p className="v3-members-subtext">
-            The PATNA community is structured around four professional cohorts, each bringing distinct expertise to the organisation's core mission. Members may hold dual cohort affiliations but identify one as primary.
-          </p>
-
-          <div className="v3-cohort-pillars">
-            <div className="v3-cohort-pill">
-              <strong>Academics &amp; Researchers</strong>
-              <span>Generating the evidence base that grounds African positions in rigorous, Africa-specific data and analysis.</span>
-            </div>
-            <div className="v3-cohort-pill">
-              <strong>Policy &amp; Government</strong>
-              <span>Negotiators and advisers engaging IMO, AU, and national processes on behalf of African states.</span>
-            </div>
-            <div className="v3-cohort-pill">
-              <strong>Legal &amp; Regulatory</strong>
-              <span>Maritime law specialists navigating MARPOL, LCA frameworks, UNCLOS, and international trade law.</span>
-            </div>
-            <div className="v3-cohort-pill">
-              <strong>Industry &amp; Private Sector</strong>
-              <span>Shipowners, port operators, financiers, and energy companies implementing the maritime transition.</span>
-            </div>
           </div>
 
           <div className="v3-members-grid">
@@ -285,49 +318,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── LEAP PROJECTS ── */}
-      <section className="section projects-section-bg">
-        <div className="section-inner">
-          <div className="section-label">Flagship Programme</div>
-          <h2 className="section-title">
-            The LEAP Project <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>Series</em>
-          </h2>
-          <p style={{ fontSize: "16px", color: "var(--ink-soft)", maxWidth: "640px", marginTop: "0.875rem", lineHeight: "1.7" }}>
-            Leading Effective Afrocentric Participation. Three phases. Over two years. One goal: ensuring Africa shapes the IMO's Net-Zero Framework rather than inheriting it.
-          </p>
-
-          <div className="leap-grid" style={{ marginTop: "3.25rem" }}>
-            {leapPhases.map((phase) => (
-              <article className="leap-card" key={phase.slug} data-status={phase.status}>
-                <div className="leap-card-head">
-                  <span className={`leap-status-pill leap-status-${phase.status}`}>
-                    {phase.status === "active" ? "Active 2026" : "Complete"}
-                  </span>
-                </div>
-                <div className="leap-card-body">
-                  <div className="leap-card-phase">{phase.phase}</div>
-                  <h3 className="leap-card-title">{phase.title}</h3>
-                  <div className="leap-card-meta">
-                    <span>{phase.period}</span>
-                    {phase.countryCount && <span>{phase.countryCount} countries</span>}
-                  </div>
-                  <p className="leap-card-desc">{phase.body}</p>
-                  <Link className="text-link" href={phase.sourceUrl}>
-                    Read the full project →
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── PUBLICATIONS ── */}
       <section className="section home-publications-section">
         <div className="section-inner">
-          <div className="section-label">Latest Insights</div>
+          <div className="section-label">{t("home.pubsLabel")}</div>
           <h2 className="section-title">
-            Africa-grounded evidence for <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>global decisions.</em>
+            {t("home.pubsH2")} <em style={{ fontStyle: "italic", color: "var(--ochre)" }}>{t("home.pubsH2Em")}</em>
           </h2>
 
           <div className="home-pub-grid" style={{ marginTop: "3.25rem" }}>
@@ -341,7 +337,7 @@ export default async function HomePage() {
               <p className="home-pub-featured-sub">{homePublications.featured.subtitle}</p>
               <p className="home-pub-featured-body">{homePublications.featured.body}</p>
               <Link className="text-link home-pub-link" href={homePublications.featured.href}>
-                Download Report →
+                {t("home.pubsDownload")}
               </Link>
             </article>
 
@@ -360,7 +356,7 @@ export default async function HomePage() {
 
           <div className="section-cta-row">
             <Link className="secondary-button" href="/insights">
-              Browse all publications
+              {t("home.pubsBrowseAll")}
             </Link>
           </div>
         </div>
@@ -371,13 +367,13 @@ export default async function HomePage() {
         <section className="section home-events-section">
           <div className="section-inner">
             <SectionIntro
-              label="Calendar"
-              title="Upcoming events &amp; convenings."
+              label={t("home.eventsLabel")}
+              title={t("home.eventsH2")}
             />
 
             <div className="home-events-grid">
               {events.map((event) => (
-                <article className="home-event-card" key={event.slug}>
+                <Link className="home-event-card" href={`/events/${event.slug}`} key={event.slug}>
                   <div className="home-event-date-block" aria-hidden="true">
                     <span className="home-event-month">
                       {event.displayDateDisplay?.split(" ")[1] || event.display_date?.split(" ")[1] || ""}
@@ -394,15 +390,15 @@ export default async function HomePage() {
                     {event.location && (
                       <span className="home-event-location">{event.location}</span>
                     )}
-                    <span className="home-event-status-pill">Upcoming</span>
+                    <span className="home-event-status-pill">{t("home.eventUpcoming")}</span>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
 
             <div className="section-cta-row">
               <Link className="secondary-button" href="/events">
-                View all events
+                {t("home.eventsViewAll")}
               </Link>
             </div>
           </div>
@@ -412,13 +408,11 @@ export default async function HomePage() {
       {/* ── JOIN CTA BAND ── */}
       <section className="join-band join-band-v4 home-cta-band">
         <div>
-          <h2>Ready to shape Africa's energy future?</h2>
-          <p>
-            Join a growing community of specialists, policymakers, researchers, and industry practitioners – collaborating across PATNA's four expert cohorts.
-          </p>
+          <h2>{t("home.ctaTitle")}</h2>
+          <p>{t("home.ctaDesc")}</p>
           <div className="join-band-ctas">
-            <Link className="cta-primary" href="/community/join">Join Our Community →</Link>
-            <Link className="cta-secondary" href="/work-with-us">Work With Us</Link>
+            <Link className="cta-primary" href="/community/join">{t("home.ctaPrimary")}</Link>
+            <Link className="cta-secondary" href="/work-with-us">{t("home.ctaSecondary")}</Link>
           </div>
         </div>
       </section>

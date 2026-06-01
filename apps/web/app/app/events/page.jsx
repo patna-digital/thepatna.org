@@ -42,6 +42,7 @@ export default async function MemberEventsPage({ searchParams }) {
           {t("appEvents.btnSubmit")}
         </Link>
       )}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={t("appEvents.subtitle")}
       title={t("appEvents.title")}

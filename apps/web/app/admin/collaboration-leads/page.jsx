@@ -5,36 +5,8 @@ import { adminNav } from "@/lib/patna-data";
 import { buildCollaborationLeadSummary, fetchAdminCollaborationLeads, filterAdminCollaborationLeads } from "@/lib/collaboration-leads";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { getTranslations } from "next-intl/server";
-
-const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "new", label: "New" },
-  { key: "contacted", label: "Contacted" },
-  { key: "in_discussion", label: "In Discussion" },
-  { key: "proposal_sent", label: "Proposal Sent" },
-  { key: "negotiation", label: "Negotiation" },
-  { key: "agreed", label: "Agreed" },
-  { key: "declined", label: "Declined" },
-];
-
-const COLLABORATION_TYPE_FILTERS = [
-  { key: "all", label: "All Types" },
-  { key: "research", label: "Research" },
-  { key: "content", label: "Content" },
-  { key: "events", label: "Events" },
-  { key: "training", label: "Training" },
-  { key: "advocacy", label: "Advocacy" },
-  { key: "technical", label: "Technical Assistance" },
-];
-
-function getNoticeMessage(notice) {
-  const messages = {
-    saved: "Collaboration lead saved.",
-    deleted: "Collaboration lead deleted.",
-    error: "Operation failed. Please retry.",
-  };
-  return messages[notice] || "";
-}
+import { deleteAdminCollaborationLeadAction } from "./actions";
+import { getAdminNavWithPipelineBadges } from "@/lib/admin-pipeline-badges";
 
 function buildCollaborationLeadsPath({ status, collabType, search }) {
   const params = new URLSearchParams();
@@ -50,17 +22,45 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations();
 
+  const STATUS_FILTERS = [
+    { key: "all", label: t("admin.collaborationLeads.filters.status.all") },
+    { key: "new", label: t("admin.collaborationLeads.filters.status.new") },
+    { key: "contacted", label: t("admin.collaborationLeads.filters.status.contacted") },
+    { key: "in_discussion", label: t("admin.collaborationLeads.filters.status.inDiscussion") },
+    { key: "proposal_sent", label: t("admin.collaborationLeads.filters.status.proposalSent") },
+    { key: "negotiation", label: t("admin.collaborationLeads.filters.status.negotiation") },
+    { key: "agreed", label: t("admin.collaborationLeads.filters.status.agreed") },
+    { key: "declined", label: t("admin.collaborationLeads.filters.status.declined") },
+  ];
+
+  const COLLABORATION_TYPE_FILTERS = [
+    { key: "all", label: t("admin.collaborationLeads.filters.collabType.all") },
+    { key: "research", label: t("admin.collaborationLeads.filters.collabType.research") },
+    { key: "content", label: t("admin.collaborationLeads.filters.collabType.content") },
+    { key: "events", label: t("admin.collaborationLeads.filters.collabType.events") },
+    { key: "training", label: t("admin.collaborationLeads.filters.collabType.training") },
+    { key: "advocacy", label: t("admin.collaborationLeads.filters.collabType.advocacy") },
+    { key: "technical", label: t("admin.collaborationLeads.filters.collabType.technical") },
+  ];
+
   const statusFilter = typeof resolvedSearchParams?.status === "string" ? resolvedSearchParams.status : "all";
   const collabTypeFilter = typeof resolvedSearchParams?.collabType === "string" ? resolvedSearchParams.collabType : "all";
   const search = typeof resolvedSearchParams?.search === "string" ? resolvedSearchParams.search : "";
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
+  const sortBy = typeof resolvedSearchParams?.sortBy === "string" ? resolvedSearchParams.sortBy : "created_at";
+  const sortDir = resolvedSearchParams?.sortDir === "asc" ? "asc" : "desc";
 
-  const { collaborationLeads, error } = await fetchAdminCollaborationLeads({ supabase });
+  const [{ collaborationLeads, error }, navItems] = await Promise.all([
+    fetchAdminCollaborationLeads({ supabase }),
+    getAdminNavWithPipelineBadges(supabase),
+  ]);
   const summary = buildCollaborationLeadSummary(collaborationLeads);
   const filteredCollaborationLeads = filterAdminCollaborationLeads(collaborationLeads, {
     status: statusFilter,
     collabType: collabTypeFilter,
     search,
+    sortBy,
+    sortDir,
   });
 
   return (
@@ -68,7 +68,7 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
       brandHref="/admin"
       brandLabel={t("admin.brandLabel")}
       eyebrow={t("admin.eyebrow")}
-      navItems={adminNav}
+      navItems={navItems}
       spotlight={{
         label: t("admin.collaborationLeads.spotlightLabel"),
         title: t("admin.collaborationLeads.spotlightTitle"),
@@ -164,7 +164,12 @@ export default async function AdminCollaborationLeadsPage({ searchParams }) {
       </article>
 
        {/* Collaboration Leads List */}
-       <AdminCollaborationLeadsList collaborationLeads={filteredCollaborationLeads} />
+       <AdminCollaborationLeadsList
+         collaborationLeads={filteredCollaborationLeads}
+         deleteAction={deleteAdminCollaborationLeadAction}
+         sortBy={sortBy}
+         sortDir={sortDir}
+       />
     </DashboardShell>
   );
 }

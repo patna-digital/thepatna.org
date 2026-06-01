@@ -638,6 +638,22 @@ export function buildSpacesSummary(spaces) {
 }
 
 /**
+ * Lightweight member name list for @mention detection.
+ * Returns only id, first_name, surname — no heavy profile data.
+ */
+export async function fetchSpaceMemberNames({ supabase, spaceId }) {
+  const { data, error } = await supabase
+    .from("space_memberships")
+    .select("profile:user_id(id, first_name, surname)")
+    .eq("space_id", spaceId);
+
+  if (error) return [];
+  return (data || [])
+    .map((row) => row.profile)
+    .filter((p) => p?.id && p.first_name && p.surname);
+}
+
+/**
  * Client-side filter helper.
  */
 export function filterSpaces(spaces, { type = "all", search = "" } = {}) {

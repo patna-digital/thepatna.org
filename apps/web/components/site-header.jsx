@@ -65,7 +65,7 @@ export function SiteHeader() {
           <LanguageSelector variant="compact" />
           <button
             aria-expanded={menuOpen}
-            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-label={menuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             className="site-header-hamburger"
             onClick={() => setMenuOpen((o) => !o)}
             type="button"

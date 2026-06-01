@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSelector } from "@/components/language-selector";
 import { footerLinkGroups } from "@/lib/patna-data";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const t = await getTranslations();
+  const year = new Date().getFullYear();
+
   return (
     <footer className="site-footer">
       <div className="footer-inner">
@@ -11,22 +15,18 @@ export function SiteFooter() {
           <div className="footer-brand">
             <BrandLogo href="/" label="The PATNA Initiative" size="md" theme="footer" variant="full" />
             <div className="footer-brand-full">
-              Professional African Technical Network Advisory Initiative
+              {t("footer.brandFull")}
             </div>
-            <p>
-              A non-profit organisation of African technical experts building the evidence,
-              coordination, and advisory capacity that Africa needs at the world&apos;s most
-              consequential climate negotiations.
-            </p>
-            <p>www.thepatna.org · contact@thepatna.org</p>
+            <p>{t("footer.tagline")}</p>
+            <p>{t("footer.contactLine")}</p>
           </div>
 
           {footerLinkGroups.map((group) => (
             <div className="footer-col" key={group.title}>
-              <h5>{group.title}</h5>
+              <h5>{t(group.titleKey)}</h5>
               {group.links.map((link) => (
                 <Link href={link.href} key={link.href}>
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               ))}
             </div>
@@ -34,13 +34,14 @@ export function SiteFooter() {
         </div>
 
         <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} PATNA Initiative. All rights reserved. · contact@thepatna.org</p>
+          <p>{t("footer.copyright", { year })}</p>
           <div className="footer-langs">
             <LanguageSelector variant="compact" />
-            <Link href="/contact">Contact</Link>
-            <Link href="/legal/privacy">Privacy</Link>
-            <Link href="/legal/terms">Terms</Link>
-            <Link href="/legal">Legal</Link>
+            <Link href="/contact">{t("footer.linkContact")}</Link>
+            <Link href="/legal/privacy">{t("footer.privacy")}</Link>
+            <Link href="/legal/terms">{t("footer.terms")}</Link>
+            <Link href="/legal">{t("footer.linkLegal")}</Link>
+            <Link href="/admin">{t("footer.linkAdminLogin")}</Link>
           </div>
         </div>
       </div>

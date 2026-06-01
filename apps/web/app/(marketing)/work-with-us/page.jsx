@@ -1,48 +1,73 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 export const metadata = {
   title: "Work With Us",
   description:
-    "Work with PATNA on technical advisory, partnerships, evidence production, and institutional climate-maritime strategy.",
+    "Engage PATNA through the right route — partnership enquiries, technical support requests, collaboration proposals, or a general enquiry.",
 };
 
-const services = [
-  {
-    tag: "Service · Research",
-    title: "Research & Evidence Production",
-    meta: "Commissioned country impact studies, shipping GHG inventories, port decarbonisation roadmaps, and policy briefs timed to negotiating sessions.",
-  },
-  {
-    tag: "Service · Capacity",
-    title: "Capacity Building & Negotiator Training",
-    meta: "Simulation exercises, delegation preparation workshops, and fellowship programmes building Africa's long-term institutional capability.",
-  },
-  {
-    tag: "Service · Partnerships",
-    title: "Strategic Partnerships & Funding Navigation",
-    meta: "Institutional partnership development, climate finance navigation, and coalition building at AU and international levels.",
-  },
-];
+const PartnershipIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+  </svg>
+);
 
-const steps = [
-  {
-    label: "Understand",
-    title: "We assess your institutional need",
-    desc: "An initial consultation clarifies your objectives, negotiating context, and the specific gap PATNA can fill with its network and expertise.",
-  },
-  {
-    label: "Build",
-    title: "We construct the evidence and strategy",
-    desc: "We produce or curate the evidence base, from country impact assessments to position papers, and shape it into a politically viable strategy.",
-  },
-  {
-    label: "Deliver",
-    title: "We deploy, represent, and report",
-    desc: "We deploy our network, attend sessions, and deliver post-engagement reporting that tracks outcomes, coalition shifts, and implications.",
-  },
-];
+const SupportIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+  </svg>
+);
 
-export default function WorkWithUsPage() {
+const CollaborateIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+  </svg>
+);
+
+export default async function WorkWithUsPage() {
+  const t = await getTranslations();
+
+  const pathways = [
+    {
+      type: "partnership",
+      icon: <PartnershipIcon />,
+      tag: t("workWithUs.pathway1Tag"),
+      title: t("workWithUs.pathway1Title"),
+      audience: t("workWithUs.pathway1Audience"),
+      desc: t("workWithUs.pathway1Desc"),
+      href: "/work-with-us/partner",
+      cta: t("workWithUs.pathway1Cta"),
+    },
+    {
+      type: "support",
+      icon: <SupportIcon />,
+      tag: t("workWithUs.pathway2Tag"),
+      title: t("workWithUs.pathway2Title"),
+      audience: t("workWithUs.pathway2Audience"),
+      desc: t("workWithUs.pathway2Desc"),
+      href: "/work-with-us/request-support",
+      cta: t("workWithUs.pathway2Cta"),
+    },
+    {
+      type: "collaborate",
+      icon: <CollaborateIcon />,
+      tag: t("workWithUs.pathway3Tag"),
+      title: t("workWithUs.pathway3Title"),
+      audience: t("workWithUs.pathway3Audience"),
+      desc: t("workWithUs.pathway3Desc"),
+      href: "/work-with-us/collaborate",
+      cta: t("workWithUs.pathway3Cta"),
+    },
+  ];
+
+  const contactItems = [
+    t("workWithUs.contactItem1"),
+    t("workWithUs.contactItem2"),
+    t("workWithUs.contactItem3"),
+    t("workWithUs.contactItem4"),
+  ];
+
   return (
     <>
       <section className="sub-page-hero" aria-label="Work with PATNA">
@@ -55,109 +80,72 @@ export default function WorkWithUsPage() {
         <div className="sub-page-hero-overlay" aria-hidden="true" />
         <div className="sub-page-hero-dot" aria-hidden="true" />
         <div className="sub-page-hero-inner">
-          <div className="sub-page-hero-eyebrow">Advisory &amp; Partnerships</div>
+          <div className="sub-page-hero-eyebrow">{t("workWithUs.heroEyebrow")}</div>
           <h1 className="sub-page-hero-title">
-            Commission Africa&apos;s expert <em>climate network</em>
+            {t("workWithUs.heroH1")}
           </h1>
           <p className="sub-page-hero-sub">
-            PATNA serves as lead technical consultant to governments, the African Union
-            Commission, and international institutions navigating consequential maritime
-            climate decisions.
+            {t("workWithUs.heroDesc")}
           </p>
         </div>
       </section>
 
-      <div className="feat-split-section">
-        <div className="feat-split-inner">
-          <div className="feat-split-bar">
-            <span className="feat-split-label">Our Services</span>
-            <Link className="feat-split-view-all" href="/contact">
-              Get in touch →
+      <section className="pathway-section" aria-labelledby="pathways-heading">
+        <div className="pathway-section-header">
+          <p className="pathway-section-label">{t("workWithUs.pathwaysSectionLabel")}</p>
+          <h2 id="pathways-heading">
+            {t("workWithUs.pathwaysH2")}
+          </h2>
+        </div>
+
+        <div className="pathway-layout">
+          {/* Left: General contact — always-relevant entry point */}
+          <div className="pathway-featured-contact">
+            <div className="pathway-featured-contact-tag">{t("workWithUs.contactTag")}</div>
+            <h3 className="pathway-featured-contact-title">{t("workWithUs.contactTitle")}</h3>
+            <p className="pathway-featured-contact-audience">{t("workWithUs.contactAudience")}</p>
+            <p className="pathway-featured-contact-desc">{t("workWithUs.contactDesc")}</p>
+            <ul className="pathway-featured-contact-items">
+              {contactItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <Link className="pathway-featured-contact-cta" href="/contact">
+              {t("workWithUs.contactCta")}
             </Link>
           </div>
 
-          <div className="feat-split-grid">
-            <article className="feat-main-card">
-              <div className="feat-main-img">
-                <img
-                  src="https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=900&h=680&fit=crop&q=80"
-                  alt="PATNA technical advisory and institutional engagement"
-                />
-                <div className="feat-main-img-overlay" />
-                <span className="feat-main-status feat-status-upcoming">Flagship Service</span>
-              </div>
-              <div className="feat-main-body">
-                <div className="feat-main-tag">Technical Advisory · Governments &amp; AU Institutions</div>
-                <h2 className="feat-main-title">
-                  Technical Advisory — Commission PATNA as Your Expert Consultant
-                </h2>
-                <p className="feat-main-desc">
-                  PATNA produces the evidence, coordinates positions, and deploys expert
-                  fellows to represent institutional interests at the IMO, UNFCCC, and AU fora.
-                </p>
-                <div className="service-features">
-                  <div className="service-feature">Country impact assessments and GHG inventories</div>
-                  <div className="service-feature">Pre-session briefings and 72-hour post-session analysis</div>
-                  <div className="service-feature">Expert fellow deployment to delegations</div>
-                  <div className="service-feature">Coordination with African delegations and the AU Commission</div>
-                </div>
-                <div className="feat-main-footer">
-                  <div className="feat-main-meta">AUC · AU STC-T&amp;E · IMO MEPC · UNFCCC COP</div>
-                  <Link className="feat-main-cta" href="/contact">
-                    Start a Conversation →
-                  </Link>
-                </div>
-              </div>
-            </article>
-
-            <div className="feat-side-list">
-              {services.map((service) => (
-                <Link className="feat-side-item" href="/contact" key={service.title}>
-                  <div className="feat-side-content">
-                    <div className="feat-side-tag">{service.tag}</div>
-                    <div className="feat-side-title">{service.title}</div>
-                    <div className="feat-side-meta">{service.meta}</div>
+          {/* Right: Three specific routes stacked */}
+          <div className="pathway-routes">
+            {pathways.map((p) => (
+              <article className="pathway-card" data-type={p.type} key={p.type}>
+                <div className="pathway-card-header">
+                  <div className="pathway-card-icon">{p.icon}</div>
+                  <div>
+                    <div className="pathway-card-tag">{p.tag}</div>
+                    <h3 className="pathway-card-title">{p.title}</h3>
                   </div>
-                  <span className="feat-side-arrow">→</span>
+                </div>
+                <div className="pathway-card-audience">{p.audience}</div>
+                <p className="pathway-card-desc">{p.desc}</p>
+                <Link className="pathway-card-cta" href={p.href}>
+                  {p.cta}
                 </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <section className="how-section">
-        <div className="how-section-inner">
-          <div className="section-label">Our Approach</div>
-          <h2 className="section-title">
-            How we <em>work with you</em>
-          </h2>
-
-          <div className="how-grid">
-            {steps.map((step, index) => (
-              <article className="how-step" key={step.label}>
-                <div className="how-step-circle">{index + 1}</div>
-                <div className="how-step-label">{step.label}</div>
-                <h3 className="how-step-title">{step.title}</h3>
-                <p className="how-step-desc">{step.desc}</p>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="join-band join-band-v4">
-        <h2>Ready to commission PATNA?</h2>
-        <p>
-          Tell us your institutional challenge. We will tell you exactly how PATNA&apos;s
-          network, evidence base, and presence can help.
-        </p>
+      <section className="join-band join-band-v4" aria-label="Community invitation">
+        <h2>{t("workWithUs.ctaTitle")}</h2>
+        <p>{t("workWithUs.ctaDesc")}</p>
         <div className="join-band-ctas">
-          <Link className="cta-primary" href="/contact">
-            Contact Us →
+          <Link className="cta-primary" href="/community">
+            {t("workWithUs.ctaPrimary")}
           </Link>
-          <Link className="cta-secondary" href="/community">
-            Join Our Community
+          <Link className="cta-secondary" href="/about">
+            {t("workWithUs.ctaSecondary")}
           </Link>
         </div>
       </section>

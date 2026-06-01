@@ -20,31 +20,34 @@ export const coreValues = [
 export const footerLinkGroups = [
   {
     title: "Platform",
+    titleKey: "footer.colPlatform",
     links: [
-      { href: "/", label: "Home" },
-      { href: "/about", label: "About PATNA" },
-      { href: "/projects", label: "Projects" },
-      { href: "/insights", label: "Insights" },
-      { href: "/events", label: "Events" },
+      { href: "/", label: "Home", labelKey: "footer.linkHome" },
+      { href: "/about", label: "About PATNA", labelKey: "footer.linkAbout" },
+      { href: "/projects", label: "Projects", labelKey: "footer.linkProjects" },
+      { href: "/insights", label: "Insights", labelKey: "footer.linkInsights" },
+      { href: "/events", label: "Events", labelKey: "footer.linkEvents" },
     ],
   },
   {
     title: "Community",
+    titleKey: "footer.colCommunity",
     links: [
-      { href: "/community", label: "Join PATNA" },
-      { href: "/auth/login", label: "Member Login" },
-      { href: "/community#cohort-programme", label: "Cohorts" },
-      { href: "/app/spaces", label: "Community Spaces" },
+      { href: "/community", label: "Join PATNA", labelKey: "footer.linkJoinPatna" },
+      { href: "/auth/login", label: "Member Login", labelKey: "footer.linkMemberLogin" },
+      { href: "/community#cohort-programme", label: "Cohorts", labelKey: "footer.linkCohorts" },
+      { href: "/app/spaces", label: "Community Spaces", labelKey: "footer.linkSpaces" },
     ],
   },
   {
     title: "Engage",
+    titleKey: "footer.colEngage",
     links: [
-      { href: "/work-with-us", label: "Work With Us" },
-      { href: "/contact", label: "Contact" },
-      { href: "https://x.com/PATNAINITIATIVE", label: "X / Twitter" },
-      { href: "https://www.linkedin.com/company/patnainitiative", label: "LinkedIn" },
-      { href: "https://www.instagram.com/patnainitiative", label: "Instagram" },
+      { href: "/work-with-us", label: "Work With Us", labelKey: "footer.linkWorkWithUs" },
+      { href: "/contact", label: "Contact", labelKey: "footer.linkContact" },
+      { href: "https://x.com/PATNAINITIATIVE", label: "X / Twitter", labelKey: "footer.linkXTwitter" },
+      { href: "https://www.linkedin.com/company/patnainitiative", label: "LinkedIn", labelKey: "footer.linkLinkedIn" },
+      { href: "https://www.instagram.com/patnainitiative", label: "Instagram", labelKey: "footer.linkInstagram" },
     ],
   },
 ];
@@ -180,28 +183,37 @@ export const publicEvents = [
 
 export const partnerGroups = [
   {
-    title: "International, continental, and regional organisations",
-    partners: ["AU", "IMO", "MOWCA", "MOESNA", "AAMA", "AMAG", "AGNES", "ASA"],
-  },
-  {
-    title: "National government bodies and agencies",
+    title: "International, Continental & Regional Organisations",
     partners: [
-      "ANAM Senegal",
-      "NIMASA",
-      "Nigeria Marine and Blue Economy Ministry",
-      "Ghana Maritime Authority",
-      "Ghana Ports and Harbours Authority",
+      { name: "African Union Commission", abbr: "AU" },
+      { name: "IMO Secretariat", abbr: "IMO" },
+      { name: "MOWCA", abbr: "MOWCA" },
+      { name: "MOESNA", abbr: "MOESNA" },
+      { name: "AAMA", abbr: "AAMA" },
+      { name: "African Maritime Advisory Group", abbr: "AMAG" },
+      { name: "AGNES", abbr: "AGNES" },
+      { name: "African Shipowners Association", abbr: "ASA" },
     ],
   },
   {
-    title: "Academic and research institutions",
+    title: "National Government Bodies & Agencies",
     partners: [
-      "UCL",
-      "UCL Energy Institute",
-      "University of Malawi",
-      "University of Nairobi",
-      "University of Liberia",
-      "University of Lagos",
+      { name: "ANAM Senegal", abbr: "ANAM" },
+      { name: "NIMASA", abbr: "NIMASA" },
+      { name: "Nigeria Marine & Blue Economy Ministry", abbr: "NMBEM" },
+      { name: "Ghana Maritime Authority", abbr: "GMA" },
+      { name: "Ghana Ports & Harbours Authority", abbr: "GPHA" },
+    ],
+  },
+  {
+    title: "Academic & Research Institutions",
+    partners: [
+      { name: "University College London", abbr: "UCL" },
+      { name: "UCL Energy Institute", abbr: "UCL-EI" },
+      { name: "University of Malawi", abbr: "UoM" },
+      { name: "University of Nairobi", abbr: "UoN" },
+      { name: "University of Liberia", abbr: "UoL" },
+      { name: "University of Lagos", abbr: "UNILAG" },
     ],
   },
 ];
@@ -342,28 +354,28 @@ export const cohortSummary = [
     title: "Academic Cohort",
     icon: "A",
     summary:
-      "Researchers and analysts generating evidence, technical framing, and long-range strategic insight.",
+      "Researchers, academics, and university partners advancing Africa-specific evidence on maritime decarbonisation, port economics, and blue economy transitions.",
   },
   {
     slug: "policy",
     title: "Policy Cohort",
     icon: "P",
     summary:
-      "Officials and advisers shaping negotiating positions, domestic policy links, and coalition strategy.",
+      "Technical advisors, diplomats, and policymakers connecting PATNA's evidence to the national and international policy processes where it has the most impact.",
   },
   {
     slug: "industry",
     title: "Industry Cohort",
     icon: "I",
     summary:
-      "Practitioners connecting policy ambition to port operations, shipping realities, and implementation.",
+      "Private-sector innovators and operators — from shipping companies and port authorities to clean technology providers — ensuring PATNA's work reflects commercial realities alongside policy ambitions.",
   },
   {
     slug: "civil-society",
     title: "Civil Society Cohort",
     icon: "C",
     summary:
-      "Advocates and organisers grounding transitions in justice, participation, and social legitimacy.",
+      "Civil society organisations ensuring that communities most affected by the maritime transition, particularly coastal, fishing, and trade-dependent populations, remain visible in global policy conversations.",
   },
 ];
 
@@ -413,37 +425,37 @@ export const communityStructures = [
     title: "Board of Trustees",
     type: "Governance",
     summary:
-      "Provides strategic oversight, accountability, and long-term direction for PATNA's public mission and institutional growth.",
+      "PATNA's Board of Trustees provides strategic governance, financial oversight, and institutional accountability, guided by leaders with decades of experience across African maritime policy, environmental law, and international negotiations.",
   },
   {
     title: "PATNA Secretariat",
     type: "Operations",
     summary:
-      "Coordinates convenings, programme delivery, member communications, and the day-to-day systems that keep the network active.",
+      "The PATNA Secretariat coordinates the network's daily operations, manages programme delivery, and maintains PATNA's partnerships with the African Union, IMO delegations, academic institutions, and funders.",
   },
   {
     title: "Academic Cohort",
     type: "Cohort",
     summary:
-      "Researchers and universities advancing evidence-based insight, technical analysis, and knowledge exchange across Africa.",
+      "The Academia cohort brings together researchers, universities, and research institutions from across Africa whose work directly informs PATNA's policy outputs, country reports, and IMO submissions.",
   },
   {
     title: "Policy Cohort",
     type: "Cohort",
     summary:
-      "Technical advisers and policymakers shaping national, regional, and international climate and maritime governance.",
+      "The Policy cohort includes national maritime administrators, climate negotiators, and regional governance specialists who connect PATNA's evidence to the policy processes where it can have the greatest impact.",
   },
   {
     title: "Industry Cohort",
     type: "Cohort",
     summary:
-      "Private-sector and practitioner voices connecting policy ambition to operational realities in shipping, ports, and blue economy systems.",
+      "The Industries cohort brings private-sector perspectives — from shipping operators and port authorities to clean technology providers — ensuring PATNA's work reflects commercial realities alongside policy ambitions.",
   },
   {
     title: "Civil Society Cohort",
     type: "Cohort",
     summary:
-      "Civil society leaders ensuring climate justice, participation, and community interests remain part of transition strategy.",
+      "The Civil Society cohort ensures that PATNA's work remains grounded in the lived realities of African communities — particularly coastal, fishing, and trade-dependent populations facing the steepest costs of the maritime transition.",
   },
 ];
 
@@ -508,7 +520,7 @@ export const leapPhases = [
   },
   {
     slug: "leap-phase-iii",
-    phase: "LEAP Phase III / ORCA Africa 2026",
+    phase: "LEAP Phase III",
     title: "Continental Leadership & NZF Coordination",
     status: "active",
     period: "January – December 2026",
@@ -643,7 +655,7 @@ export const boardMembers = [
     title: "Founder / Co-Chair of the Board",
     org: "The PATNA Initiative | UCL Energy Institute, London",
     role: "co-chair",
-    bio: "Founder of PATNA and Co-Chair of the Board. Dr Oluteye leads UCL's engagement with African maritime energy transition research and serves as Principal Investigator of the LEAP Project Series. She designed PATNA's evidence framework and has directed the analytical programme across all three LEAP phases, from the first national shipping emissions inventories to the continental coordination architecture of ORCA Africa 2026. Her work bridges academic rigour and policy relevance at the IMO, the AU, and across African delegations.",
+    bio: "Founder of PATNA and Co-Chair of the Board. Dr Oluteye leads UCL's engagement with African maritime energy transition research and serves as Principal Investigator of the LEAP Project Series. She designed PATNA's evidence framework and has directed the analytical programme across all three LEAP phases. Her work bridges academic rigour and policy relevance at the IMO, the AU, and across African delegations.",
   },
   {
     name: "Ambassador Nancy Karigithu",
@@ -760,6 +772,7 @@ export const memberNav = [
 export const adminNav = [
   {
     label: "Core",
+    labelKey: "admin.navGroups.core",
     collapsible: false,
     items: [
       { href: "/admin", label: "Overview", icon: "LayoutDashboard" },
@@ -769,6 +782,7 @@ export const adminNav = [
   },
   {
     label: "Community",
+    labelKey: "admin.navGroups.community",
     collapsible: true,
     items: [
       { href: "/admin/spaces", label: "Spaces", icon: "Layers" },
@@ -779,19 +793,22 @@ export const adminNav = [
   },
   {
     label: "Partnerships",
+    labelKey: "admin.navGroups.partnerships",
     collapsible: true,
     items: [
-      { href: "/admin/service-requests", label: "Service Requests", icon: "Wrench" },
-      { href: "/admin/partnership-leads", label: "Partnership Leads", icon: "Handshake" },
-      { href: "/admin/collaboration-leads", label: "Collaboration Leads", icon: "Network" },
+      { href: "/admin/partners", label: "Partners", icon: "Building2" },
+      { href: "/admin/leads",    label: "Leads",    icon: "Inbox" },
     ],
   },
   {
     label: "Tools",
+    labelKey: "admin.navGroups.tools",
     collapsible: true,
     items: [
-      { href: "/admin/assistant", label: "AI Assistant", icon: "Sparkles" },
-      { href: "/admin/admins", label: "Admins", icon: "ShieldCheck" },
+      { href: "/admin/assistant",     label: "AI Assistant",  icon: "Sparkles" },
+      { href: "/admin/notifications", label: "Notifications", icon: "Bell" },
+      { href: "/admin/admins",        label: "Admins",        icon: "ShieldCheck" },
+      { href: "/admin/website",       label: "Website",       icon: "Globe" },
     ],
   },
 ];

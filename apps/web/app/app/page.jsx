@@ -369,13 +369,15 @@ export default async function MemberDashboardPage() {
           <MemberDashboardRightRail member={member} userId={user.id} />
         </Suspense>
       }
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={t("dashboard.subtitle")}
       title={t("dashboard.title", { firstName: member?.firstName || member?.first_name || member?.displayName?.split(" ")[0] || "..." })}
     >
       <div className="member-dashboard-home-stack">
         <Suspense fallback={<DashboardShellFallback />}>
-          <MemberDashboardProfileCard member={member} sidebarUser={sidebarUser} userId={user.id} />
+          <MemberDashboardProfileCard member={member} notificationUserId={user?.id ?? null}
+ sidebarUser={sidebarUser} userId={user.id} />
         </Suspense>
         <Suspense fallback={<DashboardShellFallback />}>
           <MemberDashboardMain member={member} supabase={supabase} userId={user.id} />

@@ -1,38 +1,11 @@
 import Link from "next/link";
 import { AdminServiceRequestsList } from "@/components/admin-service-requests-list";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { adminNav } from "@/lib/patna-data";
 import { buildServiceRequestSummary, fetchAdminServiceRequests, filterAdminServiceRequests } from "@/lib/service-requests";
 import { requireAdminContext } from "@/lib/supabase/access";
 import { getTranslations } from "next-intl/server";
-
-const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "new", label: "New" },
-  { key: "in_progress", label: "In Progress" },
-  { key: "review", label: "Review" },
-  { key: "completed", label: "Completed" },
-  { key: "cancelled", label: "Cancelled" },
-];
-
-const REQUEST_TYPE_FILTERS = [
-  { key: "all", label: "All Types" },
-  { key: "technical", label: "Technical" },
-  { key: "research", label: "Research" },
-  { key: "content", label: "Content" },
-  { key: "events", label: "Events" },
-  { key: "partnership", label: "Partnership" },
-  { key: "training", label: "Training" },
-];
-
-function getNoticeMessage(notice) {
-  const messages = {
-    saved: "Service request saved.",
-    deleted: "Service request deleted.",
-    error: "Operation failed. Please retry.",
-  };
-  return messages[notice] || "";
-}
+import { deleteAdminServiceRequestAction } from "./actions";
+import { getAdminNavWithPipelineBadges } from "@/lib/admin-pipeline-badges";
 
 function buildServiceRequestsPath({ status, requestType, search }) {
   const params = new URLSearchParams();
@@ -48,17 +21,43 @@ export default async function AdminServiceRequestsPage({ searchParams }) {
   const resolvedSearchParams = await searchParams;
   const t = await getTranslations();
 
+  const STATUS_FILTERS = [
+    { key: "all", label: t("admin.serviceRequests.filters.status.all") },
+    { key: "new", label: t("admin.serviceRequests.filters.status.new") },
+    { key: "in_progress", label: t("admin.serviceRequests.filters.status.inProgress") },
+    { key: "review", label: t("admin.serviceRequests.filters.status.review") },
+    { key: "completed", label: t("admin.serviceRequests.filters.status.completed") },
+    { key: "cancelled", label: t("admin.serviceRequests.filters.status.cancelled") },
+  ];
+
+  const REQUEST_TYPE_FILTERS = [
+    { key: "all", label: t("admin.serviceRequests.filters.type.all") },
+    { key: "technical", label: t("admin.serviceRequests.filters.type.technical") },
+    { key: "research", label: t("admin.serviceRequests.filters.type.research") },
+    { key: "content", label: t("admin.serviceRequests.filters.type.content") },
+    { key: "events", label: t("admin.serviceRequests.filters.type.events") },
+    { key: "partnership", label: t("admin.serviceRequests.filters.type.partnership") },
+    { key: "training", label: t("admin.serviceRequests.filters.type.training") },
+  ];
+
   const statusFilter = typeof resolvedSearchParams?.status === "string" ? resolvedSearchParams.status : "all";
   const requestTypeFilter = typeof resolvedSearchParams?.requestType === "string" ? resolvedSearchParams.requestType : "all";
   const search = typeof resolvedSearchParams?.search === "string" ? resolvedSearchParams.search : "";
   const notice = typeof resolvedSearchParams?.notice === "string" ? resolvedSearchParams.notice : "";
+  const sortBy = typeof resolvedSearchParams?.sortBy === "string" ? resolvedSearchParams.sortBy : "created_at";
+  const sortDir = resolvedSearchParams?.sortDir === "asc" ? "asc" : "desc";
 
-  const { serviceRequests, error } = await fetchAdminServiceRequests({ supabase });
+  const [{ serviceRequests, error }, navItems] = await Promise.all([
+    fetchAdminServiceRequests({ supabase }),
+    getAdminNavWithPipelineBadges(supabase),
+  ]);
   const summary = buildServiceRequestSummary(serviceRequests);
   const filteredServiceRequests = filterAdminServiceRequests(serviceRequests, {
     status: statusFilter,
     requestType: requestTypeFilter,
     search,
+    sortBy,
+    sortDir,
   });
 
   return (
@@ -66,7 +65,7 @@ export default async function AdminServiceRequestsPage({ searchParams }) {
       brandHref="/admin"
       brandLabel={t("admin.brandLabel")}
       eyebrow={t("admin.eyebrow")}
-      navItems={adminNav}
+      navItems={navItems}
       spotlight={{
         label: t("admin.serviceRequests.spotlightLabel"),
         title: t("admin.serviceRequests.spotlightTitle"),
@@ -162,7 +161,12 @@ export default async function AdminServiceRequestsPage({ searchParams }) {
       </article>
 
        {/* Service Requests List */}
-       <AdminServiceRequestsList serviceRequests={filteredServiceRequests} />
+       <AdminServiceRequestsList
+         serviceRequests={filteredServiceRequests}
+         deleteAction={deleteAdminServiceRequestAction}
+         sortBy={sortBy}
+         sortDir={sortDir}
+       />
     </DashboardShell>
   );
 }

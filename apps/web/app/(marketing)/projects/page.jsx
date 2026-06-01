@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { ContinentalFootprintMap } from "@/components/maps/continental-footprint-map";
 import { ProjectCard } from "@/components/projects/project-card";
 import { ProjectsTimeline } from "@/components/projects/projects-timeline";
@@ -17,7 +18,10 @@ export const metadata = {
 
 export default async function ProjectsPage() {
   const supabase = await createSupabaseServerClient();
-  const { projects } = await fetchPublishedProjects({ supabase });
+  const [t, { projects }] = await Promise.all([
+    getTranslations(),
+    fetchPublishedProjects({ supabase }),
+  ]);
 
   const publishedProjectIds = new Set(projects.map((p) => p.id));
   const topLevel = projects.filter(
@@ -44,13 +48,9 @@ export default async function ProjectsPage() {
         <div className="sub-page-hero-overlay" aria-hidden="true" />
         <div className="sub-page-hero-dot" aria-hidden="true" />
         <div className="sub-page-hero-inner">
-          <div className="sub-page-hero-eyebrow">Flagship Programme</div>
-          <h1 className="sub-page-hero-title">
-            The LEAP <em>Project Series</em>
-          </h1>
-          <p className="sub-page-hero-sub">
-            Leading Effective Afrocentric Participation — Africa's most sustained, evidence-driven effort to shape the IMO's Net-Zero Framework, spanning three phases from 2024 to 2026.
-          </p>
+          <div className="sub-page-hero-eyebrow">{t("projects.heroEyebrow")}</div>
+          <h1 className="sub-page-hero-title">{t("projects.heroH1")}</h1>
+          <p className="sub-page-hero-sub">{t("projects.heroDesc")}</p>
         </div>
       </section>
 
@@ -61,11 +61,11 @@ export default async function ProjectsPage() {
             <div className="feat-split-bar">
               <span className="feat-split-label">
                 {activeProject?.status_label === "Active" || activeProject?.status_label === "Ongoing"
-                  ? "Active Project"
-                  : "Flagship Project"}
+                  ? t("projects.featuredActiveLabel")
+                  : t("projects.featuredFlagshipLabel")}
               </span>
               <Link className="feat-split-view-all" href="#projects-convenings">
-                View all work →
+                {t("projects.viewAllWork")}
               </Link>
             </div>
 
@@ -114,7 +114,7 @@ export default async function ProjectsPage() {
                       <div className="feat-main-meta">
                         {activeProject.highlights?.slice(0, 1).map((h) => h.value + " " + h.label).join(" · ")}
                       </div>
-                      <span className="feat-main-cta">Read more →</span>
+                      <span className="feat-main-cta">{t("projects.readMore")}</span>
                     </div>
                   </div>
                 </Link>
@@ -138,9 +138,9 @@ export default async function ProjectsPage() {
                 {/* Always show the AUC study link */}
                 <div className="feat-side-item" style={{ cursor: "default" }}>
                   <div className="feat-side-content">
-                    <div className="feat-side-tag">AUC Study · March 2026</div>
-                    <div className="feat-side-title">Africa's Continental Maritime Decarbonisation Strategy</div>
-                    <div className="feat-side-meta">Commissioned by the African Union Commission · PATNA Lead Technical Consultant</div>
+                    <div className="feat-side-tag">{t("projects.aucStudyTag")}</div>
+                    <div className="feat-side-title">{t("projects.aucStudyTitle")}</div>
+                    <div className="feat-side-meta">{t("projects.aucStudyMeta")}</div>
                   </div>
                   <span className="feat-side-arrow" style={{ color: "var(--ink-muted)" }}>→</span>
                 </div>
@@ -154,10 +154,10 @@ export default async function ProjectsPage() {
       {convenings.length > 0 && (
         <section className="section section-tinted" id="projects-convenings">
           <div className="section-inner">
-            <div className="section-label">Regional Convenings</div>
-            <h2 className="section-title">Workshops, summits &amp; delegations</h2>
+            <div className="section-label">{t("projects.conveningsLabel")}</div>
+            <h2 className="section-title">{t("projects.conveningsH2")}</h2>
             <p style={{ fontSize: "15px", color: "var(--ink-soft)", maxWidth: "600px", marginTop: "0.5rem", lineHeight: "1.7" }}>
-              High-impact events that build African coordination capacity and deliver unified positions at international forums.
+              {t("projects.conveningsDesc")}
             </p>
             <div className="project-cards-grid" style={{ marginTop: "2.5rem" }}>
               {convenings.map((project) => (
@@ -171,10 +171,10 @@ export default async function ProjectsPage() {
       {/* ── PROGRAMME TIMELINE ── */}
       <section className="section" id="projects-timeline">
         <div className="section-inner">
-          <div className="section-label">Journey</div>
-          <h2 className="section-title">Programme timeline</h2>
+          <div className="section-label">{t("projects.timelineLabel")}</div>
+          <h2 className="section-title">{t("projects.timelineH2")}</h2>
           <p style={{ fontSize: "15px", color: "var(--ink-soft)", maxWidth: "600px", marginTop: "0.5rem", lineHeight: "1.7" }}>
-            A three-phase journey from foundational country analysis to a permanent African coordination platform.
+            {t("projects.timelineDesc")}
           </p>
           <ProjectsTimeline phases={journeyPhases} />
         </div>
@@ -184,10 +184,10 @@ export default async function ProjectsPage() {
       {(leapFootprint.countries.length > 0 || leapFootprint.hubs.length > 0) && (
         <section className="section section-tinted" id="projects-countries">
           <div className="section-inner">
-            <div className="section-label">Reach</div>
-            <h2 className="section-title">Continental footprint across the LEAP series</h2>
+            <div className="section-label">{t("projects.footprintLabel")}</div>
+            <h2 className="section-title">{t("projects.footprintH2")}</h2>
             <p style={{ fontSize: "15px", color: "var(--ink-soft)", maxWidth: "600px", marginTop: "0.5rem", lineHeight: "1.7" }}>
-              Evidence production, diplomatic alignment, and programme delivery now touch a widening set of African maritime states.
+              {t("projects.footprintDesc")}
             </p>
             <ContinentalFootprintMap footprint={leapFootprint} />
           </div>
@@ -197,13 +197,11 @@ export default async function ProjectsPage() {
       {/* ── JOIN CTA ── */}
       <section className="join-band join-band-v4">
         <div>
-          <h2>Work with Africa's leading maritime climate network.</h2>
-          <p>
-            Commission a study, sponsor a cohort, or commission PATNA as your technical consultant for IMO and AU fora engagement.
-          </p>
+          <h2>{t("projects.ctaBandTitle")}</h2>
+          <p>{t("projects.ctaBandDesc")}</p>
           <div className="join-band-ctas">
-            <Link className="cta-primary" href="/work-with-us/partner">Partner with PATNA →</Link>
-            <Link className="cta-secondary" href="/insights">Explore Our Research</Link>
+            <Link className="cta-primary" href="/work-with-us/partner">{t("projects.ctaBandPrimary")}</Link>
+            <Link className="cta-secondary" href="/insights">{t("projects.ctaBandSecondary")}</Link>
           </div>
         </div>
       </section>

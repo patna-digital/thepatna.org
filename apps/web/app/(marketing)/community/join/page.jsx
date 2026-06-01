@@ -13,19 +13,49 @@ export default function JoinCommunityPage() {
       <section className="section">
         <div className="section-inner">
           <div className="page-grid">
-            <article className="content-card">
-              <h3>Application stages</h3>
-              <p>
-                The form captures the information PATNA needs to assess fit, route applications,
-                and prepare review decisions.
+
+            <aside className="content-card join-sidebar">
+              <h3>What happens next</h3>
+              <p className="join-sidebar-intro">
+                PATNA membership is by application. Every submission is reviewed by the
+                secretariat against expertise, geographic representation, and cohort fit.
               </p>
-              <ul className="check-list">
-                <li>Applicant details, contact information, and organisation</li>
-                <li>Motivation statement</li>
-                <li>Expertise areas and engagement preferences</li>
-                <li>Admin review, interview, cohort assignment, approval, and invite issuance</li>
-              </ul>
-            </article>
+
+              <ol className="join-steps">
+                <li className="join-step">
+                  <span className="join-step-num">1</span>
+                  <div>
+                    <strong>Review</strong>
+                    <p>Your application is assessed for fit and completeness by the PATNA secretariat.</p>
+                  </div>
+                </li>
+                <li className="join-step">
+                  <span className="join-step-num">2</span>
+                  <div>
+                    <strong>Interview</strong>
+                    <p>Shortlisted applicants are invited for a brief conversation to confirm alignment.</p>
+                  </div>
+                </li>
+                <li className="join-step">
+                  <span className="join-step-num">3</span>
+                  <div>
+                    <strong>Cohort assignment</strong>
+                    <p>Accepted members are placed in the cohort that best matches their expertise and goals.</p>
+                  </div>
+                </li>
+                <li className="join-step">
+                  <span className="join-step-num">4</span>
+                  <div>
+                    <strong>Welcome &amp; onboarding</strong>
+                    <p>You receive your community invite, member profile, and access to PATNA spaces.</p>
+                  </div>
+                </li>
+              </ol>
+
+              <div className="join-sidebar-note">
+                <strong>Typical timeline:</strong> 2–4 weeks from submission to decision.
+              </div>
+            </aside>
 
             <CommunityApplicationForm />
           </div>

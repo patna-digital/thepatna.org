@@ -12,6 +12,13 @@ import {
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { CoverImageUpload } from "@/components/admin/cover-image-upload";
 
+function toDatetimeLocal(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function InsightForm({
   insight,
   tags,
@@ -138,8 +145,22 @@ export function InsightForm({
           </select>
         </div>
 
+        {/* Publication date */}
+        <div className="insight-form-field">
+          <label htmlFor="published_at">Publication date</label>
+          <input
+            defaultValue={insight?.published_at ? toDatetimeLocal(insight.published_at) : ""}
+            id="published_at"
+            name="published_at"
+            type="datetime-local"
+          />
+          <p className="field-hint">
+            Controls the date shown on the publication and its sort order. Leave blank to auto-set on first publish.
+          </p>
+        </div>
+
         {/* Featured */}
-        <div className="insight-form-field insight-form-field-full">
+        <div className="insight-form-field">
           <label className="insight-form-checkbox-label">
             <input
               defaultChecked={insight?.featured || false}
@@ -149,6 +170,24 @@ export function InsightForm({
             />
             <span>Feature this publication (shown prominently across the platform)</span>
           </label>
+        </div>
+
+        {/* Needs review flag */}
+        <div className="insight-form-field insight-form-field-full">
+          <label className={`insight-form-checkbox-label${insight?.needs_review ? " insight-form-needs-review-active" : ""}`}>
+            <input
+              defaultChecked={insight?.needs_review || false}
+              name="needs_review"
+              type="checkbox"
+              value="true"
+            />
+            <span>Flag this publication as needing review</span>
+          </label>
+          {insight?.needs_review && (
+            <p className="field-hint field-hint-warning">
+              This publication is flagged. Update the body, cover image, or other fields, then uncheck to clear the flag.
+            </p>
+          )}
         </div>
 
         {/* Cover Image */}

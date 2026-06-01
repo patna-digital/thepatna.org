@@ -14,6 +14,8 @@ function getNoticeMessage(notice) {
     invited: "Applicant approved and invited. Profile seeded from application data.",
     "invite-resent": "Invite link resent.",
     "password-reset-sent": "Password reset link sent.",
+    assigned: "Application assigned. Admin notified via email and in-app notification.",
+    "cohorts-saved": "Cohort assignments saved.",
   };
   return messages[notice] || "";
 }
@@ -35,9 +37,14 @@ export default async function AdminApplicationsPage({ searchParams }) {
     query = query.eq("status", activeStatus);
   }
 
-  const [{ data: applications, error }, { data: cohorts }] = await Promise.all([
+  const [{ data: applications, error }, { data: cohorts }, { data: adminProfiles }] = await Promise.all([
     query,
     supabase.from("cohorts").select("id, name, slug").order("name", { ascending: true }),
+    // Fetch all admins for the assignment dropdown
+    supabase
+      .from("user_roles")
+      .select("user_id, profiles(id, first_name, surname, email)")
+      .in("role", ["administrator", "super_admin"]),
   ]);
 
   // Fetch profile data for all applications so the UI can show the right action button
@@ -54,10 +61,40 @@ export default async function AdminApplicationsPage({ searchParams }) {
 
   const profileByEmail = new Map((profiles || []).map((p) => [p.email?.toLowerCase(), p]));
 
-  const applicationsWithProfile = (applications || []).map((app) => ({
-    ...app,
-    member_profile: profileByEmail.get(app.submitted_by_email?.toLowerCase()) || null,
-  }));
+  const admins = (adminProfiles || [])
+    .map((r) => r.profiles)
+    .filter(Boolean)
+    .filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i); // deduplicate
+
+  // Fetch multi-cohort assignments for all applications
+  const applicationIds = (applications || []).map((a) => a.id);
+  const { data: assignedCohortRows } = applicationIds.length
+    ? await supabase
+        .from("application_assigned_cohorts")
+        .select("application_id, cohort_id, is_primary")
+        .in("application_id", applicationIds)
+    : { data: [] };
+
+  const assignedCohortsMap = new Map();
+  for (const row of (assignedCohortRows || [])) {
+    if (!assignedCohortsMap.has(row.application_id)) {
+      assignedCohortsMap.set(row.application_id, []);
+    }
+    assignedCohortsMap.get(row.application_id).push(row);
+  }
+
+  // Enrich with assignee name for search
+  const adminsById = new Map(admins.map((a) => [a.id, a]));
+  const applicationsWithProfile = (applications || []).map((app) => {
+    const assignee = app.assigned_to_user_id ? adminsById.get(app.assigned_to_user_id) : null;
+    return {
+      ...app,
+      member_profile: profileByEmail.get(app.submitted_by_email?.toLowerCase()) || null,
+      assignee_name: assignee
+        ? [assignee.first_name, assignee.surname].filter(Boolean).join(" ")
+        : null,
+    };
+  });
 
   const statusCounts = Object.fromEntries(
     await Promise.all(
@@ -144,7 +181,12 @@ export default async function AdminApplicationsPage({ searchParams }) {
         </div>
       </article>
 
-      <AdminApplicationsList applications={applicationsWithProfile} cohorts={cohorts || []} />
+      <AdminApplicationsList
+        admins={admins}
+        applications={applicationsWithProfile}
+        assignedCohortsMap={assignedCohortsMap}
+        cohorts={cohorts || []}
+      />
     </DashboardShell>
   );
 }

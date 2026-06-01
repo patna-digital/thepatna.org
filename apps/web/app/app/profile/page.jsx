@@ -162,6 +162,7 @@ export default async function MemberProfilePage({ searchParams }) {
     return (
       <MemberWorkspaceShell
         eyebrow="Profile"
+        notificationUserId={user?.id ?? null}
         sidebarUser={buildSidebarUser(member)}
         title="Edit PATNA profile"
         subtitle="Update any section of your profile without losing the guided structure used during onboarding."
@@ -265,6 +266,7 @@ export default async function MemberProfilePage({ searchParams }) {
           Edit profile
         </Link>
       }
+      notificationUserId={user?.id ?? null}
       sidebarUser={buildSidebarUser(member)}
       title={formConfig.title}
       subtitle="This is the PATNA profile currently stored for your account. You can review, improve, and edit it whenever needed."

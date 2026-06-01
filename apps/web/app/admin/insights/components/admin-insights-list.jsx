@@ -68,6 +68,11 @@ export function AdminInsightsList({ insights }) {
                   <span className="status-chip chip-neutral">
                     {insight.visibility}
                   </span>
+                  {insight.needs_review && (
+                    <span className="status-chip chip-warning" title="This publication has been flagged as needing review">
+                      Needs review
+                    </span>
+                  )}
                   <span className="app-row-expand-hint">Details</span>
                 </div>
               </div>

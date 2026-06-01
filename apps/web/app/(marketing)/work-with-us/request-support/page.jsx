@@ -1,5 +1,5 @@
 import { MarketingPageHero } from "@/components/marketing-page-hero";
-import { contactDetails } from "@/lib/patna-data";
+import { ServiceRequestForm } from "./service-request-form";
 
 export const metadata = {
   title: "Request Support",
@@ -11,13 +11,6 @@ export default function RequestSupportPage() {
   return (
     <>
       <MarketingPageHero
-        actions={[
-          {
-            href: `mailto:${contactDetails.email}?subject=PATNA%20Technical%20Support%20Request`,
-            label: "Email support request",
-            variant: "primary",
-          },
-        ]}
         label="Request Support"
         subtitle="Use this route if you need a briefing, technical analysis, convening design support, or coordination input from PATNA."
         title="Request technical support from PATNA"
@@ -37,23 +30,11 @@ export default function RequestSupportPage() {
             </article>
 
             <article className="content-card">
-              <h3>What to include</h3>
-              <p>
-                Share the institution you represent, the decision context, the support needed, and
-                any time-sensitive milestones.
+              <h3>Submit a support request</h3>
+              <p className="muted-note">
+                Include the institution you represent, the decision context, the support needed, and any time-sensitive milestones.
               </p>
-              <div className="stack">
-                <a
-                  className="primary-button"
-                  href={`mailto:${contactDetails.email}?subject=PATNA%20Technical%20Support%20Request`}
-                >
-                  Email PATNA
-                </a>
-                <p className="muted-note">
-                  PATNA currently handles support requests directly by email so the team can
-                  review each request in context and respond quickly.
-                </p>
-              </div>
+              <ServiceRequestForm />
             </article>
           </div>
         </div>

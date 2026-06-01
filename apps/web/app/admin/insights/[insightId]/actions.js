@@ -29,8 +29,11 @@ export async function createInsightAction(formData) {
   const slug = String(formData.get("slug") || "").trim() || generateInsightSlug(title);
   const tag_ids = formData.getAll("tag_ids").map(String);
   const featured = formData.get("featured") === "true";
+  const needs_review = formData.get("needs_review") === "true";
   const meta_description = String(formData.get("meta_description") || "").trim() || null;
   const cover_image_alt = String(formData.get("cover_image_alt") || "").trim() || null;
+  const published_at_raw = String(formData.get("published_at") || "").trim();
+  const published_at = published_at_raw ? new Date(published_at_raw).toISOString() : null;
 
   // Upload cover image if a file was provided
   let cover_image_url = String(formData.get("cover_image_url") || "").trim() || null;
@@ -70,9 +73,11 @@ export async function createInsightAction(formData) {
       slug,
       tag_ids,
       featured,
+      needs_review,
       cover_image_url,
       cover_image_alt,
       meta_description,
+      published_at,
     },
     userId: user.id,
   });
@@ -108,8 +113,11 @@ export async function updateInsightAction(insightId, formData) {
   const visibility = String(formData.get("visibility") || "members").trim();
   const tag_ids = formData.getAll("tag_ids").map(String);
   const featured = formData.get("featured") === "true";
+  const needs_review = formData.get("needs_review") === "true";
   const meta_description = String(formData.get("meta_description") || "").trim() || null;
   const cover_image_alt = String(formData.get("cover_image_alt") || "").trim() || null;
+  const published_at_raw = String(formData.get("published_at") || "").trim();
+  const published_at = published_at_raw ? new Date(published_at_raw).toISOString() : undefined;
 
   // Upload cover image if a file was provided
   let cover_image_url = String(formData.get("cover_image_url") || "").trim() || null;
@@ -149,9 +157,11 @@ export async function updateInsightAction(insightId, formData) {
       visibility,
       tag_ids,
       featured,
+      needs_review,
       cover_image_url,
       cover_image_alt,
       meta_description,
+      published_at,
     },
     userId: user.id,
   });

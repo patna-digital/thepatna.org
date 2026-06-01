@@ -1,5 +1,5 @@
 import { MarketingPageHero } from "@/components/marketing-page-hero";
-import { contactDetails } from "@/lib/patna-data";
+import { CollaborationProposalForm } from "./collaboration-proposal-form";
 
 export const metadata = {
   title: "Collaborate",
@@ -11,13 +11,6 @@ export default function CollaboratePage() {
   return (
     <>
       <MarketingPageHero
-        actions={[
-          {
-            href: `mailto:${contactDetails.email}?subject=PATNA%20Collaboration%20Proposal`,
-            label: "Email collaboration proposal",
-            variant: "primary",
-          },
-        ]}
         label="Collaborate"
         subtitle="Propose a workshop, pilot, joint research effort, or other collaborative initiative with PATNA."
         title="Co-create a PATNA initiative"
@@ -37,23 +30,11 @@ export default function CollaboratePage() {
             </article>
 
             <article className="content-card">
-              <h3>What to send</h3>
-              <p>
-                Outline the collaboration idea, the contribution you have in mind, and the kind of
-                outcome or public value the initiative should create.
+              <h3>Send your collaboration proposal</h3>
+              <p className="muted-note">
+                Outline the idea, your contribution, and the public value or outcome the initiative should create.
               </p>
-              <div className="stack">
-                <a
-                  className="primary-button"
-                  href={`mailto:${contactDetails.email}?subject=PATNA%20Collaboration%20Proposal`}
-                >
-                  Email PATNA
-                </a>
-                <p className="muted-note">
-                  Collaboration proposals are currently handled directly by email so the PATNA
-                  team can assess fit, timing, and next steps with you.
-                </p>
-              </div>
+              <CollaborationProposalForm />
             </article>
           </div>
         </div>

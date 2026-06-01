@@ -499,6 +499,324 @@
     "pipelinesTitle": "خطوط الأنابيب",
     "pipelinesComingSoon": "(قريباً)",
     "pipelinesText": "تتبع طلبات الخدمة، وشركاء الشراكة، ومقترحات التعاون من الموقع العام.",
-    "pipelinesNotAvailable": "غير متوفر"
+    "pipelinesNotAvailable": "غير متوفر",
+    "serviceRequests": {
+      "title": "طلبات الخدمة",
+      "subtitle": "إدارة طلبات الخدمة مع تتبع الحالة والتعيين وإدارة الأولويات.",
+      "spotlightLabel": "طلبات الخدمة",
+      "spotlightTitle": "تتبع وإدارة طلبات الخدمة",
+      "spotlightBody": "رصد طلبات الخدمة الواردة وتعيينها لأعضاء الفريق وتتبع التقدم حتى الاكتمال.",
+      "summary": {
+        "total": "إجمالي الطلبات",
+        "new": "جديد",
+        "inProgress": "قيد التنفيذ",
+        "completed": "مكتمل"
+      },
+      "filters": {
+        "status": {
+          "all": "الكل",
+          "new": "جديد",
+          "inProgress": "قيد التنفيذ",
+          "review": "قيد المراجعة",
+          "completed": "مكتمل",
+          "cancelled": "ملغى"
+        },
+        "type": {
+          "all": "جميع الأنواع",
+          "technical": "تقني",
+          "research": "بحث",
+          "content": "محتوى",
+          "events": "فعاليات",
+          "partnership": "شراكة",
+          "training": "تدريب"
+        }
+      },
+      "actions": {
+        "addRequest": "+ إضافة طلب",
+        "viewDetails": "عرض التفاصيل",
+        "editRequest": "تعديل الطلب",
+        "deleteRequest": "حذف الطلب",
+        "search": "بحث",
+        "clearFilters": "مسح الفلاتر",
+        "showingFiltered": "عرض {count} من {total} طلبات الخدمة"
+      },
+      "table": {
+        "headers": {
+          "requester": "مقدم الطلب",
+          "organisation": "المنظمة",
+          "type": "النوع",
+          "details": "التفاصيل",
+          "status": "الحالة",
+          "assigned": "مُسند إلى",
+          "created": "تاريخ الإنشاء",
+          "actions": "الإجراءات"
+        }
+      },
+      "messages": {
+        "saved": "تم حفظ طلب الخدمة.",
+        "deleted": "تم حذف طلب الخدمة.",
+        "error": "فشلت العملية. يرجى المحاولة مرة أخرى.",
+        "emptyState": "لم يتم العثور على طلبات خدمة. أضف طلبًا للبدء.",
+        "deleteConfirm": "هل تريد حذف طلب الخدمة هذا؟ لا يمكن التراجع عن هذا الإجراء."
+      }
+    },
+    "partnershipLeads": {
+      "title": "فرص الشراكة",
+      "subtitle": "إدارة فرص الشراكة مع تتبع الحالة والتعيين والتوقعات المالية.",
+      "spotlightLabel": "فرص الشراكة",
+      "spotlightTitle": "إدارة خط أنابيب تطوير الشراكات",
+      "spotlightBody": "تتبع فرص الشراكة المحتملة وإدارة التواصل ومراقبة التقدم في مسار المبيعات.",
+      "summary": {
+        "total": "إجمالي الفرص",
+        "new": "جديد",
+        "inDiscussion": "قيد النقاش",
+        "closedWon": "مغلق (رابح)"
+      },
+      "filters": {
+        "status": {
+          "all": "الكل",
+          "new": "جديد",
+          "contacted": "تم التواصل",
+          "inDiscussion": "قيد النقاش",
+          "proposalSent": "تم إرسال المقترح",
+          "negotiation": "تفاوض",
+          "closedWon": "مغلق (رابح)",
+          "closedLost": "مغلق (خاسر)"
+        },
+        "orgType": {
+          "all": "جميع الأنواع",
+          "ngo": "منظمة غير حكومية/غير ربحية",
+          "government": "حكومة",
+          "academic": "أكاديمي/بحثي",
+          "private": "القطاع الخاص",
+          "foundation": "مؤسسة",
+          "multilateral": "متعدد الأطراف"
+        }
+      },
+      "actions": {
+        "addLead": "+ إضافة فرصة",
+        "viewDetails": "عرض التفاصيل",
+        "editLead": "تعديل الفرصة",
+        "deleteLead": "حذف الفرصة",
+        "search": "بحث",
+        "clearFilters": "مسح الفلاتر",
+        "showingFiltered": "عرض {count} من {total} فرص الشراكة"
+      },
+      "table": {
+        "headers": {
+          "organisation": "المنظمة",
+          "contact": "جهة الاتصال",
+          "type": "النوع",
+          "focusAreas": "مجالات التركيز",
+          "status": "الحالة",
+          "assigned": "مُسند إلى",
+          "value": "القيمة",
+          "created": "تاريخ الإنشاء",
+          "actions": "الإجراءات"
+        }
+      },
+      "messages": {
+        "saved": "تم حفظ فرصة الشراكة.",
+        "deleted": "تم حذف فرصة الشراكة.",
+        "error": "فشلت العملية. يرجى المحاولة مرة أخرى.",
+        "emptyState": "لم يتم العثور على فرص شراكة. أضف فرصة للبدء.",
+        "deleteConfirm": "هل تريد حذف فرصة الشراكة هذه؟ لا يمكن التراجع عن هذا الإجراء."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "اسم المنظمة",
+          "contactPerson": "الشخص المسؤول",
+          "contactEmail": "البريد الإلكتروني للتواصل",
+          "orgType": "نوع المنظمة",
+          "selectOrgType": "اختر نوع المنظمة",
+          "focusAreas": "مجالات التركيز",
+          "budgetRange": "النطاق الميزانياتي (اختياري)",
+          "successDefinition": "تعريف النجاح (اختياري)",
+          "supportType": "نوع الدعم (اختياري)",
+          "selectSupportType": "اختر نوع الدعم",
+          "status": "الحالة",
+          "assignedTo": "مُسند إلى (اختياري)",
+          "unassigned": "غير مُسند"
+        },
+        "orgTypes": {
+          "ngo": "منظمة غير حكومية/غير ربحية",
+          "government": "حكومة",
+          "academic": "أكاديمي/بحثي",
+          "private": "القطاع الخاص",
+          "foundation": "مؤسسة",
+          "multilateral": "متعدد الأطراف"
+        },
+        "statusOptions": {
+          "new": "جديد",
+          "contacted": "تم التواصل",
+          "in_discussion": "قيد النقاش",
+          "proposal_sent": "تم إرسال المقترح",
+          "negotiation": "تفاوض",
+          "closed_won": "مغلق (رابح)",
+          "closed_lost": "مغلق (خاسر)"
+        },
+        "supportTypes": {
+          "financial": "مالي",
+          "technical": "مساعدة تقنية",
+          "capacity_building": "بناء القدرات",
+          "advocacy": "مناصرة",
+          "research": "تعاون بحثي"
+        },
+        "submit": {
+          "saving": "جارٍ الحفظ…",
+          "creating": "جارٍ الإنشاء…",
+          "save": "حفظ التغييرات",
+          "create": "حفظ الفرصة",
+          "cancel": "إلغاء",
+          "delete": "حذف"
+        },
+        "feedback": {
+          "saved": "تم حفظ فرصة الشراكة بنجاح.",
+          "error": "حدث خطأ ما — يرجى المحاولة مرة أخرى.",
+          "deleteConfirm": "هل تريد حذف فرصة الشراكة هذه؟ لا يمكن التراجع عن هذا الإجراء."
+        }
+      }
+    },
+    "collaborationLeads": {
+      "title": "فرص التعاون",
+      "subtitle": "إدارة فرص التعاون مع تتبع الحالة والتعيين ورصد النتائج.",
+      "spotlightLabel": "فرص التعاون",
+      "spotlightTitle": "إدارة فرص التعاون",
+      "spotlightBody": "تتبع فرص التعاون المحتملة مع الشركاء وإدارة النقاشات ومراقبة التقدم.",
+      "summary": {
+        "total": "إجمالي الفرص",
+        "new": "جديد",
+        "inDiscussion": "قيد النقاش",
+        "agreed": "متفق عليه"
+      },
+      "filters": {
+        "status": {
+          "all": "الكل",
+          "new": "جديد",
+          "contacted": "تم التواصل",
+          "inDiscussion": "قيد النقاش",
+          "proposalSent": "تم إرسال المقترح",
+          "negotiation": "تفاوض",
+          "agreed": "متفق عليه",
+          "declined": "مرفوض"
+        },
+        "collabType": {
+          "all": "جميع الأنواع",
+          "research": "بحث",
+          "content": "محتوى",
+          "events": "فعاليات",
+          "training": "تدريب",
+          "advocacy": "مناصرة",
+          "technical": "مساعدة تقنية"
+        }
+      },
+      "actions": {
+        "addLead": "+ إضافة فرصة",
+        "viewDetails": "عرض التفاصيل",
+        "editLead": "تعديل الفرصة",
+        "deleteLead": "حذف الفرصة",
+        "search": "بحث",
+        "clearFilters": "مسح الفلاتر",
+        "showingFiltered": "عرض {count} من {total} فرص التعاون"
+      },
+      "table": {
+        "headers": {
+          "organisation": "المنظمة",
+          "contact": "جهة الاتصال",
+          "type": "النوع",
+          "proposal": "المقترح",
+          "status": "الحالة",
+          "assigned": "مُسند إلى",
+          "created": "تاريخ الإنشاء",
+          "actions": "الإجراءات"
+        }
+      },
+      "messages": {
+        "saved": "تم حفظ فرصة التعاون.",
+        "deleted": "تم حذف فرصة التعاون.",
+        "error": "فشلت العملية. يرجى المحاولة مرة أخرى.",
+        "emptyState": "لم يتم العثور على فرص تعاون. أضف فرصة للبدء.",
+        "deleteConfirm": "هل تريد حذف فرصة التعاون هذه؟ لا يمكن التراجع عن هذا الإجراء."
+      },
+      "forms": {
+        "labels": {
+          "organisation": "اسم المنظمة",
+          "contactPerson": "الشخص المسؤول",
+          "contactEmail": "البريد الإلكتروني للتواصل",
+          "collaborationType": "نوع التعاون",
+          "selectCollabType": "اختر نوع التعاون",
+          "status": "الحالة",
+          "proposalSummary": "ملخص المقترح",
+          "assignedTo": "مُسند إلى (اختياري)",
+          "unassigned": "غير مُسند"
+        },
+        "collabTypes": {
+          "research": "بحث",
+          "content": "محتوى",
+          "events": "فعاليات",
+          "training": "تدريب",
+          "advocacy": "مناصرة",
+          "technical": "مساعدة تقنية"
+        },
+        "statusOptions": {
+          "new": "جديد",
+          "contacted": "تم التواصل",
+          "in_discussion": "قيد النقاش",
+          "proposal_sent": "تم إرسال المقترح",
+          "negotiation": "تفاوض",
+          "agreed": "متفق عليه",
+          "declined": "مرفوض"
+        },
+        "submit": {
+          "saving": "جارٍ الحفظ…",
+          "creating": "جارٍ الإنشاء…",
+          "save": "حفظ التغييرات",
+          "create": "حفظ الفرصة",
+          "cancel": "إلغاء",
+          "delete": "حذف"
+        },
+        "feedback": {
+          "saved": "تم حفظ فرصة التعاون بنجاح.",
+          "error": "حدث خطأ ما — يرجى المحاولة مرة أخرى.",
+          "deleteConfirm": "هل تريد حذف فرصة التعاون هذه؟ لا يمكن التراجع عن هذا الإجراء."
+        }
+      }
+    },
+    "notifications": {
+      "title": "الإشعارات",
+      "subtitle": "إنشاء وإرسال إعلانات لأعضاء المجتمع.",
+      "newBroadcast": "إعلان جديد",
+      "history": "سجل الإعلانات",
+      "empty": "لم يتم إرسال أي إعلانات بعد.",
+      "sent": "تم إرسال الإعلان بنجاح.",
+      "error": "فشل الإرسال. يرجى المحاولة مرة أخرى.",
+      "missingFields": "الموضوع والرسالة مطلوبان."
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "empty": "أنت على اطلاع بكل شيء",
+    "markAllRead": "تعليم الكل كمقروء",
+    "preferences": {
+      "title": "تفضيلات الإشعارات",
+      "description": "اختر كيف ومتى تتلقى إشعارات PATNA.",
+      "emailMentions": "إرسال بريد إلكتروني عند الإشارة إليّ",
+      "emailMentionsHint": "تلقّ بريداً إلكترونياً عندما يذكرك أحدهم في موضوع.",
+      "emailBroadcasts": "إعلانات المنصة",
+      "emailBroadcastsHint": "إعلانات مهمة من فريق PATNA.",
+      "inappMentions": "تنبيهات الإشارة داخل التطبيق",
+      "inappMentionsHint": "عرض شارة في جرس الإشعارات عند الإشارة إليك.",
+      "activityDigest": "ملخص النشاط",
+      "activityDigestHint": "ملخص بريد إلكتروني لنشاط مساحاتك.",
+      "digestFrequency": "تكرار الملخص",
+      "daily": "يومي",
+      "weekly": "أسبوعي",
+      "never": "إيقاف"
+    },
+    "types": {
+      "mention": "أشار إليك في",
+      "admin_broadcast": "إعلان",
+      "space_activity": "نشاط جديد في"
+    }
   }
 }

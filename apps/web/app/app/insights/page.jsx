@@ -39,6 +39,7 @@ export default async function MemberInsightsPage({ searchParams }) {
   return (
     <MemberWorkspaceShell
       eyebrow="Knowledge"
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       subtitle={`${insights?.length || 0} insights, reports, briefs, and case studies from across PATNA's work.`}
       title="Insights library"

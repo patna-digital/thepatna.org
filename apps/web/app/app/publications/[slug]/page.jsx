@@ -2,13 +2,14 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MemberWorkspaceShell } from "@/components/member-workspace-shell";
+import { PublicationBreadcrumb } from "@/components/publication-breadcrumb";
 import {
   findPrimaryPublicationAttachment,
   getPublicationAttachmentFileUrl,
 } from "@/lib/publication-attachments";
 import { getCurrentUserContext } from "@/lib/supabase/access";
 import { fetchMemberWorkspaceFrameData } from "@/lib/member-workspace";
-import { fetchInsightBySlug } from "@/lib/insights";
+import { fetchInsightBySlug, fetchAdjacentInsights } from "@/lib/insights";
 
 export default async function MemberPublicationDetailPage({ params }) {
   const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
@@ -32,6 +33,10 @@ export default async function MemberPublicationDetailPage({ params }) {
   const { insight: pub } = pubResult;
   if (!pub) notFound();
 
+  const adjacent = pub.published_at
+    ? await fetchAdjacentInsights({ supabase, publishedAt: pub.published_at, slug: pub.slug })
+    : { prev: null, next: null };
+
   const sidebarUser = frameData.sidebarUser || null;
   const pdfAttachment = findPrimaryPublicationAttachment(pub.attachments);
   const readHref = getPublicationAttachmentFileUrl(pdfAttachment, { disposition: "inline" });
@@ -40,22 +45,27 @@ export default async function MemberPublicationDetailPage({ params }) {
   return (
     <MemberWorkspaceShell
       eyebrow={t("publicationUi.eyebrow")}
+      notificationUserId={user?.id ?? null}
       sidebarUser={sidebarUser}
       title={pub.title}
       subtitle={typeLabel}
     >
       <div className="member-dashboard-stack">
-        {/* Cover image */}
+        <div className="member-publication-breadcrumb">
+          <PublicationBreadcrumb
+            crumbs={[
+              { label: t("publicationUi.eyebrow") || "Publications", href: "/app/publications" },
+              { label: pub.title },
+            ]}
+          />
+        </div>
+
         {pub.cover_image_url && (
           <div className="publication-detail-cover-member">
-            <img
-              alt={pub.cover_image_alt || pub.title}
-              src={pub.cover_image_url}
-            />
+            <img alt={pub.cover_image_alt || pub.title} src={pub.cover_image_url} />
           </div>
         )}
 
-        {/* Meta + download */}
         <article className="dashboard-card publication-detail-meta-card">
           <div className="publication-detail-meta-bar">
             <div className="publication-detail-meta-left">
@@ -80,36 +90,40 @@ export default async function MemberPublicationDetailPage({ params }) {
           </div>
         </article>
 
-        {/* Body */}
         <article className="dashboard-card">
           {pub.body ? (
-            <div
-              className="publication-body prose"
-              dangerouslySetInnerHTML={{ __html: pub.body }}
-            />
+            <div className="publication-body prose" dangerouslySetInnerHTML={{ __html: pub.body }} />
           ) : (
             pub.summary && (
-              <div className="publication-body prose">
-                <p>{pub.summary}</p>
-              </div>
+              <div className="publication-body prose"><p>{pub.summary}</p></div>
             )
           )}
         </article>
 
-        {/* Footer */}
         <div className="publication-detail-footer">
           <Link className="publication-back-link" href="/app/publications">
             {t("publicationUi.backToPublications")}
           </Link>
           {pdfAttachment && (
-            <a
-              className="primary-button"
-              href={readHref}
-              rel="noreferrer"
-              target="_blank"
-            >
+            <a className="primary-button" href={readHref} rel="noreferrer" target="_blank">
               {t("publicationUi.openPdf")}
             </a>
+          )}
+          {(adjacent.prev || adjacent.next) && (
+            <div className="publication-prev-next">
+              {adjacent.prev && (
+                <Link className="publication-prev-link" href={`/app/publications/${adjacent.prev.slug}`}>
+                  <span className="publication-prev-next-label">← Previous</span>
+                  <span className="publication-prev-next-title">{adjacent.prev.title}</span>
+                </Link>
+              )}
+              {adjacent.next && (
+                <Link className="publication-next-link" href={`/app/publications/${adjacent.next.slug}`}>
+                  <span className="publication-prev-next-label">Next →</span>
+                  <span className="publication-prev-next-title">{adjacent.next.title}</span>
+                </Link>
+              )}
+            </div>
           )}
         </div>
       </div>

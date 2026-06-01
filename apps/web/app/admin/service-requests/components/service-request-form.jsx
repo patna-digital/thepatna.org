@@ -5,8 +5,21 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { parseOptionalText } from "@/lib/service-requests";
 
-export default function ServiceRequestForm({ serviceRequest, action, deleteAction, cancelHref = "/admin/service-requests", submitLabel = "Save Request" }) {
+function SubmitButton({ label }) {
   const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50 form-submit-btn"
+    >
+      {pending && <span className="form-submit-spinner" aria-hidden="true" />}
+      {pending ? "Saving…" : label}
+    </button>
+  );
+}
+
+export function ServiceRequestForm({ serviceRequest, action, deleteAction, cancelHref = "/admin/service-requests", submitLabel = "Save Request", adminUsers = [] }) {
   const isEdit = Boolean(serviceRequest?.id);
 
   const [formData, setFormData] = useState({
@@ -192,7 +205,12 @@ export default function ServiceRequestForm({ serviceRequest, action, deleteActio
           className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-patna-blue focus:border-patna-blue"
         >
           <option value="">Unassigned</option>
-          {/* In a real implementation, this would be populated with member options */}
+          {adminUsers.map((u) => (
+            <option key={u.user_id} value={u.user_id}>
+              {[u.first_name, u.surname].filter(Boolean).join(" ") || u.email}
+              {u.role_title ? ` · ${u.role_title}` : ""}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -208,21 +226,21 @@ export default function ServiceRequestForm({ serviceRequest, action, deleteActio
             <input type="hidden" name="request_id" value={serviceRequest.id} />
             <button
               type="submit"
-              disabled={pending}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+              onClick={(e) => {
+                if (!window.confirm("Delete this request? This cannot be undone.")) {
+                  e.preventDefault();
+                }
+              }}
             >
               Delete
             </button>
           </form>
         )}
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-4 py-2 bg-patna-blue text-white rounded-md hover:bg-patna-blue-dark disabled:opacity-50"
-        >
-          {pending ? "Saving..." : submitLabel}
-        </button>
+        <SubmitButton label={submitLabel} />
       </div>
     </form>
   );
 }
+
+export default ServiceRequestForm;

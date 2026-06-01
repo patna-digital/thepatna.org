@@ -436,6 +436,45 @@ export function AvailabilityEditorClient({ initialRules, initialBookingSettings,
       <style jsx global>{`
         .availability-page-content {
           max-width: 800px;
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        .availability-flow-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          padding: 1.25rem 1.5rem;
+          background: linear-gradient(135deg, rgba(3, 82, 157, 0.05), rgba(255, 255, 255, 0.98));
+          border: 1px solid rgba(3, 82, 157, 0.12);
+          border-radius: var(--radius-lg);
+        }
+
+        .availability-flow-footer-copy {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .availability-flow-footer-copy strong {
+          font-size: var(--text-sm);
+          font-weight: 700;
+          color: var(--ink);
+        }
+
+        .availability-flow-footer-copy p {
+          margin: 0;
+          font-size: var(--text-sm);
+          color: var(--ink-muted);
+        }
+
+        @media (max-width: 640px) {
+          .availability-flow-footer {
+            flex-direction: column;
+            align-items: flex-start;
+          }
         }
 
         .availability-editor {
