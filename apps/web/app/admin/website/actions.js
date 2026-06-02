@@ -52,3 +52,20 @@ export async function saveFeaturedPartnersAction(formData) {
   revalidatePath("/admin/partners");
   revalidatePath("/");
 }
+
+export async function saveWipPagesAction(pages) {
+  await requireAdminContext();
+  const adminClient = createSupabaseAdminClient();
+
+  const { error } = await adminClient
+    .from("site_settings")
+    .upsert({ key: "wip_pages", value: { pages } }, { onConflict: "key" });
+
+  if (error) {
+    console.error("[saveWipPagesAction] error:", error);
+    return { error: "Failed to save WIP pages." };
+  }
+
+  revalidatePath("/admin/website");
+  revalidatePath("/", "layout");
+}

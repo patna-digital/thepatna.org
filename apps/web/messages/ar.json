@@ -147,7 +147,13 @@
     "joinTitle": "هل أنت مستعد لتشكيل المستقبل البحري لأفريقيا؟",
     "joinPara": "انضم إلى أكثر من 100 متخصص يتعاونون بالفعل من خلال مجموعات PATNA واجتماعاتها وعمل الأدلة المشتركة.",
     "btnStartApplication": "بدء التطبيق",
-    "btnMemberLogin": "تسجيل دخول الأعضاء الحاليين"
+    "btnMemberLogin": "تسجيل دخول الأعضاء الحاليين",
+    "memberExpLabel": "Community Life",
+    "memberExpTitle": "What it means to be part of PATNA",
+    "memberExpDesc": "PATNA members work at the intersection of policy, research, and practice. Through cohort participation, thematic working groups, and direct delegation support, members contribute evidence that shapes how African states engage in global climate and maritime governance.",
+    "memberExpCta": "Join the community →",
+    "networkNext": "Next",
+    "networkPrev": "Previous"
   },
   "workWithUs": {
     "label": "العمل معنا",

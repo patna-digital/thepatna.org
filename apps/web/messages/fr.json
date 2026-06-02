@@ -147,7 +147,13 @@
     "joinTitle": "Prêt à façonner l’avenir maritime de l’Afrique ?",
     "joinPara": "Rejoignez plus de 100 spécialistes qui collaborent déjà dans le cadre des cohortes, des réunions et du travail de partage de données de PATNA.",
     "btnStartApplication": "Démarrer l'application",
-    "btnMemberLogin": "Connexion membre existant"
+    "btnMemberLogin": "Connexion membre existant",
+    "memberExpLabel": "Community Life",
+    "memberExpTitle": "What it means to be part of PATNA",
+    "memberExpDesc": "PATNA members work at the intersection of policy, research, and practice. Through cohort participation, thematic working groups, and direct delegation support, members contribute evidence that shapes how African states engage in global climate and maritime governance.",
+    "memberExpCta": "Join the community →",
+    "networkNext": "Next",
+    "networkPrev": "Previous"
   },
   "workWithUs": {
     "label": "Travaillez avec nous",

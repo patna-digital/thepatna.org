@@ -9,35 +9,50 @@ export const metadata = {
     "Discover PATNA's expert community, cohorts, and pathways for African specialists and institutions to contribute.",
 };
 
-async function getMemberSnapshot() {
+const PER_PAGE = 8;
+
+async function getMemberSnapshot({ page = 1 } = {}) {
   if (!canUseSupabaseAdmin()) {
-    return [];
+    return { members: [], total: 0 };
   }
 
   try {
     const adminClient = createSupabaseAdminClient();
     const { members } = await fetchActiveMemberDirectory({ adminClient });
 
-    return members
-      .filter((member) => member.visibility_setting !== "private")
-      .slice(0, 8);
+    const visible = members.filter((m) => m.visibility_setting !== "private");
+    const total = visible.length;
+    const start = (page - 1) * PER_PAGE;
+    return { members: visible.slice(start, start + PER_PAGE), total };
   } catch (error) {
     console.error("Unable to load public member snapshot", error);
-    return [];
+    return { members: [], total: 0 };
   }
 }
 
 function getInitials(name) {
-  return String(name || "PATNA Member")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "PM";
+  return (
+    String(name || "PATNA Member")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "PM"
+  );
 }
 
-export default async function CommunityPage() {
-  const [t, members] = await Promise.all([getTranslations(), getMemberSnapshot()]);
+export default async function CommunityPage({ searchParams }) {
+  const resolved = await searchParams;
+  const page = Math.max(1, parseInt(resolved?.page || "1", 10));
+
+  const [t, { members, total }] = await Promise.all([
+    getTranslations(),
+    getMemberSnapshot({ page }),
+  ]);
+
+  const totalPages = Math.ceil(total / PER_PAGE);
+  const hasPrev = page > 1;
+  const hasNext = page < totalPages;
 
   return (
     <>
@@ -52,12 +67,8 @@ export default async function CommunityPage() {
         <div className="sub-page-hero-dot" aria-hidden="true" />
         <div className="sub-page-hero-inner">
           <div className="sub-page-hero-eyebrow">{t("community.heroEyebrow")}</div>
-          <h1 className="sub-page-hero-title">
-            {t("community.heroH1")}
-          </h1>
-          <p className="sub-page-hero-sub">
-            {t("community.heroDesc")}
-          </p>
+          <h1 className="sub-page-hero-title">{t("community.heroH1")}</h1>
+          <p className="sub-page-hero-sub">{t("community.heroDesc")}</p>
         </div>
       </section>
 
@@ -71,85 +82,109 @@ export default async function CommunityPage() {
           </div>
 
           <div className="feat-split-grid">
-            <article className="feat-main-card">
+            {/* Left: member experience panel */}
+            <div className="feat-main-card feat-member-exp">
               <div className="feat-main-img">
                 <img
-                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=900&h=680&fit=crop&q=80"
-                  alt="PATNA cohort members in a collaborative session"
+                  src="/images/PATNA community image.jpg"
+                  alt="PATNA community members"
                 />
                 <div className="feat-main-img-overlay" />
-                <span className="feat-main-status feat-status-active">{t("community.cohortStatusOpen")}</span>
               </div>
               <div className="feat-main-body">
-                <div className="feat-main-tag">{t("community.cohortTag")}</div>
-                <h2 className="feat-main-title">{t("community.cohortTitle")}</h2>
-                <p className="feat-main-desc">{t("community.cohortDesc")}</p>
-                <div className="cohort-features">
-                  <div className="cohort-feature">{t("community.cohortFeature1")}</div>
-                  <div className="cohort-feature">{t("community.cohortFeature2")}</div>
-                  <div className="cohort-feature">{t("community.cohortFeature3")}</div>
-                  <div className="cohort-feature">{t("community.cohortFeature4")}</div>
-                </div>
-                <div className="feat-main-footer">
-                  <div className="feat-main-meta">{t("community.cohortMeta")}</div>
-                  <Link className="feat-main-cta" href="/community/join">
-                    {t("community.cohortCta")}
-                  </Link>
-                </div>
-              </div>
-            </article>
-
-            <div className="feat-side-list">
-              {[
-                { titleKey: "community.track1Title", metaKey: "community.track1Meta" },
-                { titleKey: "community.track2Title", metaKey: "community.track2Meta" },
-                { titleKey: "community.track3Title", metaKey: "community.track3Meta" },
-              ].map((track) => (
-                <Link className="feat-side-item" href="/community/join" key={track.titleKey}>
-                  <div className="feat-side-content">
-                    <div className="feat-side-tag">{t("community.trackOngoing")}</div>
-                    <div className="feat-side-title">{t(track.titleKey)}</div>
-                    <div className="feat-side-meta">{t(track.metaKey)}</div>
-                  </div>
-                  <span className="feat-side-arrow">→</span>
+                <div className="feat-main-tag">{t("community.memberExpLabel")}</div>
+                <h2 className="feat-main-title">{t("community.memberExpTitle")}</h2>
+                <p className="feat-main-desc">{t("community.memberExpDesc")}</p>
+                <Link className="feat-main-cta" href="/community/join">
+                  {t("community.memberExpCta")}
                 </Link>
+              </div>
+            </div>
+
+            {/* Right: 4 cohorts stacked */}
+            <div className="feat-cohorts-stack">
+              {[
+                { key: "1", icon: "academics" },
+                { key: "2", icon: "policy" },
+                { key: "3", icon: "legal" },
+                { key: "4", icon: "industry" },
+              ].map(({ key, icon }) => (
+                <div className="cohort-card" key={key}>
+                  <div className={`cohort-icon cohort-icon--${icon}`} aria-hidden="true" />
+                  <h3 className="cohort-card-title">{t(`home.cohort${key}Title`)}</h3>
+                  <p className="cohort-card-desc">{t(`home.cohort${key}Desc`)}</p>
+                </div>
               ))}
             </div>
           </div>
         </div>
       </div>
 
-      {members.length > 0 && (
-        <section className="v3-members-section">
+      {total > 0 && (
+        <section className="v3-members-section" id="experts">
           <div className="section-narrow">
             <div className="v3-members-header">
               <div>
                 <div className="v3-members-label">{t("community.networkLabel")}</div>
-                <h2 className="v3-members-title">
-                  {t("community.networkH2")}
-                </h2>
+                <h2 className="v3-members-title">{t("community.networkH2")}</h2>
               </div>
-              <Link className="v3-members-link" href="/auth/login">
-                {t("community.networkViewDir")}
-              </Link>
+              {totalPages > 1 && (
+                <div className="v3-members-pagination">
+                  {hasPrev ? (
+                    <Link
+                      className="v3-members-page-btn"
+                      href={`?page=${page - 1}#experts`}
+                    >
+                      ← {t("community.networkPrev")}
+                    </Link>
+                  ) : (
+                    <span className="v3-members-page-btn v3-members-page-btn--disabled">
+                      ← {t("community.networkPrev")}
+                    </span>
+                  )}
+                  <span className="v3-members-page-count">
+                    {page} / {totalPages}
+                  </span>
+                  {hasNext ? (
+                    <Link
+                      className="v3-members-page-btn"
+                      href={`?page=${page + 1}#experts`}
+                    >
+                      {t("community.networkNext")} →
+                    </Link>
+                  ) : (
+                    <span className="v3-members-page-btn v3-members-page-btn--disabled">
+                      {t("community.networkNext")} →
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="v3-members-grid">
               {members.map((member) => {
                 const name = member.displayNameLabel || member.displayName;
-                const cohort = member.primaryCohort?.nameDisplay || member.primaryCohort?.name || "PATNA";
+                const cohort =
+                  member.primaryCohort?.nameDisplay ||
+                  member.primaryCohort?.name ||
+                  "PATNA";
                 return (
                   <article className="v3-member-card" key={member.id}>
                     <div className="v3-member-avatar">
                       {member.headshotSrc ? (
                         <img src={member.headshotSrc} alt={name} />
                       ) : (
-                        <span className="v3-member-avatar-fallback">{getInitials(name)}</span>
+                        <span className="v3-member-avatar-fallback">
+                          {getInitials(name)}
+                        </span>
                       )}
                     </div>
                     <h3 className="v3-member-name">{name}</h3>
                     <p className="v3-member-role">
-                      {member.roleTitleDisplay || member.roleTitleLabel || member.organisationDisplay || t("community.memberFallback")}
+                      {member.roleTitleDisplay ||
+                        member.roleTitleLabel ||
+                        member.organisationDisplay ||
+                        t("community.memberFallback")}
                     </p>
                     <span className="v3-member-cohort">{cohort}</span>
                     {member.countryDisplay || member.country_of_residence ? (
