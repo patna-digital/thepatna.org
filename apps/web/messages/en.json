@@ -263,7 +263,7 @@
     "storyNarrative1": "The PATNA Initiative was founded on a documented gap and a deliberate decision to close it.",
     "storyNarrative2": "Africa faces a structural contradiction. It carries over 90% of its trade by sea and bears the first economic consequences of rising shipping costs. It also holds 60% of the world's prime solar resources and the technical potential to produce the zero-emission fuels that the global shipping fleet will need by 2050.",
     "storyNarrative3": "The Net-Zero Framework being finalised at the IMO could impose an estimated 20% increase in African shipping costs by 2035 on nations from a continent that contributes less than 5% of global emissions. It could also unlock a green hydrogen and green ammonia export market worth hundreds of billions of dollars — if Africa's engagement is organised, evidence-backed, and diplomatically coordinated.",
-    "storyNarrative4": "PATNA was established because organised engagement does not happen by default. Without a convening of expertise, African data-driven evidence, and coordinated positions, Africa's 44 IMO member states remain individually present but collectively absent from the rooms where decisions are made.",
+    "storyNarrative4": "PATNA was established because organised engagement does not happen by default. Without coordinated expertise, African data-driven evidence, and shared positions, Africa's 44 IMO member states arrive individually at forums where collective positioning would multiply their impact considerably.",
     "storyNarrative5": "Across the LEAP series, PATNA has produced the continent's first national shipping emissions inventories; convened the first Africa Strategic Maritime Summit on Shipping Decarbonisation; co-organised the Dakar Workshop that produced the 15 Dakar Declarations; contributed to Africa's first continental maritime decarbonisation strategy; and — through research and technical support — helped Africa's delegations contribute meaningfully at ISWG-GHG 21 and MEPC 84 to developing guidelines for the IMO's Net-Zero Framework and securing equity provisions in the transition.",
     "govLabel": "Governance",
     "govH2": "Leadership & Structure",
@@ -330,7 +330,7 @@
     "networkViewDir": "Member directory →",
     "memberFallback": "PATNA member",
     "ctaTitle": "Your expertise belongs in these rooms.",
-    "ctaDesc": "Apply to join PATNA's next cohort or become a community member. Africa's positions at the IMO and beyond are built by the people in this network.",
+    "ctaDesc": "Apply to join PATNA's next cohort or become a community member. Africa's positions at the IMO and beyond are shaped in part by the people in this network.",
     "ctaPrimary": "Apply to Join →",
     "ctaSecondary": "Commission PATNA"
   },
@@ -1255,6 +1255,13 @@
       "dbMissing": {
         "title": "Database setup required:",
         "text": "the site_settings table is missing. Run migration 0052_site_settings.sql in Supabase, then reload."
+      },
+      "wipPages": {
+        "title": "Work in Progress",
+        "description": "Temporarily show a friendly holding message on selected pages while you work on them. Visitors see a helpful notice; everything else stays live.",
+        "summaryNone": "All pages live",
+        "summaryActive": "{count} page offline",
+        "summaryActivePlural": "{count} pages offline"
       },
       "communitySnapshot": {
         "title": "Community snapshot",

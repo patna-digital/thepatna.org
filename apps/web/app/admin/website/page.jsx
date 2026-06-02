@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Star, Globe } from "lucide-react";
+import { Users, Star, Globe, Construction } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/lib/patna-data";
@@ -9,17 +9,23 @@ import { FeaturedMembersPicker } from "@/app/admin/settings/components/featured-
 import { FeaturedPartnersPicker } from "./components/featured-partners-picker";
 import { CollapsibleSection } from "./components/collapsible-section";
 import { InlinePeopleManager } from "./components/inline-people-manager";
+import { WipPagesPicker } from "./components/wip-pages-picker";
 
 export const metadata = { title: "Website | PATNA Admin" };
 
 async function fetchPageData() {
   const adminClient = createSupabaseAdminClient();
 
-  const [settingsResult, membersResult, partnersResult, peopleResult] = await Promise.all([
+  const [settingsResult, wipResult, membersResult, partnersResult, peopleResult] = await Promise.all([
     adminClient
       .from("site_settings")
       .select("value")
       .eq("key", "home_featured_members")
+      .single(),
+    adminClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "wip_pages")
       .single(),
     adminClient
       .from("profiles")
@@ -41,6 +47,7 @@ async function fetchPageData() {
 
   const setting   = settingsResult.data?.value || { mode: "default", member_ids: [] };
   const dbMissing = settingsResult.error?.code === "PGRST205";
+  const wipPages  = wipResult.data?.value?.pages || [];
 
   const cohortResult = await adminClient
     .from("user_cohorts")
@@ -77,12 +84,13 @@ async function fetchPageData() {
     peopleCounts,
     featuredPartners,
     featuredMembersMode: setting.mode,
+    wipPages,
   };
 }
 
 export default async function AdminWebsitePage() {
   await requireAdminContext();
-  const [t, { setting, allMembers, dbMissing, partners, people, peopleCounts, featuredPartners, featuredMembersMode }] = await Promise.all([
+  const [t, { setting, allMembers, dbMissing, partners, people, peopleCounts, featuredPartners, featuredMembersMode, wipPages }] = await Promise.all([
     getTranslations(),
     fetchPageData(),
   ]);
@@ -150,6 +158,25 @@ export default async function AdminWebsitePage() {
             badge={peopleTotal}
           >
             <InlinePeopleManager people={people} peopleCounts={peopleCounts} />
+          </CollapsibleSection>
+        </div>
+
+        {/* ── Work in Progress ───────────────────────────────────── */}
+        <div style={{ marginTop: "0.75rem" }}>
+          <CollapsibleSection
+            icon={<Construction size={14} />}
+            title={t("admin.website.wipPages.title")}
+            description={t("admin.website.wipPages.description")}
+            summary={
+              wipPages.length === 0
+                ? t("admin.website.wipPages.summaryNone")
+                : wipPages.length === 1
+                  ? t("admin.website.wipPages.summaryActive", { count: 1 })
+                  : t("admin.website.wipPages.summaryActivePlural", { count: wipPages.length })
+            }
+            badge={wipPages.length > 0 ? wipPages.length : undefined}
+          >
+            <WipPagesPicker initialWipPages={wipPages} />
           </CollapsibleSection>
         </div>
       </div>
