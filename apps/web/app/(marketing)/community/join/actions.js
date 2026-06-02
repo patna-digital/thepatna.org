@@ -193,6 +193,7 @@ export async function submitCommunityApplicationAction(_previousState, formData)
 
   return {
     status: "success",
+    firstName,
     message:
       "Your application has been submitted. PATNA will review it, route it to interview where relevant, and assign cohort fit internally.",
   };

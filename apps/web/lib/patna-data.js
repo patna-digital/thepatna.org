@@ -526,7 +526,7 @@ export const leapPhases = [
     period: "January – December 2026",
     scope: "Continental + ACP+ inter-regional engagement",
     keyContext: "NZF formal adoption expected at MEPC 84, 2026",
-    body: "Phase III is Africa's full-cycle continental coordination system for the most consequential year in maritime governance history. The IMO's Net-Zero Framework — the world's first binding GHG regulation for an entire global industry — is expected to be formally adopted at MEPC 84 in 2026. PATNA is operating across five workstreams: a fellowship programme deploying trained African negotiators into at least five delegations; multilingual policy outputs in English, French, and Portuguese; four NZF evidence modules covering freight costs, emissions inventories, just transition fund governance, and port readiness; and active engagement at the AU STC-T&E, where Africa's Continental Maritime Decarbonisation Strategy was formally adopted in April 2026. Critically: PATNA's sustained technical advocacy across Phase III contributed to the IMO's decision to adjourn formal adoption of the Net-Zero Framework by one year — securing additional time for the development of guidelines and the equity provisions that protect African states' interests.",
+    body: "Phase III is Africa's full-cycle continental coordination system for the most consequential year in maritime governance history. The IMO's Net-Zero Framework — the world's first binding GHG regulation for an entire global industry — is expected to be formally adopted at MEPC 84 in 2026. PATNA is operating across five workstreams: a fellowship programme deploying trained African negotiators into at least five delegations; multilingual policy outputs in English, French, and Portuguese; four NZF evidence modules covering freight costs, emissions inventories, just transition fund governance, and port readiness; and active engagement at the AU STC-T&E, where Africa's Continental Maritime Decarbonisation Strategy was formally adopted in April 2026. At ISWG-GHG 21 and MEPC 84, PATNA's research and technical support helped Africa's delegations contribute meaningfully to developing implementation guidelines for the IMO's Net-Zero Framework and to decision-making on equity provisions that reflect African states' interests.",
     sourceUrl: "/projects/leap-phase-iii",
   },
 ];
@@ -642,8 +642,8 @@ export const storyTimeline = [
   },
   {
     year: "Apr 2026",
-    title: "Continental Strategy Adopted & NZF Adjournment",
-    body: "Africa's Continental Maritime Decarbonisation Strategy adopted at AU STC-T&E 5th Ordinary Session. PATNA lead technical consultant. At ISWG-GHG 21: PATNA's advocacy contributed to the IMO's decision to adjourn formal NZF adoption by one year, securing additional time for equity provisions.",
+    title: "Continental Strategy Adopted & IMO Participation",
+    body: "Africa's Continental Maritime Decarbonisation Strategy adopted at AU STC-T&E 5th Ordinary Session. PATNA lead technical consultant. At ISWG-GHG 21 and MEPC 84: PATNA's research and technical support helped Africa's delegation contribute meaningfully to the development of guidelines for the IMO's Net-Zero Framework and decision-making on equity provisions in the transition.",
     active: true,
   },
 ];
