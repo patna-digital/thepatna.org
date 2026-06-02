@@ -332,7 +332,13 @@
     "ctaTitle": "Your expertise belongs in these rooms.",
     "ctaDesc": "Apply to join PATNA's next cohort or become a community member. Africa's positions at the IMO and beyond are shaped in part by the people in this network.",
     "ctaPrimary": "Apply to Join →",
-    "ctaSecondary": "Commission PATNA"
+    "ctaSecondary": "Commission PATNA",
+    "memberExpLabel": "Community Life",
+    "memberExpTitle": "What it means to be part of PATNA",
+    "memberExpDesc": "PATNA members work at the intersection of policy, research, and practice. Through cohort participation, thematic working groups, and direct delegation support, members contribute evidence that shapes how African states engage in global climate and maritime governance.",
+    "memberExpCta": "Join the community →",
+    "networkNext": "Next",
+    "networkPrev": "Previous"
   },
   "workWithUs": {
     "label": "Work With Us",
@@ -409,7 +415,7 @@
     "conveningLabel": "Regional Convenings",
     "conveningTitle": "Summits, workshops, and diplomatic forums",
     "conveningSubtitle": "High-level gatherings that translate technical evidence into coordinated African positions — and build the relationships that make collective action possible.",
-    "timelineLabel": "Programme Timeline",
+    "timelineLabel": "Journey",
     "timelineTitle": "From LEAP to a permanent African institution",
     "ctaTitle": "Engage with PATNA's project work",
     "ctaSubtitle": "Collaborate, contribute evidence, or support the next phase of Africa-centred maritime climate research.",
@@ -428,7 +434,6 @@
     "conveningsLabel": "Regional Convenings",
     "conveningsH2": "Workshops, summits & delegations",
     "conveningsDesc": "High-impact events that build African coordination capacity and deliver unified positions at international forums.",
-    "timelineLabel": "Journey",
     "timelineH2": "Programme timeline",
     "timelineDesc": "A three-phase journey from foundational country analysis to a permanent African coordination platform.",
     "footprintLabel": "Reach",

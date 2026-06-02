@@ -19350,6 +19350,30 @@ body.patna-assistant-body-locked {
   transform: translateY(-2px);
 }
 
+.feat-member-exp {
+  cursor: default;
+}
+.feat-member-exp:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.feat-cohorts-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.feat-cohorts-stack .cohort-card {
+  padding: 1.5rem 1.5rem;
+}
+
+.feat-cohorts-stack .cohort-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0.875rem;
+}
+
 .feat-main-img {
   height: 340px;
   position: relative;
@@ -19698,6 +19722,41 @@ body.patna-assistant-body-locked {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.28);
   margin-top: 6px;
+}
+
+.v3-members-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.v3-members-page-btn {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mist);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(225, 240, 247, 0.3);
+  padding-bottom: 2px;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.v3-members-page-btn:hover {
+  color: var(--white);
+  border-color: rgba(225, 240, 247, 0.7);
+}
+
+.v3-members-page-btn--disabled {
+  opacity: 0.3;
+  cursor: default;
+  border-bottom-color: transparent;
+}
+
+.v3-members-page-count {
+  font-size: 12px;
+  color: rgba(225, 240, 247, 0.45);
+  font-variant-numeric: tabular-nums;
 }
 
 .cohort-features,
