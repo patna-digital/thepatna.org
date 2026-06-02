@@ -4,7 +4,6 @@ import {
   storyTimeline,
   boardMembers   as staticBoardMembers,
   secretariatMembers as staticSecretariatMembers,
-  researchLeadership as staticResearchLeadership,
   partnerGroups,
 } from "@/lib/patna-data";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -45,8 +44,7 @@ async function fetchPeopleProfiles() {
 
     const board       = data.filter((p) => p.section === "board");
     const secretariat = data.filter((p) => p.section === "secretariat");
-    const research    = data.filter((p) => p.section === "research");
-    return { board, secretariat, research, fromDb: true };
+    return { board, secretariat, fromDb: true };
   } catch {
     // Graceful fallback to static data (migration not yet run, or table empty)
     return {
@@ -58,17 +56,13 @@ async function fetchPeopleProfiles() {
         id: String(i), full_name: m.name, title: m.title, organisation: null,
         bio: m.bio, email: m.contact, linkedin_url: null, photo_url: null,
       })),
-      research: staticResearchLeadership.map((m, i) => ({
-        id: String(i), full_name: m.name, title: m.title, organisation: null,
-        bio: m.body, email: null, linkedin_url: null, photo_url: null,
-      })),
       fromDb: false,
     };
   }
 }
 
 export default async function AboutPage() {
-  const [t, { board, secretariat, research }] = await Promise.all([
+  const [t, { board, secretariat }] = await Promise.all([
     getTranslations(),
     fetchPeopleProfiles(),
   ]);
