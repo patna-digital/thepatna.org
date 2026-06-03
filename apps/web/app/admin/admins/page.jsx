@@ -8,6 +8,8 @@ function getNoticeMessage(notice) {
   const messages = {
     granted: "Admin access granted.",
     revoked: "Admin access removed.",
+    invited: "Invitation sent. Admin access will be granted as soon as they complete account setup.",
+    "invite-failed": "Could not send an invitation to that email address. It may already be registered.",
     "not-found": "No PATNA account found for that email address.",
     "already-admin": "That user is already an admin.",
     "cannot-remove-self": "You cannot remove your own admin access.",
@@ -69,7 +71,7 @@ export default async function AdminAdminsPage({ searchParams }) {
       subtitle="Manage who has administrator access to the PATNA portal."
     >
       {noticeMessage && (
-        <div className={`notice-banner ${notice === "granted" || notice === "revoked" ? "notice-success" : "notice-error"}`}>
+        <div className={`notice-banner ${["granted", "revoked", "invited"].includes(notice) ? "notice-success" : "notice-error"}`}>
           {noticeMessage}
         </div>
       )}

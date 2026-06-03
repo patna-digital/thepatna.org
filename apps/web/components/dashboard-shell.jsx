@@ -211,6 +211,18 @@ export function DashboardShell({
         </nav>
 
         <div className="sidebar-footer">
+          {brandHref === "/admin" && (
+            <div className="sidebar-site-links">
+              <Link href="/" className="sidebar-site-link" target="_blank" rel="noreferrer">
+                <Globe size={13} aria-hidden="true" />
+                View website
+              </Link>
+              <Link href="/community" className="sidebar-site-link" target="_blank" rel="noreferrer">
+                <UsersRound size={13} aria-hidden="true" />
+                View community
+              </Link>
+            </div>
+          )}
           <LanguageSelector variant="sidebar" />
           <div className="sidebar-utility-nav">
             <SignOutButton />

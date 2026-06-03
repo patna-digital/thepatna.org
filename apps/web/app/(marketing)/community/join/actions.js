@@ -5,6 +5,9 @@ import { sendAccessSetupEmail } from "@/lib/access-emails";
 import { provisionMemberFromApplication } from "@/lib/member-provisioning";
 import { syncCommunityApplicationAssistantDocument } from "@/lib/assistant-indexing";
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { sendBatch } from "@/lib/email/resend";
+import { applicationNotificationEmailHtml } from "@/lib/email/templates/application-notification";
+import { getSiteUrl } from "@/lib/env";
 
 export async function submitCommunityApplicationAction(_previousState, formData) {
   if (!canUseSupabaseAdmin()) {
@@ -189,6 +192,42 @@ export async function submitCommunityApplicationAction(_previousState, formData)
     });
   } catch (assistantError) {
     console.error("submitCommunityApplicationAction assistant sync error:", assistantError);
+  }
+
+  // Notify all admins
+  try {
+    const { data: adminRows } = await supabase
+      .from("user_roles")
+      .select("profiles(email)")
+      .eq("role", "administrator");
+
+    const adminEmails = (adminRows || [])
+      .map((r) => r.profiles?.email)
+      .filter(Boolean);
+
+    if (adminEmails.length > 0) {
+      const motivationSnippet =
+        motivationText.length > 220
+          ? motivationText.slice(0, 220).trimEnd() + "…"
+          : motivationText;
+
+      await sendBatch(
+        adminEmails.map((to) => ({
+          to,
+          subject: `New PATNA application: ${firstName} ${surname}`,
+          html: applicationNotificationEmailHtml({
+            applicantName: `${firstName} ${surname}`,
+            applicantEmail: email,
+            country: country || null,
+            organisation: organisation || null,
+            motivationSnippet,
+            reviewLink: `${getSiteUrl()}/admin/applications`,
+          }),
+        }))
+      );
+    }
+  } catch (notifyError) {
+    console.error("submitCommunityApplicationAction admin notify error:", notifyError);
   }
 
   return {
