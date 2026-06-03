@@ -8,6 +8,8 @@ import {
 } from "@/lib/patna-data";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "About",
   description:
@@ -46,18 +48,21 @@ async function fetchPeopleProfiles() {
     const secretariat = data.filter((p) => p.section === "secretariat");
     return { board, secretariat, fromDb: true };
   } catch {
-    // Graceful fallback to static data (migration not yet run, or table empty)
-    return {
-      board: staticBoardMembers.map((m, i) => ({
-        id: String(i), full_name: m.name, title: m.title, organisation: m.org,
-        bio: m.bio, email: null, linkedin_url: null, photo_url: null,
-      })),
-      secretariat: staticSecretariatMembers.map((m, i) => ({
-        id: String(i), full_name: m.name, title: m.title, organisation: null,
-        bio: m.bio, email: m.contact, linkedin_url: null, photo_url: null,
-      })),
-      fromDb: false,
-    };
+    try {
+      return {
+        board: staticBoardMembers.map((m, i) => ({
+          id: String(i), full_name: m.name, title: m.title, organisation: m.org,
+          bio: m.bio, email: null, linkedin_url: null, photo_url: null,
+        })),
+        secretariat: staticSecretariatMembers.map((m, i) => ({
+          id: String(i), full_name: m.name, title: m.title, organisation: null,
+          bio: m.bio, email: m.contact, linkedin_url: null, photo_url: null,
+        })),
+        fromDb: false,
+      };
+    } catch {
+      return { board: [], secretariat: [], fromDb: false };
+    }
   }
 }
 

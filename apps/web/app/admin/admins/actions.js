@@ -23,8 +23,26 @@ export async function grantAdminRoleAction(formData) {
     .eq("email", email)
     .maybeSingle();
 
-  if (lookupError || !profile) {
-    redirect("/admin/admins?notice=not-found");
+  if (lookupError) {
+    redirect("/admin/admins?notice=error");
+  }
+
+  // No PATNA account yet — invite them and pre-grant admin role
+  if (!profile) {
+    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email);
+    if (inviteError || !inviteData?.user?.id) {
+      redirect("/admin/admins?notice=invite-failed");
+    }
+
+    const { error: preGrantError } = await adminClient
+      .from("user_roles")
+      .insert({ user_id: inviteData.user.id, role: "administrator" });
+
+    if (preGrantError) {
+      redirect("/admin/admins?notice=error");
+    }
+
+    redirect("/admin/admins?notice=invited");
   }
 
   if (profile.id === user.id) {

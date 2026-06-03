@@ -82,7 +82,7 @@ export function AdminAdminsList({ admins, currentUserId, isSuperAdmin }) {
             <div>
               <h3 className="card-heading">Add an admin</h3>
               <p className="text-muted">
-                The user must already have a PATNA account. Enter their email address to grant administrator access.
+                Enter an email address to grant administrator access. If the person doesn&apos;t have a PATNA account yet, they will receive an invitation email and admin access will be pre-granted for when they complete sign-up.
               </p>
             </div>
             <form
