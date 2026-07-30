@@ -321,6 +321,20 @@ export async function requirePublicationManagerContext() {
   return context;
 }
 
+export async function requireStaffContext() {
+  const context = await getCurrentUserContext({ includeProfile: true, includeRoles: true });
+
+  if (!context.user) {
+    redirect("/auth/login?next=/app/daily-log");
+  }
+
+  if (!context.roles.includes("staff")) {
+    redirect("/app");
+  }
+
+  return context;
+}
+
 export async function requireSuperAdminContext() {
   const context = await requireAdminContext();
 
