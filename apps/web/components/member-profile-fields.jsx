@@ -12,7 +12,7 @@ import {
 import { splitLanguages, STANDARD_LANGUAGE_OPTIONS } from "@/lib/profile-structured-fields";
 import { RelevantProjectsFields } from "@/components/relevant-projects-fields";
 
-function Field({ children, help = "", label, className = "" }) {
+export function Field({ children, help = "", label, className = "" }) {
   return (
     <label className={`member-profile-field${className ? ` ${className}` : ""}`}>
       <span className="member-profile-field-label">{label}</span>
@@ -22,7 +22,7 @@ function Field({ children, help = "", label, className = "" }) {
   );
 }
 
-function ChoiceCard({
+export function ChoiceCard({
   defaultChecked = false,
   label,
   name,
@@ -37,7 +37,7 @@ function ChoiceCard({
   );
 }
 
-function ChoiceFieldset({ children, description = "", legend }) {
+export function ChoiceFieldset({ children, description = "", legend }) {
   return (
     <fieldset className="member-profile-choice-fieldset">
       <legend>{legend}</legend>

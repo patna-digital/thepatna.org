@@ -766,6 +766,7 @@ export const memberNav = [
   { href: "/app/events", label: "Events", icon: "CalendarCheck" },
   { href: "/app/publications", label: "Publications", icon: "BookOpen" },
   { href: "/app/calendar", label: "Calendar", icon: "CalendarDays" },
+  { href: "/app/daily-log", label: "Daily Log", icon: "CalendarCheck" },
   { href: "/app/settings", label: "Settings", icon: "Settings" },
 ];
 
@@ -778,6 +779,7 @@ export const adminNav = [
       { href: "/admin", label: "Overview", icon: "LayoutDashboard" },
       { href: "/admin/applications", label: "Applications", icon: "ClipboardList", badge: 4, highlight: true },
       { href: "/admin/members", label: "Members", icon: "Users" },
+      { href: "/admin/staff", label: "Staff", icon: "Users" },
     ],
   },
   {

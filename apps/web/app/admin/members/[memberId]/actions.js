@@ -86,7 +86,7 @@ export async function updateMemberRoleAction(formData) {
   const role = String(formData.get("role") || "").trim();
   const action = String(formData.get("action") || "").trim();
 
-  const ALLOWED_ROLES = ["member", "administrator"];
+  const ALLOWED_ROLES = ["member", "administrator", "staff"];
 
   if (!memberId || !ALLOWED_ROLES.includes(role) || !["grant", "revoke"].includes(action)) {
     redirect(buildReturnPath(memberId || "", "role-error"));

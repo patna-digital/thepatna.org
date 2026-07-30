@@ -5206,6 +5206,41 @@ address.legal-address a {
   text-underline-offset: 2px;
 }
 
+/* Submit button colour variants — match the pathway card accent colours */
+.join-submit-btn[data-variant="support"] { background: #b06000; }
+.join-submit-btn[data-variant="support"]:hover:not(:disabled) { background: #8f4d00; }
+
+.join-submit-btn[data-variant="collaborate"] { background: var(--green-dark); }
+.join-submit-btn[data-variant="collaborate"]:hover:not(:disabled) { background: #145538; }
+
+.join-success-mark[data-variant="support"] {
+  background: linear-gradient(135deg, #b06000 0%, #d4830a 100%);
+  box-shadow: 0 8px 24px rgba(176, 96, 0, 0.28);
+}
+
+.join-success-mark[data-variant="collaborate"] {
+  background: linear-gradient(135deg, var(--green-dark) 0%, #2a9463 100%);
+  box-shadow: 0 8px 24px rgba(26, 107, 74, 0.28);
+}
+
+.join-success-eyebrow[data-variant="support"] { color: #b06000; }
+.join-success-eyebrow[data-variant="collaborate"] { color: var(--green-dark); }
+
+/* Plain (non-card) form column — the form itself supplies the card styling */
+.wwu-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.wwu-form-col h3 {
+  margin: 0;
+}
+
+.wwu-form-col .muted-note {
+  margin: -0.75rem 0 0;
+}
+
 /* ── Success / What's Next ── */
 .join-success {
   width: 100%;

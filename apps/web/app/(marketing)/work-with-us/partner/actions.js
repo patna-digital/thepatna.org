@@ -1,6 +1,7 @@
 "use server";
 
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { notifyAdminsOfNewLead } from "@/lib/lead-notifications";
 
 function parseText(formData, key) {
   return String(formData.get(key) || "").trim();
@@ -39,6 +40,22 @@ export async function submitPartnershipEnquiryAction(_previousState, formData) {
   if (error) {
     return { status: "error", message: "Something went wrong. Please try again or email us directly." };
   }
+
+  await notifyAdminsOfNewLead(supabase, {
+    subject: `New PATNA partnership enquiry: ${organisation}`,
+    heading: "New partnership enquiry received",
+    fields: [
+      { label: "Organisation", value: organisation },
+      { label: "Contact name", value: name },
+      { label: "Email", value: email },
+      { label: "Organisation type", value: orgType },
+      { label: "Focus areas", value: focusAreas },
+      { label: "Budget range", value: budgetRange },
+    ],
+    detailLabel: "Success definition",
+    detailText: successDefinition,
+    reviewPath: "/admin/partnership-leads",
+  });
 
   return { status: "success", message: "Thank you — your enquiry has been received. PATNA will be in touch shortly." };
 }

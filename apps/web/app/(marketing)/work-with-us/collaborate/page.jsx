@@ -29,13 +29,13 @@ export default function CollaboratePage() {
               </ul>
             </article>
 
-            <article className="content-card">
+            <div className="wwu-form-col">
               <h3>Send your collaboration proposal</h3>
               <p className="muted-note">
                 Outline the idea, your contribution, and the public value or outcome the initiative should create.
               </p>
               <CollaborationProposalForm />
-            </article>
+            </div>
           </div>
         </div>
       </section>

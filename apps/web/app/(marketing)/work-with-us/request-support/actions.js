@@ -1,6 +1,7 @@
 "use server";
 
 import { canUseSupabaseAdmin, createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { notifyAdminsOfNewLead } from "@/lib/lead-notifications";
 
 function parseText(formData, key) {
   return String(formData.get(key) || "").trim();
@@ -41,6 +42,22 @@ export async function submitServiceRequestAction(_previousState, formData) {
   if (error) {
     return { status: "error", message: "Something went wrong. Please try again or email us directly." };
   }
+
+  await notifyAdminsOfNewLead(supabase, {
+    subject: `New PATNA support request: ${requesterName}`,
+    heading: "New support request received",
+    fields: [
+      { label: "Requester name", value: requesterName },
+      { label: "Email", value: requesterEmail },
+      { label: "Organisation", value: organisation },
+      { label: "Request type", value: requestType },
+      { label: "Country", value: country },
+      { label: "Timeline", value: timeline },
+    ],
+    detailLabel: "Request details",
+    detailText: details,
+    reviewPath: "/admin/service-requests",
+  });
 
   return { status: "success", message: "Thank you — your request has been received. PATNA will review it and be in touch shortly." };
 }

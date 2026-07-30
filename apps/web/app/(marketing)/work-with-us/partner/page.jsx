@@ -29,13 +29,13 @@ export default function PartnershipPage() {
               </ul>
             </article>
 
-            <article className="content-card">
+            <div className="wwu-form-col">
               <h3>Send a partnership enquiry</h3>
               <p className="muted-note">
                 PATNA will route your enquiry to the right programme or leadership contact and respond directly.
               </p>
               <PartnershipEnquiryForm />
-            </article>
+            </div>
           </div>
         </div>
       </section>
