@@ -29,13 +29,13 @@ export default function RequestSupportPage() {
               </ul>
             </article>
 
-            <article className="content-card">
+            <div className="wwu-form-col">
               <h3>Submit a support request</h3>
               <p className="muted-note">
                 Include the institution you represent, the decision context, the support needed, and any time-sensitive milestones.
               </p>
               <ServiceRequestForm />
-            </article>
+            </div>
           </div>
         </div>
       </section>

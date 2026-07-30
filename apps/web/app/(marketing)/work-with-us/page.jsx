@@ -36,6 +36,7 @@ export default async function WorkWithUsPage() {
       title: t("workWithUs.pathway1Title"),
       audience: t("workWithUs.pathway1Audience"),
       desc: t("workWithUs.pathway1Desc"),
+      items: [t("workWithUs.pathway1Item1"), t("workWithUs.pathway1Item2"), t("workWithUs.pathway1Item3")],
       href: "/work-with-us/partner",
       cta: t("workWithUs.pathway1Cta"),
     },
@@ -46,6 +47,7 @@ export default async function WorkWithUsPage() {
       title: t("workWithUs.pathway2Title"),
       audience: t("workWithUs.pathway2Audience"),
       desc: t("workWithUs.pathway2Desc"),
+      items: [t("workWithUs.pathway2Item1"), t("workWithUs.pathway2Item2"), t("workWithUs.pathway2Item3")],
       href: "/work-with-us/request-support",
       cta: t("workWithUs.pathway2Cta"),
     },
@@ -56,16 +58,10 @@ export default async function WorkWithUsPage() {
       title: t("workWithUs.pathway3Title"),
       audience: t("workWithUs.pathway3Audience"),
       desc: t("workWithUs.pathway3Desc"),
+      items: [t("workWithUs.pathway3Item1"), t("workWithUs.pathway3Item2"), t("workWithUs.pathway3Item3")],
       href: "/work-with-us/collaborate",
       cta: t("workWithUs.pathway3Cta"),
     },
-  ];
-
-  const contactItems = [
-    t("workWithUs.contactItem1"),
-    t("workWithUs.contactItem2"),
-    t("workWithUs.contactItem3"),
-    t("workWithUs.contactItem4"),
   ];
 
   return (
@@ -98,42 +94,36 @@ export default async function WorkWithUsPage() {
           </h2>
         </div>
 
-        <div className="pathway-layout">
-          {/* Left: General contact — always-relevant entry point */}
-          <div className="pathway-featured-contact">
-            <div className="pathway-featured-contact-tag">{t("workWithUs.contactTag")}</div>
-            <h3 className="pathway-featured-contact-title">{t("workWithUs.contactTitle")}</h3>
-            <p className="pathway-featured-contact-audience">{t("workWithUs.contactAudience")}</p>
-            <p className="pathway-featured-contact-desc">{t("workWithUs.contactDesc")}</p>
-            <ul className="pathway-featured-contact-items">
-              {contactItems.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <Link className="pathway-featured-contact-cta" href="/contact">
-              {t("workWithUs.contactCta")}
-            </Link>
-          </div>
+        <div className="pathway-grid">
+          {pathways.map((p) => (
+            <article className="pathway-card" data-type={p.type} key={p.type}>
+              <div className="pathway-card-icon">{p.icon}</div>
+              <div className="pathway-card-tag">{p.tag}</div>
+              <h3 className="pathway-card-title">{p.title}</h3>
+              <div className="pathway-card-audience">{p.audience}</div>
+              <p className="pathway-card-desc">{p.desc}</p>
+              <ul className="pathway-card-items">
+                {p.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <Link className="pathway-card-cta" href={p.href}>
+                {p.cta}
+              </Link>
+            </article>
+          ))}
+        </div>
 
-          {/* Right: Three specific routes stacked */}
-          <div className="pathway-routes">
-            {pathways.map((p) => (
-              <article className="pathway-card" data-type={p.type} key={p.type}>
-                <div className="pathway-card-header">
-                  <div className="pathway-card-icon">{p.icon}</div>
-                  <div>
-                    <div className="pathway-card-tag">{p.tag}</div>
-                    <h3 className="pathway-card-title">{p.title}</h3>
-                  </div>
-                </div>
-                <div className="pathway-card-audience">{p.audience}</div>
-                <p className="pathway-card-desc">{p.desc}</p>
-                <Link className="pathway-card-cta" href={p.href}>
-                  {p.cta}
-                </Link>
-              </article>
-            ))}
+        <div className="pathway-contact-strip">
+          <div className="pathway-contact-strip-text">
+            <span className="pathway-contact-strip-label">{t("workWithUs.contactTag")}</span>
+            <p>
+              <strong>{t("workWithUs.contactTitle")}</strong> {t("workWithUs.contactDesc")}
+            </p>
           </div>
+          <Link className="pathway-contact-strip-link" href="/contact">
+            {t("workWithUs.contactCta")}
+          </Link>
         </div>
       </section>
 
