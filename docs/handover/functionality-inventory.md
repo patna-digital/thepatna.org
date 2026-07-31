@@ -80,6 +80,7 @@ Last built: 2026-07-30, by reading the actual codebase (including features not y
 - Per-user notification preferences (in-app vs email, digest frequency, broadcast opt-out).
 - Emails sent today, and who they go to:
   - New public application → all admins.
+  - New partnership/collaboration/support-request lead (the "Work with us" forms) → all admins. *(Added 2026-07-30 — previously nothing was sent here at all; see the fix plan.)*
   - Application assigned to a reviewer → that admin.
   - Member/staff invite or password reset → the invitee (via Supabase's own auth email, not a custom template).
   - New administrator granted → that person (welcome email).

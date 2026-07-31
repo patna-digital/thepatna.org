@@ -155,17 +155,23 @@ Deactivated members still receive admin broadcast messages (see Process 4) — t
 
 ## Process 6: Lead handling (Partner / Collaborate / Request-support forms)
 
+> ✅ **Update (2026-07-30):** the notification gap described below has been fixed — see "What changed" at the end of this section. Steps 1–5 below are left as originally written for the historical record of how the process behaves once a lead is in the system; only the "no one is told" gap has been closed.
+
 ### Step-by-step
 
 1. An external visitor fills in one of three public forms under "Work with us": **Partner**, **Collaborate**, or **Request support** — each collects contact details plus form-specific fields (e.g. budget range for partnerships, a proposal for collaborations, request details and timeline for support requests).
-2. On submit, it's saved straight into the relevant pipeline (partnership leads / collaboration leads / service requests) with status "new." **No email is sent to anyone — not a confirmation to the submitter, and not an alert to any admin.** The only signal is a small unread-count badge next to "Leads" in the admin sidebar, visible only if an admin happens to be logged in and looking at it.
-3. Admin has to proactively check **Admin → Leads** (a unified view of all three pipelines, or the three separate list pages) to discover new enquiries. Each lead can be opened and edited: status (each pipeline has its own set of stages ending in something like `closed_won`/`closed_lost`, `agreed`/`declined`, or `completed`/`cancelled`), and who internally is "assigned to" it.
+2. On submit, it's saved straight into the relevant pipeline (partnership leads / collaboration leads / service requests) with status "new." **Every administrator is now emailed automatically** with the submitter's details and a direct link into the right admin review screen (fixed 2026-07-30 — previously nothing was sent; see below). There is still no confirmation email to the submitter themselves — only the on-screen "thank you" message.
+3. Admin opens **Admin → Leads** (a unified view of all three pipelines, or the three separate list pages) — now prompted to by the email in step 2, rather than having to remember to check. Each lead can be opened and edited: status (each pipeline has its own set of stages ending in something like `closed_won`/`closed_lost`, `agreed`/`declined`, or `completed`/`cancelled`), and who internally is "assigned to" it.
 4. Progressing or closing a lead is purely a matter of manually changing its status and saving — nothing else happens automatically, and assigning it to a colleague doesn't notify them either.
-5. There's no notes field, no follow-up date, and no reminder/SLA system anywhere in this pipeline — keeping leads moving relies entirely on an admin remembering to revisit them.
+5. There's still no notes field, no follow-up date, and no reminder/SLA system anywhere in this pipeline — once an admin has seen the initial alert, keeping a lead moving after that still relies on them remembering to revisit it.
 
-### Gap to flag — this is the most serious one in this document
+### What changed
 
-**A real partnership enquiry, collaboration proposal, or support request can arrive and sit completely unseen indefinitely.** There is no email alert to any admin when one comes in — only a small sidebar badge that nobody is prompted to look at. If PATNA is currently relying on staff happening to check the admin panel regularly, that's a real business risk, not just a UX gap. This should be one of the first things fixed (see the fix plan).
+Previously, a real partnership enquiry, collaboration proposal, or support request could arrive and sit completely unseen indefinitely — there was no email alert to any admin, only a small sidebar badge nobody was prompted to look at. This was flagged as the most serious gap in this document.
+
+**Fixed 2026-07-30** ([PR #58](https://github.com/patna-digital/thepatna.org/pull/58)): every administrator now receives an email the moment any of the three forms is submitted, using the same branded template pattern as the existing "new community application" alert. New files: `apps/web/lib/email/templates/lead-notification.js`, `apps/web/lib/lead-notifications.js`; wired into all three forms' submit actions.
+
+**Still open:** no confirmation email to the person submitting the form, and no follow-up/reminder system once an admin has seen the alert (see the fix plan for both).
 
 ---
 
