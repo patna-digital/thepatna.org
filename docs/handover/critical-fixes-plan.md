@@ -4,7 +4,7 @@ This plan covers every gap flagged in [functionality-inventory.md](functionality
 
 **Updated** after fully documenting the other ten manual processes (see manual-processes.md) — several new issues surfaced during that pass and are folded in below (marked *new*). One of them (§0, lead handling) is arguably the single highest-risk item in this whole document.
 
-Nothing here has been implemented yet — this is the plan to review and approve before I (or the incoming developer) start building.
+**Status (2026-07-30): item 8 (lead notifications) has been built and shipped in [PR #58](https://github.com/patna-digital/thepatna.org/pull/58).** Everything else below is still a plan to review and approve before further building happens.
 
 ---
 
@@ -111,19 +111,17 @@ Tracing the remaining ten manual processes (event moderation, lead handling, edi
 
 ### P0 — highest risk found in this whole review
 
-**8. No admin is ever notified when a partnership, collaboration, or support-request enquiry comes in.**
+**8. No admin is ever notified when a partnership, collaboration, or support-request enquiry comes in.** ✅ **FIXED — 2026-07-30**
 
-**Problem:** The three public "Work with us" forms save straight into the database with zero email alert to anyone. The only signal is a small unread-count badge in the admin sidebar — visible only if an admin happens to be logged in and looking at it.
+**Problem (historical):** The three public "Work with us" forms saved straight into the database with zero email alert to anyone. The only signal was a small unread-count badge in the admin sidebar — visible only if an admin happened to be logged in and looking at it.
 
-**Why it matters:** This is arguably worse than the applicant-email gaps above, because it's not a communication nicety — it's real business development (partnerships, funding collaborations, service requests) that can sit completely unseen indefinitely. If PATNA has been relying on staff remembering to check the admin panel, some enquiries may already have been missed.
+**Why it mattered:** This was arguably worse than the applicant-email gaps above, because it's not a communication nicety — it's real business development (partnerships, funding collaborations, service requests) that could sit completely unseen indefinitely.
 
-**Proposed fix:** Send an email (same pattern as the existing "new application" admin alert — reuse `apps/web/lib/email/resend.js` + a new branded template) to relevant admins whenever a row is inserted into `partnership_leads`, `collaboration_leads`, or `service_requests`. Straightforward, low-risk — the application-notification flow is a working template to copy.
+**What was built:** Every administrator is now emailed automatically the moment any of the three forms is submitted, using the same branded template pattern as the existing "new community application" alert. New files: `apps/web/lib/email/templates/lead-notification.js` (shared template) and `apps/web/lib/lead-notifications.js` (shared helper — looks up all administrators, sends via Resend). Wired into the submit actions for all three forms: `apps/web/app/(marketing)/work-with-us/{partner,collaborate,request-support}/actions.js`. Verified with a full `pnpm build` before merge. Shipped in [PR #58](https://github.com/patna-digital/thepatna.org/pull/58).
 
-**Needs your input:** Who should receive each type of lead email (all admins, or a specific person per pipeline)?
+**Resolved the "needs your input" question by defaulting to:** all administrators receive every lead email, regardless of type — no per-pipeline routing. Revisit if PATNA later wants specific people owning specific pipelines.
 
-**Effort:** Small–Medium (half a day, mirrors work already done for applications).
-
-**Priority: fix this first**, ahead of even the NDA/cohort items above, given the potential real-world cost of a missed enquiry.
+**Still not built** (lower priority, not part of this fix): no confirmation email to the person who submitted the form, and no follow-up/reminder/SLA system once an admin has seen the alert — see item 16 below.
 
 ---
 
@@ -161,11 +159,13 @@ Tracing the remaining ten manual processes (event moderation, lead handling, edi
 
 ## Suggested order of work
 
-1. Fix item 8 (lead notifications) first — it's the highest real-world cost of anything in this document.
-2. Get your decisions on items 1 and 2 (the two original P0s — NDA/Code of Conduct and cohort override) — these are policy questions as much as engineering ones.
+1. ~~Fix item 8 (lead notifications) first — it's the highest real-world cost of anything in this document.~~ **✅ Done 2026-07-30 — see item 8 above.**
+2. Get your decisions on items 1 and 2 (the two original P0s — NDA/Code of Conduct and cohort override) — these are policy questions as much as engineering ones. **Next up.**
 3. Verify item 9 (Featured Partners) against the live site and decide the fix direction.
 4. Ship items 3–5 and 10–13 — independent, lower-risk, mostly need copy sign-off or are self-contained bug fixes.
 5. Flag item 6 (Supabase email branding) to whoever holds Supabase dashboard access.
 6. Note items 7, 14, 15, and 16 in the handover as known, deliberate non-fixes — decide later if priorities change.
+
+**Status as of 2026-07-30:** 1 of 16 items resolved (item 8). Everything else in this document is still open.
 
 Let me know which items you want copy drafted for, or if you'd like me to start building any of these now.
